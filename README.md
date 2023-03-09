@@ -32,9 +32,12 @@ by following steps.
     ```bash
     git clone https://www.github.com/initqp/somd
     cd somd
+    git submodule update --init
     ```
-    Note: if you proceeded your installation with the tarball downloaded
-    from GitHub, the version number of the installed package may be wrong.
+    Note: if you would like to proceed your installation with the tarball
+    downloaded from GitHub, you should manually download the NEP_CPU package
+    and put it in the `somd/somd/potentials/src` directory. Besides, the
+    version number of the installed package may be wrong.
 3. Install SOMD:
     ```bash
     python setup.py install
