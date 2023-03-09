@@ -1,0 +1,1452 @@
+# TOML Input References.
+
+This documentation briefly introduces SOMD's TOML format input file. If you
+are not familiar with TOML's grammar, you may want to read its
+[documentation](https://toml.io/) first. Similar to the TOML format itself,
+keys in SOMD's input files are case-sensitive (and are all in lower cases).
+But the option strings (excepting the keys that define file names) are
+case-insensitive.
+
+## Table of Contents
+
+1. [The `[system]` table.](#system)
+2. [The `[[group]]` array.](#group)
+3. [The `[[potential]]` array.](#potential)
+4. [The `[constraints]` table.](#constraints)
+5. [The `[integrator]` table.](#integrator)
+6. [The `[barostat]` table.](#barostat)
+7. [The `[[trajectory]]` array.](#trajectory)
+8. [The `[[logger]]` array.](#logger)
+9. [The `[run]` table.](#run)
+10. [The `[active_learning]` table.](#active_learning)
+11. [The `[[script]]` array.](#script)
+
+## The `[system]` table. <a name="system"></a>
+
+**If Mandatory**: yes
+
+**Default Value**: None
+
+**Descriptions**: This table defines the simulated system, including the atomic
+types, initial positions and simulation box.
+
+**Keys**:
+
+- **`structure`**
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: The initial structure file. This file could be in the
+    [POSCAR](https://www.vasp.at/wiki/index.php/POSCAR) or the
+    [PDB](http://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html)
+    format. SOMD will read the atomic types, atomic positions and the simulation
+    box from this file. Format of this file is identified by its extension name.
+    If the file does not contain a extension name, you could set the `format`
+    key in this table.
+
+- **`format`**
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Valid Values**: `"pdb"` or `"poscar"`
+
+    **Default Value**: None
+
+    **Descriptions**: The format of the structure file. If the structure file
+    does not contain an extension name, this option would be useful. Once this
+    key is defined, the extension name of the structure file will be ignored.
+
+- **`box`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[List[float]]`
+
+    **Dimension**: 3 * 3
+
+    **Unit**: nanometer
+
+    **Default Value**: None
+
+    **Descriptions**: The cell vectors of the simulated system. Once this value
+    is set, the cell vectors recorded in the structure file will be ignored.
+
+**Examples**:
+```toml
+[system]
+        structure = "H2O.pdb"
+        format = "pdb"
+        box = [
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0]]
+```
+
+## The `[[group]]` array. <a name="group"></a>
+
+**If Mandatory**: no
+
+**Default Value**: One atom group that corresponds to the whole simulated
+system.
+
+**Descriptions**: Each table in this array defines an atom group. You could
+define multiple atom groups.
+
+**Keys**:
+
+- **`atom_list`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[int]` or `str`
+
+    **Default Value**: None
+
+    **Descriptions**: Indices of atoms that belong to this group. The indices
+    may be represented by a list of integers, or a formatted string, which
+    could represent a range of atoms conveniently. For example, the following
+    two values of this key select same atoms:
+    ```toml
+    atom_list = [0, 1, 2, 5, 7, 8, 9]
+    ```
+    ```toml
+    atom_list = "0:2,5,7:9"
+    ```
+    If you would like to define a group that contains all atoms in the system,
+    you may invoke the following syntactic sugar:
+    ```toml
+    atom_list = "all"
+    ```
+
+    **Notes**: In SOMD, atom indices start from **ZERO**.
+
+- **`has_translations`**
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `true`
+
+    **Descriptions**: If this group has three translational degrees of freedom
+    (DOFs). As we know, for a homogeneous-phase 3D periodic atomic system,
+    the three total translational DOFs do not exchange energy with all other
+    DOFs. And for an adsorption model, the substrate does not have total
+    translational DOFs at all. As a result, when calculating temperatures and
+    performing thermostating, these DOFs should be excluded. To this end, you
+    should tell SOMD that weather the specified atom group contains
+    translational DOFs, and this is done by defining the "has_translations"
+    key. By setting this key to `false`, SOMD will subtract the number of DOFs
+    of this group by three, and regularly remove its total translational
+    momentums during the simulation (if your simulation undergoes a NVE
+    ensemble, after removing the total translational momentums, velocities of
+    atoms in this group will be scaled to conserve the total energy).
+
+    **Notes**:
+    1. If two atom groups contain same atoms, total translational DOFs of the
+       two groups must not absent at the same time. For example, define the
+       following two atom groups in the same input file will cause
+       **AN ERROR**:
+       ```toml
+       [[group]]
+               atom_list = [0, 1, 2, 3, 4, 5]
+               has_translations = false
+       [[group]]
+               atom_list = [3, 4, 5, 6, 7, 8]
+               has_translations = false
+       ```
+    2. If one group fully contains another group, and the smaller group does
+       not have the total translational DOFs, the number of DOFs of the larger
+       atom group will be modified as well. For example, under the following
+       settings, number of DOFs of `GROUP0` will be 27 and number of DOFs of
+       `GROUP1` will be 12.
+       ```toml
+       [[group]]
+               label = "GROUP0"
+               atom_list = "0:9"
+       [[group]]
+               label = "GROUP1"
+               atom_list = [0, 1, 2, 3, 4]
+               has_translations = false
+       ```
+    3. If you have not specified which atom group does not contain the
+       translational DOFs, SOMD will automatically remove the translational
+       DOFs of the whole simulated system.
+    4. If you failed to understand above descriptions, you could safely leave
+       this key alone, and SOMD will handle it for you.
+
+- **`initial_temperature`**
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Unit**: Kelvin
+
+    **Default Value**: None
+
+    **Descriptions**: Generate random initial velocities for atoms in this
+    group according to the Boltzmann distribution under a given temperature.
+
+    **Notes**: If you have also set the `initial_velocities` option, the
+    random velocities generated by this key will be added to the velocities
+    defined by that key.
+
+- **`initial_velocities`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[List[float]]`
+
+    **Dimension**: (number of atoms in this group) * 3
+
+    **Unit**: nanometer/picosecond
+
+    **Default Value**: None
+
+    **Descriptions**: The initial Cartesian velocities of each atom in this
+    group.
+
+    **Notes**: If you have also set the `initial_temperature` option, the
+    random velocities generated by that key will be added to the velocities
+    defined by this key.
+
+- **`label`**
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: `GROUPN`, where `N` is the index of the group.
+
+    **Descriptions**: A label of this group.
+
+**Examples**:
+```toml
+[[group]]
+        atom_list = "all"
+        initial_temperature = 300.0
+        label = "the_whole_system"
+[[group]]
+        atom_list = "0:100"
+        has_translations = false
+        label = "substrate"
+[[group]]
+        atom_list = [101, 102, 103, 104]
+        initial_velocities = [
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.0]]
+        label = "molecule"
+```
+
+## The `[[potential]]` array. <a name="potential"></a>
+
+**If Mandatory**: yes
+
+**Default Value**: None
+
+**Descriptions**: Each table in this array defines a potential calculator. You
+could define multiple calculators, but at least one potential calculator have
+to be present.
+
+**Keys**:
+
+- **`type`**
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Valid Values**: `"siesta"`, `"dftd3"`, `"dftd4"`, `"nep"` or `"plumed"`
+
+    **Default Value**: None
+
+    **Descriptions**: Type of the potential calculator:
+    - **`"siesta"`**: The SIESTA ab-initio potential.
+    - **`"dftd3"`**: Grimme's DFTD3 dispersion corrections.
+    - **`"dftd4"`**: Grimme's DFTD4 dispersion corrections.
+    - **`"nep"`**: The neuroevolution potential.
+    - **`"plumed"`**: The PLUMED wrapper. Although a PLUMED calculation may be
+    bias-free, you still need to define it here.
+
+    **Required Keys**: Different potential calculator will require different
+    other keys:
+    - **`"siesta"`**: `atom_list`, `siesta_options`, `siesta_command`,
+      `pseudopotential_dir`
+    - **`"dftd3"`**: `atom_list`, `functional`, `damping`, `atm`
+    - **`"dftd4"`**: `atom_list`, `functional`, `total_charge`, `atm`
+    - **`"nep"`**: `atom_list`, `file_name`
+    - **`"plumed"`**: `file_name`
+
+- **`atom_list`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[int]` or `str`
+
+    **Default Value**: All atoms in the simulated system.
+
+    **Descriptions**: Indices of atoms that are covered by the potential. The
+    indices may be represented by a list of integers, or a formatted string,
+    which could represent a range of atoms conveniently. For example, the
+    following two values of this key select same atoms:
+    ```toml
+    atom_list = [0, 1, 2, 5, 7, 8, 9]
+    ```
+    ```toml
+    atom_list = "0:2,5,7:9"
+    ```
+    If you would like to define a group that contains all atoms in the system,
+    you may invoke the following syntactic sugar:
+    ```toml
+    atom_list = "all"
+    ```
+
+    **Notes**: The PLUMED "potential" could only act on the whole simulated
+    system.
+
+- **`siesta_options`**
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Dependency**: `type = "siesta"`
+
+    **Descriptions**: Options for a SIESTA calculation. This key contains the
+    options you normally defined in an FDF format SIESTA input file, excepting
+    the atomic positions, atomic types, cell vectors and the task type (these
+    options are handled by SOMD).
+
+- **`siesta_command`**
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Dependency**: `type = "siesta"`
+
+    **Descriptions**: Path to the SIESTA binary. You may include the `mpirun`
+    command or other statements in this key as well. For example:
+    ```toml
+    siesta_command = "OMP_NUM_THREADS=32 MKL_NUM_THREADS=32 /path/to/siesta"
+    ```
+    ```toml
+    siesta_command = "mpirun -np 32 /path/to/siesta"
+    ```
+
+- **`pseudopotential_dir`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: The current working directory.
+
+    **Dependency**: `type = "siesta"`
+
+    **Descriptions**: The directory of the pseudopotential files. These files
+    should be in the PSML, PSF or VPS formats, and the prefixes of the files
+    must be element symbols (case-sensitive). If more than one pseudopotential
+    file of an element is present, SOMD will invoke the pseudopotential files
+    in the priority of PSML > PSF > VPS.
+
+- **`functional`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Dependency**: `type = "dftd3"` or `type = "dftd4"`
+
+    **Descriptions**: Name of the functional which is invoked in the DFT
+    calculations.
+
+- **`atm`**
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Dependency**: `type = "dftd3"` or `type = "dftd4"`
+
+    **Descriptions**: If enable the three body correction.
+
+- **`damping`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: `"ZeroDamping"`
+
+    **Dependency**: `type = "dftd3"`
+
+    **Descriptions**: The damping type of the DFTD3 potential.
+
+- **`total_charge`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Unit**: a.u.
+
+    **Default Value**: `0`
+
+    **Dependency**: `type = "dftd4"`
+
+    **Descriptions**: The net charge of the simulated system.
+
+- **`file_name`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Dependency**: `type = "nep"` or `type = "plumed"`
+
+    **Descriptions**: Path to the NEP potential file (`nep.txt`) or path to
+    the PLUMED input file, depending on the value of the `type` key.
+
+**Examples**:
+```toml
+[[potential]]
+        type = "SIESTA"
+        siesta_options = """
+        xc.functional          GGA
+        xc.authors             revPBE
+        PAO.BasisSize          DZP
+        Mesh.Cutoff            300 Ry
+        Diag.Algorithm         ELPA-1stage
+        SolutionMethod         diagon
+        ElectronicTemperature  1 meV
+        """
+        siesta_command = "mpirun -np 4 /path/to/siesta"
+        pseudopotential_dir = "./data"
+[[potential]]
+        type = "dftd3"
+        functional = "revpbe"
+[[potential]]
+        type = "plumed"
+        file_name = "./data/plumed.inp"
+```
+```toml
+[[potential]]
+        type = "nep"
+        file_name = "./nep.txt"
+```
+
+## The `[constraints]` table. <a name="constraints"></a>
+
+**If Mandatory**: no
+
+**Default Value**: None
+
+**Descriptions**: The holonomic constraints to be applied to the simulated
+system. Constraints are achieved by the RATTLE algorithm in SOMD.
+
+**Keys**:
+
+- **`types`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[int]`
+
+    **Default Value**: None
+
+    **Descriptions**: Types of the constraints. Each element in this list
+    stands for the type of one constraint, thus, the length of this list
+    is the number of the constraints to be applied. The valid types are:
+    - **`0`**: The distance between two atoms.
+    - **`1`**: The angle between three atoms.
+    - **`2`**: The dihedral angle between four atoms.
+
+- **`indices`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[List[int]]`
+
+    **Dimension**: (number of constraints) * (number of atoms per constraint)
+
+    **Default Value**: None
+
+    **Descriptions**: Indices of the atoms that take part in the constraints.
+    Each element of this list is also a list, which includes the indices of
+    the atoms that take part in the corresponding constraint. Thus, length of
+    this list should be the same as the length of the `types` key. When the
+    *i*-th element of the `type` key is `0`, `1` and `2`, the length of the
+    *i*-th element of this list should be 2, 3, and 4.
+
+- **`targets`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[float]`
+
+    **Dimension**: number of constraints
+
+    **Default Value**: None
+
+    **Descriptions**: Target values of the constraints. Length of this list
+    should be the same as the length of the `types` key.  When the *i*-th
+    element of the `type` key is `0`, `1` and `2`, the unit of the *i*-th
+    element of this list should be nanometer, radian and radian.
+
+- **`tolerances`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[float]`
+
+    **Dimension**: number of constraints
+
+    **Default Value**: `1E-14` for every constraints.
+
+    **Descriptions**: Convergence tolerances of the constraints. Length of
+    this list should be the same as the length of the `types` key.When the
+    *i*-th element of the `type` key is `0`, `1` and `2`, the unit of the
+    *i*-th element of this list should be nanometer, radian and radian.
+
+- **`max_cycles`**
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `300`
+
+    **Descriptions**: Maximum number of the RATTLE iterations.
+
+**Examples**:
+```toml
+[constraints]
+        types = [0, 1, 2]
+        indices = [[4, 7], [0, 4, 7], [2, 0, 4, 7]]
+        targets = [0.108, 1.92527, -0.9995]
+        tolerances = [1E-14, 1E-14, 1E-14]
+        max_cycles = 100
+```
+
+## The `[integrator]` table. <a name="integrator"></a>
+
+**If Mandatory**: yes
+
+**Default Value**: None
+
+**Descriptions**: The integrator to propagate the simulated system.
+
+**Keys**:
+
+- **`type`**
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Valid Values**: `"vv"`, `"cs4"`, `"nhc"`, `"baoab"`, `"obabo"`,
+    `"gbaoab"` or `"gobabo"`
+
+    **Default Value**: None
+
+    **Descriptions**: Type of the integrator:
+    - **`"vv"`**: The Velocity Verlet integrator.
+    - **`"cs4"`**: Calvo and Sanz-Serna's fourth-order integrator.
+    - **`"nhc"`**: The Nose-Hoover Chains integrator
+    ($N_{RESPA} = 4, N_{SY} = 6, N_{chains} = 6$).
+    - **`"baoab"`**: The Langevin integrator with a BAOAB splitting (can not
+    be used with constraints).
+    - **`"obabo"`**: The Langevin integrator with a OBABO splitting (can not
+    be used with constraints).
+    - **`"gbaoab"`**: The Geodesic Langevin integrator with a BAOAB splitting
+    (can be used with constraints, identical to the `"baoab"` integrator when
+    not using constraints).
+    - **`"gobabo"`**: The Geodesic Langevin integrator with a OBABO splitting.
+    (can be used with constraints, identical to the `"obabo"` integrator when
+    not using constraints).
+
+    **Notes**:
+    1. The `"vv"` and `"cs4"` integrators are *NVE* integrator and other
+    integrators are thermalized.
+    2. The `"cs4"` integrator is four times more expensive than the trivial
+    `"vv"` integrator, but it could generate much more accurate trajectories.
+    3. General pros of the Langevin integrators: the equilibrium is faster to
+    reach, and the partition of kinetic energies is more uniform.
+    4. General cons of the Langevin integrators: every kind of Langevin
+    integrator violates the underlying dynamics of the simulated system. As a
+    result, when collecting dynamical observations (e.g., correlation
+    functions), you should avoid using them. If thermostating is required, use
+    the `"nhc"` integrator. Otherwise, use any *NVE* integrator.
+    5. The `"baoab"` integrator shows better performances in configuration
+    space sampling tasks (e.g., distribution function or free energy
+    calculations), although the kinetic energy temperature may be a little
+    lower the given value (which is normal, since the definition of
+    "temperature" is not unique). We strongly recommend you to use this
+    integrator when performing such tasks.
+    6. **DO NOT** use the `"nhc"` integrator in simulated annealing
+    simulations. It will introduce serious oscillations.
+
+- **`timestep`**
+
+    **If Mandatory**: yes
+
+    **Type**: `float`
+
+    **Default Value**: None
+
+    **Unit**: picosecond
+
+    **Descriptions**: The timestep of the integrator.
+
+    **Notes**: Timesteps in SOMD could be negative, which means propagating
+    the system backwardly.
+
+- **`thermo_groups`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[int]` or `int`
+
+    **Default Value**: The atom group that corresponds to the whole simulated
+    system.
+
+    **Dependency**: Thermalized integrators.
+
+    **Descriptions**: The indices of the [atom groups](#group) to thermalize.
+    Each group will be coupled to a different thermostat. When there is only
+    one group to thermalize, you could define this key by the index of the
+    group instead of a single-element list, e.g.,
+    ```toml
+    thermo_groups = 0
+    ```
+    is equal to
+    ```toml
+    thermo_groups = [0]
+    ```
+
+- **`temperatures`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[float]` or `float`
+
+    **Default Value**: None
+
+    **Dependency**: Thermalized integrators.
+
+    **Descriptions**: Temperatures of the thermostats. When there is only
+    one group to thermalize, you could define this key by the temperature of
+    that group instead of a single-element list. Otherwise, length of this list
+    should be the same as the length of the `thermo_groups` key.
+
+- **`relaxation_times`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[float]` or `float`
+
+    **Default Value**: None
+
+    **Dependency**: Thermalized integrators.
+
+    **Descriptions**: Relaxation timescales of the thermostats. When there is
+    only one group to thermalize, you could define this key by the relaxation
+    timescale of that group instead of a single-element list. Otherwise, length
+    of this list should be the same as the length of the `thermo_groups` key.
+
+- **`splitting`**
+
+    **If Mandatory**: no
+
+    **Type**: `List[dict]`
+
+    **Default Value**: None
+
+    **Descriptions**: The splitting of the integrator. Read the
+    `somd/core/integrators.py` source file for details. When this key is
+    defined, you should not define the `type` key.
+
+**Examples**:
+```toml
+[integrator]
+        type = "baoab"
+        timestep = 0.001
+        temperatures = 300.0
+        relaxation_times = 0.05
+```
+```toml
+[integrator]
+        type = "nhc"
+        timestep = 0.001
+        thermo_groups = [0, 1]
+        temperatures = [300.0, 400.0]
+        relaxation_times = [0.05, 0.05]
+```
+```toml
+# The BAOAB Langevin integrator could also be defined by this way:
+[integrator]
+        timestep = 0.001
+        temperatures = 300.0
+        relaxation_times = 0.05
+[[integrator.splitting]]
+        operators = ["V", "R", "O", "R", "V"]
+```
+```toml
+# The "middle point" NHC integrator:
+[integrator]
+        timestep = 0.001
+        temperatures = 300.0
+        relaxation_times = 0.05
+[[integrator.splitting]]
+        operators = ["V", "R", "N", "R", "V"]
+```
+```toml
+# The Geodesic OBABO Langevin integrator could also be defined by this way:
+[integrator]
+        timestep = 0.001
+        temperatures = 300.0
+        relaxation_times = 0.05
+[[integrator.splitting]]
+        operators = ["O", "Cv"]
+[[integrator.splitting]]
+        operators = ["V", "Cv"]
+[[integrator.splitting]]
+        operators = ["CR", "R", "Cv"]
+        repeating = 5
+[[integrator.splitting]]
+        operators = ["V", "Cv"]
+[[integrator.splitting]]
+        operators = ["O", "Cv"]
+```
+
+## The `[barostat]` table. <a name="baostat"></a>
+
+**If Mandatory**: no
+
+**Default Value**: None
+
+**Descriptions**: The Berendsen-type barostat.
+
+**Note**: By now, SOMD only supports the original Berendsen barostat, which
+could not generate correct isothermal-isobaric distributions. Thus, do not
+rely on any distribution generated by this barostat (but equilibrium volumes
+are still reliable).
+
+**Keys**:
+
+- **`pressures`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[float]` or `float`
+
+    **Dimension**: 1 or 6
+
+    **Unit**: megapascal
+
+    **Default Value**: None
+
+    **Descriptions**: The pressures of the barostat. If length of this list
+    is six, an anisotropy pressure controlling will be applied. Otherwise,
+    an isotropy pressure controlling will be applied. And when using isotropy
+    pressure controlling, you could define this key by the one hydrostatic
+    pressure instead of a single-element list, e.g.,
+    ```toml
+    pressures = 0.1
+    ```
+    is equal to
+    ```toml
+    pressures = [0.1]
+    ```
+
+    **Notes**: When using anisotropy pressure controlling, the Cartesian
+    directions of the six target pressures are: xx yy zz xy xz yz.
+
+- **`beta`**
+
+    **If Mandatory**: yes
+
+    **Type**: `List[float]` or `float`
+
+    **Dimension**: 1 or 6
+
+    **Unit**: 1/megapascal
+
+    **Default Value**: None
+
+    **Descriptions**: The isothermal compressibilities of the simulated
+    system. Length of this list should be the same as the length of the
+    `pressures` key. And when using isotropy pressure controlling, you could
+    define this key by the one isotropy compressibility instead of a
+    single-element list.
+
+    **Notes**: When using anisotropy pressure controlling, the Cartesian
+    directions of the six compressibilities are: xx yy zz xy xz yz.
+
+- **`relaxation_time`**
+
+    **If Mandatory**: yes
+
+    **Type**: `float`
+
+    **Unit**: picosecond
+
+    **Default Value**: None
+
+    **Descriptions**: The relaxation timescale of the barostat.
+
+**Examples**:
+```toml
+[barostat]
+        pressures = 1.0
+        beta = 1.0E-5
+        relaxation_time = 0.1
+```
+```toml
+[barostat]
+        pressures = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        beta = [1.0E-5, 1.0E-5, 1.0E-5, 1.0E-5, 1.0E-5, 1.0E-5]
+        relaxation_time = 0.1
+```
+
+## The `[[trajectory]]` array. <a name="trajectory"></a>
+
+**If Mandatory**: no
+
+**Default Value**: One trivial trajectory writer and one restart file writer.
+
+**Descriptions**: Each table in this array defines a trajectory writer. You
+could define multiple trajectory writers.
+
+**Keys**:
+
+- **`format`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Valid Values**: `"h5"` or `"exyz"`
+
+    **Default Value**: `h5`
+
+    **Descriptions**: Format of the trajectory file. The `"h5"` format obeys
+    [MDTraj's HDF5 convention](https://mdtraj.org/1.9.7/hdf5_format.html), and
+    the `"exyz"` format obeys
+    [GPUMD's EXYZ convention](https://gpumd.org/nep/input_files/train_test_xyz.html).
+
+- **`prefix`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: The system label.
+
+    **Descriptions**: The prefix of the trajectory file.
+
+    **Notes**: When the value of the `format` key is `"h5"`, the generated
+    trajectory file will be named `prefix.trajectory.h5`, and when the value
+    of the `format` key is `"exyz"`, the generated trajectory file will be
+    named `prefix.trajectory.xyz`.
+
+- **`interval`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `1`
+
+    **Descriptions**: The interval between two updates of the trajectory file.
+
+- **`write_forces`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Descriptions**: If record forces in the trajectory file.
+
+- **`write_velocities`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Descriptions**: If record velocities in the trajectory file.
+
+- **`wrap_positions`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Descriptions**: If wrap atoms to the box before writing the trajectory.
+
+- **`potential_list`**:
+
+    **If Mandatory**: no
+
+    **Type**: `List[int]`
+
+    **Default Value**: Indices of all potential calculators.
+
+    **Descriptions**: Indices of the potential calculators that contribute to
+    the recorded potential energies, virials, and forces. This is extremely
+    useful when constructing training and testing set of neuroevolution
+    potentials. For example, when you are performing a biased enhanced sampling
+    with PLUMED, and want to invoke the generated trajectory to train NEPs. The
+    following settings will ensure that only the ab-initio data will be
+    written to the `"exyz"` file:
+    ```toml
+    [[potential]]
+            type = "SIESTA"
+            siesta_options = """
+            xc.functional          GGA
+            xc.authors             revPBE
+            PAO.BasisSize          DZP
+            """
+            siesta_command = "mpirun -np 4 /path/to/siesta"
+    [[potential]]
+            type = "dftd3"
+            functional = "revpbe"
+    [[potential]]
+            type = "plumed"
+            file_name = "plumed.inp"
+    [[trajectory]]
+            format = "exyz"
+            # We need force data to train a NEP.
+            write_forces = true
+            # Only write the forces, virials and energies generated by the
+            # first two potential calculators to the trajectory.
+            potential_list = [0, 1]
+    ```
+
+- **`is_restart_file`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Dependency**: `format = "h5"`
+
+    **Descriptions**: If this is a restart file writer. If this key is set to
+    `true`, only settings of the `prefix` and `interval` key will be kept,
+    and settings of other keys will be ignored.
+
+    **Notes**: The restart file only contains one frame, and will be named
+    `prefix.restart.h5`.
+
+**Examples**:
+```toml
+[[trajectory]]
+        format = "h5"
+        interval = 10
+        wrap_positions = true
+        write_velocities = true
+[[trajectory]]
+        format = "exyz"
+        prefix = "train"
+        write_forces = true
+        potential_list = [0, 1]
+[[trajectory]]
+        format = "h5"
+        interval = 100
+        is_restart_file = true
+```
+
+## The `[[logger]]` array. <a name="logger"></a>
+
+**If Mandatory**: no
+
+**Default Value**: One `csv` format data writer.
+
+**Descriptions**: Each table in this array defines a system data writer. You
+could define multiple writers. These files will record system data, e.g.,
+total potential energies, temperature and kinetic energies of each atom groups,
+pressure tensors, etc.
+
+**Keys**:
+
+- **`format`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Valid Values**: `"csv"` or `"txt"`
+
+    **Default Value**: `h5`
+
+    **Descriptions**: Format of the data file.
+
+- **`prefix`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: The system label.
+
+    **Descriptions**: The prefix of the data file.
+
+    **Notes**: When the value of the `format` key is `"csv"`, the generated
+    data file will be named `prefix.data.h5`, and when the value of the
+    `format` key is `"txt"`, the generated data file will be named
+    `prefix.data.txt`.
+
+- **`interval`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `1`
+
+    **Descriptions**: The interval between two updates of the data file.
+
+- **`potential_list`**:
+
+    **If Mandatory**: no
+
+    **Type**: `List[int]`
+
+    **Default Value**: Indices of all potential calculators.
+
+    **Descriptions**: Indices of the potential calculators that contribute to
+    the recorded potential energies.
+
+**Examples**:
+```toml
+[[logger]]
+        format = "csv"
+        interval = 5
+```
+
+## The `[run]` table. <a name="run"></a>
+
+**If Mandatory**: no
+
+**Default Value**: None
+
+**Descriptions**: This table defines the simulation information.
+
+**Notes**: This table is not mandatory only when you have defined the
+`active_learning` table. Otherwise, this table **IS MANDATORY**.
+
+**Keys**:
+
+- **`n_steps`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `int`
+
+    **Default Value**: None
+
+    **Descriptions**: Number of the simulation steps to run.
+
+- **`seed`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: None
+
+    **Descriptions**: The seed value of the random number generator in SOMD.
+
+- **`label`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: The prefix of the input file name.
+
+    **Descriptions**: The default prefix of all output file generated by SOMD.
+
+- **`restart_from`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: Name of the restart file. If this key is defined, SOMD
+    will continue the simulation from the state recorded by the restart file.
+
+    **Notes**: When restarting, SOMD will try to append new data to the old
+    output files. Otherwise, SOMD will back up old output files.
+
+**Examples**:
+```toml
+[run]
+        seed = 1
+        n_steps = 1000
+        label = "run"
+```
+```toml
+[run]
+        n_steps = 1000
+        restart_from = "run.restart.h5"
+```
+
+## The `[active_learning]` table. <a name="active_learning"></a>
+
+**If Mandatory**: no
+
+**Default Value**: None
+
+**Descriptions**: This table defines the active learning information.
+
+**Notes**: Read [this article](https://doi.org/10.1016/j.cpc.2020.107206) for
+the active learning methodology.
+
+**Keys**:
+
+- **`nep_options`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: Options for a NEP training process.
+
+    **Notes**: The `type` option in a typical `nep.in` file could be left out
+    here, since SOMD could handle it automatically. But if you want to use
+    the `type_weight` option for your training, the `type` option must present.
+
+- **`nep_command`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: Path to the NEP binary. You may include other statements
+    in this key as well. For example:
+    ```toml
+    nep_command = "CUDA_VISIBLE_DEVICES=0 /path/to/nep"
+    ```
+    You could also use a job manager like SLURM to submit the training job. For
+    example (the `--wait` parameter is **REQUIRED**):
+    ```toml
+    nep_command = "/path/to/sbatch submit_nep.sh --wait"
+    ```
+    `submit_nep.sh`:
+    ```bash
+    #SBATCH -J training
+    #SBATCH -o training.log
+    #SBATCH -e training.err
+    #SBATCH -N 1
+    #SBATCH -p gpu
+    #SBATCH --cpus-per-task=2
+    CUDA_VISIBLE_DEVICES=0,1 /path/to/nep
+    ```
+
+- **`initial_training_set`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: Path to the initial training set (the EXYZ file).
+
+    **Notes**: The computational level of the initial training set **MUST BE**
+    the same as the computational level you defined for the training precess.
+
+- **`n_iterations`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `int`
+
+    **Default Value**: None
+
+    **Descriptions**: Number of the training iterations.
+
+- **`n_potentials`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `4`
+
+    **Descriptions**: Number of the potentials to train per iteration.
+
+- **`max_steps_per_iter`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `50000`
+
+    **Descriptions**: Number of the MD steps per training iteration.
+
+- **`msd_lower_limit`**:
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Unit**: kilojoule/mole/nanometer
+
+    **Default Value**: `50.0`
+
+    **Descriptions**: The lower limit of the maximum force standard deviation
+    of a given structure. Structures with a smaller force MSD than this
+    threshold will be regarded as exactly describable structures.
+
+- **`msd_upper_limit`**:
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Unit**: kilojoule/mole/nanometer
+
+    **Default Value**: `250.0`
+
+    **Descriptions**: The upper limit of the maximum force standard deviation
+    of a given structure. Structures with a larger force MSD than this
+    threshold will be regarded as corrupted structures.
+
+- **`min_new_structures_per_iter`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `20`
+
+    **Descriptions**: Minimum number of new structures (structures with force
+    MSD values that are larger than `msd_lower_limit` and smaller than
+    `msd_upper_limit`) per training iteration. If new structures collected
+    during one training iteration is fewer than this threshold, a training
+    precess will not be triggered. When the number of the accumulated
+    untrained structures is larger than this threshold, a training process will
+    be carried out using all the untrained structures plus the old training
+    set.
+
+- **`max_new_structures_per_iter`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `20`
+
+    **Descriptions**: Maximum number of new structures (structures with force
+    MSD values that are larger than `msd_lower_limit` and smaller than
+    `msd_upper_limit`) per training iteration. If new structures collected
+    during one training iteration is larger than this threshold, SOMD will
+    randomly select `max_new_structures_per_iter` structures from these
+    new structures to perform ab-initio calculations, and carry out a training
+    process using these selected structures plus the old training set.
+
+- **`initial_potential_files`**:
+
+    **If Mandatory**: no
+
+    **Type**: `List[str]`
+
+    **Default Value**: None
+
+    **Descriptions**: The initial potential files (`nep.txt`) trained from the
+    `initial_training_set`. If this key is not defined, SOMD will perform
+    an extra iteration of pre-training using the `initial_training_set`. The
+    length of this list must be equal to the value of the `n_potentials` key.
+
+    **Notes**: The potentials must be trained from different initial weights.
+
+- **`reference_potentials`**:
+
+    **If Mandatory**: no
+
+    **Type**: `List[int]`
+
+    **Default Value**: Indices of potential calculators excepting the `"nep"`
+    and `"plumed"` calculator.
+
+    **Descriptions**: Indices of the ab-initio potential calculators. Under
+    most cases, this option is automatically handled by SOMD. Thus, you could
+    safely invoke PLUMED during the training, and the bias potentials brought
+    by PLUMED should be automatically excluded.
+
+    **Notes**: The computational level defined by these potentials **MUST BE**
+    the same as the computational level of the initial training set.
+
+**Examples**:
+```toml
+[active_learning]
+        n_iterations = 4
+        n_potentials = 4
+        msd_lower_limit = 50.0
+        msd_upper_limit = 250.0
+        max_steps_per_iter = 50000
+        min_new_structures_per_iter = 20
+        max_new_structures_per_iter = 100
+        initial_training_set = "train.xyz"
+        nep_options = """
+        batch      1000
+        generation 150000
+        """
+        nep_command = '/path/to/nep'
+```
+```toml
+[active_learning]
+        n_iterations = 4
+        n_potentials = 4
+        msd_lower_limit = 50.0
+        msd_upper_limit = 250.0
+        max_steps_per_iter = 50000
+        min_new_structures_per_iter = 20
+        max_new_structures_per_iter = 100
+        reference_potentials = [0, 1]
+        initial_training_set = "train.xyz"
+        initial_potential_files = [
+                '../nep.txt.1', '../nep.txt.2',
+                '../nep.txt.3', '../nep.txt.4']
+        nep_options = """
+        batch      1000
+        generation 150000
+        """
+        nep_command = '/path/to/nep'
+```
+
+## The `[[script]]` array. <a name="script"></a>
+
+**If Mandatory**: no
+
+**Default Value**: None
+
+**Descriptions**: Each table in this array defines a python function to be
+executed in a given period.
+
+**Notes**: The functions will be called at the end of the timestep.
+
+**Keys**:
+
+- **`update`**:
+
+    **If Mandatory**: yes
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: The function to be called regularly. This function takes
+    only one parameter, which is the integrator instance of the simulation.
+    You could use the following commands to find out the valid properties:
+    ```python
+    import somd
+    help(somd.core.integrators.INTEGRATOR)
+    ```
+
+    **Notes**: This function must be named `update`.
+
+- **`initialize`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Descriptions**: The initialization function. This function will be called
+    only once at the starting of the simulation. This function takes no
+    arguments.
+
+    **Notes**: This function must be named `initialize`.
+
+- **`interval`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `1`
+
+    **Descriptions**: The interval of calling the `update` function.
+
+**Examples**:
+```toml
+[[script]]
+        # Dump the memory information to the `mem.log` file every 50 steps.
+        interval = 50
+        update = """def update(integrator):
+        import os
+        os.system("free -h >> mem.log")
+        """
+```
+```toml
+[[script]]
+        # Rising the temperature to 500 K in 500 steps.
+        interval = 5
+        update = """def update(integrator):
+        s = integrator.step
+        if (s < 500):
+                integrator.temperatures[0] += 5
+        """
+```
+```toml
+[[script]]
+        # Back up the `DM` files generated by SIESTA calculations every 5 steps.
+        interval = 5
+        initialize = """def initialize():
+        import os
+        import shutil
+        try:
+                shutil.rmtree('./DM_files')
+        except:
+                pass
+        os.mkdir('./DM_files')
+        """
+        update = """def update(integrator):
+        import shutil
+        s = integrator.step
+        for p in integrator.system.potentials:
+                if (p.__class__.__name__ == 'SIESTA'):
+                        old_dm = p.working_directory + '/somd_tmp.DM'
+                        new_dm = './DM_files/{:d}.DM'.format(s)
+                        shutil.copy(old_dm, new_dm)
+        """
+```
