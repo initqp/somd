@@ -1,0 +1,3 @@
+[submodule "somd/potentials/src/NEP_CPU"]
+	path = somd/potentials/src/NEP_CPU
+	url = https://github.com/brucefan1983/NEP_CPU
