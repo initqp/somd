@@ -41,7 +41,7 @@ cdef extern from "constraints.h" nogil:
             double tolerance) except +
         void pop(int idx)
         void clear()
-        void rattle_constrain_q(double *coord, double *velo, \
+        void rattle_constrain_q(double *positions, double *velocities, \
             double *mass, double dt, int n_atoms) except +
-        void rattle_constrain_p(double *coord, double *velo, \
+        void rattle_constrain_p(double *positions, double *velocities, \
             double *mass, double dt, int n_atoms) except +

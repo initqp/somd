@@ -172,8 +172,8 @@ cdef class CONSTRAINTS(object):
         self.__cxx_obj_ptr.clear()
 
     def rattle_constrain_q(self, \
-                           coord: double[:,:], \
-                           velo: double[:,:], \
+                           positions: double[:,:], \
+                           velocities: double[:,:], \
                            mass: double[:,:], \
                            dt: double) -> None:
         """
@@ -181,10 +181,10 @@ cdef class CONSTRAINTS(object):
 
         Parameters
         ----------
-        coord : np.array(dtype=np.float64)
+        positions : np.array(dtype=np.float64)
             dim : n_atoms * 3
             Positions of the atoms in the simulated system.
-        velo : np.array(dtype=np.float64)
+        velocities : np.array(dtype=np.float64)
             dim : n_atoms * 3
             Velocities of the atoms in the simulated system.
         mass : np.array(dtype=np.float64)
@@ -193,14 +193,14 @@ cdef class CONSTRAINTS(object):
         dt : float
             Timestep of the simulation.
         """
-        cdef int n_atoms = coord.shape[0]
+        cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
-            self.__cxx_obj_ptr.rattle_constrain_q(&coord[0,0],
-                &velo[0,0], &mass[0,0], dt, n_atoms)
+            self.__cxx_obj_ptr.rattle_constrain_q(&positions[0,0],
+                &velocities[0,0], &mass[0,0], dt, n_atoms)
 
     def rattle_constrain_p(self, \
-                           coord: double[:,:], \
-                           velo: double[:,:], \
+                           positions: double[:,:], \
+                           velocities: double[:,:], \
                            mass: double[:,:], \
                            dt: double) -> None:
         """
@@ -208,10 +208,10 @@ cdef class CONSTRAINTS(object):
 
         Parameters
         ----------
-        coord : np.array(dtype=np.float64)
+        positions : np.array(dtype=np.float64)
             dim : n_atoms * 3
             Positions of the atoms in the simulated system.
-        velo : np.array(dtype=np.float64)
+        velocities : np.array(dtype=np.float64)
             dim : n_atoms * 3
             Velocities of the atoms in the simulated system.
         mass : np.array(dtype=np.float64)
@@ -220,7 +220,7 @@ cdef class CONSTRAINTS(object):
         dt : float
             Timestep of the simulation.
         """
-        cdef int n_atoms = coord.shape[0]
+        cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
-            self.__cxx_obj_ptr.rattle_constrain_p(&coord[0,0],
-                &velo[0,0], &mass[0,0], dt, n_atoms)
+            self.__cxx_obj_ptr.rattle_constrain_p(&positions[0,0],
+                &velocities[0,0], &mass[0,0], dt, n_atoms)

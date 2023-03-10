@@ -56,10 +56,10 @@ protected:
 	//    size : <2 * <n_constraints * <n_atom_per_constraint * 3>>>
 	std::vector<std::vector<std::vector<double>>> deriv;
 	// Calculate CV values at this and next timestep.
-	void calculate_geometry_variables(double *coord, int t);
+	void calculate_geometry_variables(double *positions, int t);
 	// Calculate derivatives about positions of CVs at this and next
 	// timestep.
-	void calculate_geometry_variables_derivatives(double *coord, int t);
+	void calculate_geometry_variables_derivatives(double *positions, int t);
 public:
 	// The constructor.
 	RATTLE(void);
@@ -93,10 +93,10 @@ public:
 	void clear(void);
 
 	// Perform the upper part of RATTLE, with the timestep of dt.
-	void rattle_constrain_q(double *coord, double *velo, \
+	void rattle_constrain_q(double *positions, double *velo, \
 		double *mass, double dt, int n_atoms);
 	// Perform the lower part of RATTLE, with the timestep of dt.
-	void rattle_constrain_p(double *coord, double *velo, \
+	void rattle_constrain_p(double *positions, double *velo, \
 		double *mass, double dt, int n_atoms);
 }; //class RATTLE
 

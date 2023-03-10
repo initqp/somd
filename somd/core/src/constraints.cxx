@@ -25,13 +25,14 @@
 using namespace std;
 
 // Return the distance between atoms.
-static inline double _distance(double *coord, vector<int> indices)
+static inline double _distance(double *positions, vector<int> indices)
 {
-	return vecdis(&(coord[indices[0] * 3]), &(coord[indices[1] * 3]), 3);
+	return vecdis(&(positions[indices[0] * 3]),
+		&(positions[indices[1] * 3]), 3);
 }
 
 // Return the angle between three atoms.
-static inline double _angle(double *coord, vector<int> indices)
+static inline double _angle(double *positions, vector<int> indices)
 {
 	int idx_1 = 0;
 	int idx_2 = 0;
@@ -42,15 +43,15 @@ static inline double _angle(double *coord, vector<int> indices)
 	idx_1 = indices[0] * 3;
 	idx_2 = indices[1] * 3;
 	idx_3 = indices[2] * 3;
-	vecsub(&(coord[idx_2]), &(coord[idx_1]), a, 3);
-	vecsub(&(coord[idx_2]), &(coord[idx_3]), b, 3);
+	vecsub(&(positions[idx_2]), &(positions[idx_1]), a, 3);
+	vecsub(&(positions[idx_2]), &(positions[idx_3]), b, 3);
 	return acos(vecdot(a, b, 3) / ( \
-		vecdis(&(coord[idx_2]), &(coord[idx_1]), 3) * \
-		vecdis(&(coord[idx_2]), &(coord[idx_3]), 3)));
+		vecdis(&(positions[idx_2]), &(positions[idx_1]), 3) * \
+		vecdis(&(positions[idx_2]), &(positions[idx_3]), 3)));
 }
 
 // Return the torsion between four atoms
-static inline double _torsion(double *coord, vector<int> indices)
+static inline double _torsion(double *positions, vector<int> indices)
 {
 	int idx_1 = 0;
 	int idx_2 = 0;
@@ -67,9 +68,9 @@ static inline double _torsion(double *coord, vector<int> indices)
 	idx_2 = indices[1] * 3;
 	idx_3 = indices[2] * 3;
 	idx_4 = indices[3] * 3;
-	vecsub(&(coord[idx_2]), &(coord[idx_1]), r_12, 3);
-	vecsub(&(coord[idx_3]), &(coord[idx_2]), r_23, 3);
-	vecsub(&(coord[idx_4]), &(coord[idx_3]), r_34, 3);
+	vecsub(&(positions[idx_2]), &(positions[idx_1]), r_12, 3);
+	vecsub(&(positions[idx_3]), &(positions[idx_2]), r_23, 3);
+	vecsub(&(positions[idx_4]), &(positions[idx_3]), r_34, 3);
 	veccross3(r_12, r_23, n_1);
 	veccross3(r_23, r_34, n_2);
 	vecnorm(n_1,  3);
@@ -80,7 +81,7 @@ static inline double _torsion(double *coord, vector<int> indices)
 }
 
 // Calculate derivatives: d_distance / d_r.
-static inline void _d_distance_d_r(double *coord, vector<int> indices, \
+static inline void _d_distance_d_r(double *positions, vector<int> indices, \
 	double value, double *deriv)
 {
 	int i = 0;
@@ -90,13 +91,15 @@ static inline void _d_distance_d_r(double *coord, vector<int> indices, \
 	idx_1 = indices[0] * 3;
 	idx_2 = indices[1] * 3;
 	for (i = 0; i < 3; i++) {
-		deriv[i + 0] = (coord[idx_1 + i] - coord[idx_2 + i]) / value;
-		deriv[i + 3] = (coord[idx_2 + i] - coord[idx_1 + i]) / value;
+		deriv[i + 0] = \
+			(positions[idx_1 + i] - positions[idx_2 + i]) / value;
+		deriv[i + 3] = \
+			(positions[idx_2 + i] - positions[idx_1 + i]) / value;
 	}
 }
 
 // Calculate derivatives: d_angle / d_r.
-static inline void _d_angle_d_r(double *coord, vector<int> indices, \
+static inline void _d_angle_d_r(double *positions, vector<int> indices, \
 	double value, double *deriv)
 {
 	int i = 0;
@@ -113,21 +116,23 @@ static inline void _d_angle_d_r(double *coord, vector<int> indices, \
 	idx_3 = indices[2] * 3;
 	cos_angle = cos(value);
 	sin_angle = sin(value);
-	r_12 = vecdis(&(coord[idx_1]), &(coord[idx_2]), 3);
-	r_32 = vecdis(&(coord[idx_3]), &(coord[idx_2]), 3);
+	r_12 = vecdis(&(positions[idx_1]), &(positions[idx_2]), 3);
+	r_32 = vecdis(&(positions[idx_3]), &(positions[idx_2]), 3);
 	for (i = 0; i < 3; i++) {
-		deriv[i + 0] = ((coord[idx_1 + i] - coord[idx_2 + i]) / \
-			r_12 * cos_angle - (coord[idx_3 + i] - \
-			coord[idx_2 + i]) / r_32) / r_12 / sin_angle;
-		deriv[i + 6] = ((coord[idx_3 + i] - coord[idx_2 + i]) / \
-			r_32 * cos_angle - (coord[idx_1 + i] - \
-			coord[idx_2 + i]) / r_12) / r_32 / sin_angle;
+		deriv[i + 0] = \
+			((positions[idx_1 + i] - positions[idx_2 + i]) / \
+			r_12 * cos_angle - (positions[idx_3 + i] - \
+			positions[idx_2 + i]) / r_32) / r_12 / sin_angle;
+		deriv[i + 6] = \
+			((positions[idx_3 + i] - positions[idx_2 + i]) / \
+			r_32 * cos_angle - (positions[idx_1 + i] - \
+			positions[idx_2 + i]) / r_12) / r_32 / sin_angle;
 		deriv[i + 3] = -1.0 * deriv[i + 0] - deriv[i + 6];
 	}
 }
 
 // Calculate derivatives: d_torsion / d_r.
-static inline void _d_torsion_d_r(double *coord, vector<int> indices, \
+static inline void _d_torsion_d_r(double *positions, vector<int> indices, \
 	double value, double *deriv)
 {
 	int i = 0;
@@ -150,10 +155,10 @@ static inline void _d_torsion_d_r(double *coord, vector<int> indices, \
 	idx_2 = indices[1] * 3;
 	idx_3 = indices[2] * 3;
 	idx_4 = indices[3] * 3;
-	vecsub(&(coord[idx_2]), &(coord[idx_1]), r_12, 3);
-	vecsub(&(coord[idx_4]), &(coord[idx_3]), r_34, 3);
-	vecsub(&(coord[idx_2]), &(coord[idx_3]), r_32, 3);
-	r_32_len = vecdis(&(coord[idx_2]), &(coord[idx_3]), 3);
+	vecsub(&(positions[idx_2]), &(positions[idx_1]), r_12, 3);
+	vecsub(&(positions[idx_4]), &(positions[idx_3]), r_34, 3);
+	vecsub(&(positions[idx_2]), &(positions[idx_3]), r_32, 3);
+	r_32_len = vecdis(&(positions[idx_2]), &(positions[idx_3]), 3);
 	veccross3(r_12, r_32, r_12_cross_r_32);
 	veccross3(r_32, r_34, r_32_cross_r_34);
 	r_12_dot_r_32 = vecdot(r_12, r_32, 3);
@@ -307,7 +312,7 @@ void RATTLE::clear(void)
 }
 
 /* calculate values of a series of geometry variables */
-void RATTLE::calculate_geometry_variables(double *coord, int t)
+void RATTLE::calculate_geometry_variables(double *positions, int t)
 {
 	if (omp_get_num_threads() > n_constraints)
 		omp_set_num_threads(n_constraints);
@@ -315,20 +320,20 @@ void RATTLE::calculate_geometry_variables(double *coord, int t)
 	for (int i = 0; i < n_constraints; i++) {
 		switch (types[i]) {
 		case 0:
-			values[t][i] = _distance(coord, indices[i]);
+			values[t][i] = _distance(positions, indices[i]);
 			break;
 		case 1:
-			values[t][i] = _angle(coord, indices[i]);
+			values[t][i] = _angle(positions, indices[i]);
 			break;
 		case 2:
-			values[t][i] = _torsion(coord, indices[i]);
+			values[t][i] = _torsion(positions, indices[i]);
 			break;
 		}
 	}
 }
 
 /* calculate derivatives of a series of geometry variables */
-void RATTLE::calculate_geometry_variables_derivatives(double *coord, int t)
+void RATTLE::calculate_geometry_variables_derivatives(double *positions, int t)
 {
 	if (omp_get_num_threads() > n_constraints)
 		omp_set_num_threads(n_constraints);
@@ -336,22 +341,22 @@ void RATTLE::calculate_geometry_variables_derivatives(double *coord, int t)
 	for (int i = 0; i < n_constraints; i++) {
 		switch (types[i]) {
 		case 0:
-			_d_distance_d_r(coord, indices[i], values[t][i], \
+			_d_distance_d_r(positions, indices[i], values[t][i], \
 				deriv[t][i].data());
 			break;
 		case 1:
-			_d_angle_d_r(coord, indices[i], values[t][i], \
+			_d_angle_d_r(positions, indices[i], values[t][i], \
 				deriv[t][i].data());
 			break;
 		case 2:
-			_d_torsion_d_r(coord, indices[i], values[t][i], \
+			_d_torsion_d_r(positions, indices[i], values[t][i], \
 				deriv[t][i].data());
 			break;
 		}
 	}
 }
 
-void RATTLE::rattle_constrain_q(double *coord, double *velocities, \
+void RATTLE::rattle_constrain_q(double *positions, double *velocities, \
 	double *mass, double dt, int n_atoms)
 {
 	int flag = 0;
@@ -363,23 +368,23 @@ void RATTLE::rattle_constrain_q(double *coord, double *velocities, \
 		positions_t1.resize(n_atoms * 3);
 	/* calculate values and derivatives of the geometry variables
 	** at current time step. */
-	calculate_geometry_variables(coord, 0);
-	calculate_geometry_variables_derivatives(coord, 0);
+	calculate_geometry_variables(positions, 0);
+	calculate_geometry_variables_derivatives(positions, 0);
 	/* perform RATTLE loops part 2 */
 	for (int j = 0; j < max_cycles; j++) {
 		flag = 0;
-		/* update coordinates by dt */
+		/* update positions by dt */
 		if (omp_get_num_threads() > n_constraints)
 			omp_set_num_threads(n_constraints);
 		#pragma omp parallel for
 		for (int i = 0; i < n_constraints; i++) {
 			for (int l = 0; l < (int)(indices[i].size()); l++) {
 				int idx = indices[i][l] * 3;
-				positions_t1[idx + 0] = coord[idx + 0] + \
+				positions_t1[idx + 0] = positions[idx + 0] + \
 					velocities[idx + 0] * dt;
-				positions_t1[idx + 1] = coord[idx + 1] + \
+				positions_t1[idx + 1] = positions[idx + 1] + \
 					velocities[idx + 1] * dt;
-				positions_t1[idx + 2] = coord[idx + 2] + \
+				positions_t1[idx + 2] = positions[idx + 2] + \
 					velocities[idx + 2] * dt;
 			}
 		}
@@ -430,7 +435,7 @@ void RATTLE::rattle_constrain_q(double *coord, double *velocities, \
 	}
 }
 
-void RATTLE::rattle_constrain_p(double *coord, double *velocities, \
+void RATTLE::rattle_constrain_p(double *positions, double *velocities, \
 	double *mass, double dt, int n_atoms)
 {
 	int flag = 0;
@@ -438,8 +443,8 @@ void RATTLE::rattle_constrain_p(double *coord, double *velocities, \
 
 	/* calculate values and derivatives of the geometry variables
 	** at next time step. */
-	calculate_geometry_variables(coord, 1);
-	calculate_geometry_variables_derivatives(coord, 1);
+	calculate_geometry_variables(positions, 1);
+	calculate_geometry_variables_derivatives(positions, 1);
 	/* perform RATTLE loops part 2 */
 	for (int j = 0; j < max_cycles; j++) {
 		flag = 0;
