@@ -15,9 +15,9 @@ would like to perform production runs with SOMD, please take your own risk.
 
 ## INSTALLATION
 SOMD only runs on GNU/Linux distros. The installation requires a working `g++`
-compiler (must have C++11 supports), a Python3 installation and three
-additional Python3 libraries (cython, mdtraj and toml). You could install SOMD
-by following steps.
+compiler (with C++11 supports), a Python3 interpreter and three additional
+Python3 libraries (cython, mdtraj and toml). You could install SOMD by the
+following steps.
 
 1. Install the required dependence with:
     ```bash
