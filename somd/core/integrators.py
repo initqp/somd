@@ -123,7 +123,7 @@ class INTEGRATOR(object):
         Compile splitting schemes to codes.
         """
         self.__determine_timeteps()
-        self.__combin_splitting_dicts()
+        self.__combine_splitting_dicts()
         self.__determine_ensemble()
         self.__insert_F_operators()
         self.__splitting_dict_to_codes()
@@ -202,9 +202,9 @@ class INTEGRATOR(object):
                               'mismatch in splitting scheme {}'
                     raise IndexError(message.format(self.splitting))
 
-    def __combin_splitting_dicts(self) -> None:
+    def __combine_splitting_dicts(self) -> None:
         """
-        Combin multiple splitting dicts.
+        Combine multiple splitting dicts.
         """
         self.__splitting_whole = dict()
         self.__splitting_whole['operators'] = []
