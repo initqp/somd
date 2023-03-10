@@ -182,10 +182,10 @@ simulation via the following command:
 python input.py
 ```
 
-## Documentation
+## DOCUMENTATION
 A problem-oriented documentation could be found [here](doc/README.md).
 
-## Tutorials
+## TUTORIALS
 Tutorials of SOMD could be found
 [here](https://www.github.com/initqp/somd_tutorials). Going through these
 tutorials is considered as an efficient way to get familiar with SOMD.
