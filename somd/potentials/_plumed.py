@@ -17,6 +17,7 @@
 #
 
 import os as _os
+import numpy as _np
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 
@@ -42,6 +43,9 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         If restart the calculation.
     output_prefix : str
         Prefix of the output file.
+    cv_names : List(dict)
+        Names and components of the collective variables to save. For example:
+        cv_names = [{'d1': ['x']}, {'d2': []}, [{'d3': ['x', 'y', 'z']}]
 
     References
     ----------
@@ -58,7 +62,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                  timestep: float,
                  temperature: float = None,
                  restart: bool = False,
-                 output_prefix: str = None) -> None:
+                 output_prefix: str = None,
+                 cv_names: list = []) -> None:
         """
         Create a PLUMED instance.
         """
@@ -87,9 +92,43 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         if (temperature is not None):
             self.__plumed.cmd("setKbT", temperature * _c.BOLTZCONST)
         self.__plumed.cmd("init")
+        self.__set_up_cv(cv_names)
         self.__restart = restart
         self.__stop_flag = 0
         self.__step = 1
+
+    def __set_up_cv(self, cv_names: list) -> None:
+        """
+        Set up collective variables data.
+
+        Parameters
+        ----------
+        cv_names : List(dict)
+            Names and components of the collective variables to save. For
+            example:
+            cv_names = [{'d1': ['x']}, {'d2': []}, [{'d3': ['x', 'y', 'z']}]
+        """
+        self.__cv_values = []
+        self.__cv_names = cv_names
+        for cv in cv_names:
+            if (len(cv.items()) != 1):
+                message = 'Each element of the CV list should contains ' + \
+                          'one item!'
+                raise RuntimeError(message)
+            name = list(cv.keys())[0]
+            if (len(cv[name]) == 0):
+                data = _np.zeros(1, dtype=_np.double)
+                command = "setMemoryForData " + name
+                self.__plumed.cmd(command, data)
+                self.__cv_values.append([data])
+            else:
+                values = []
+                for component in cv[name]:
+                    data = _np.zeros(1, dtype=_np.double)
+                    command = "setMemoryForData " + name + '.' + component
+                    self.__plumed.cmd(command, data)
+                    values.append(data)
+                self.__cv_values.append(values)
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -149,3 +188,17 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         Set current time step.
         """
         self.__step = int(s)
+
+    @property
+    def cv_names(self) -> list:
+        """
+        Saved collective variable names.
+        """
+        return self.__cv_names.copy()
+
+    @property
+    def cv_values(self) -> list:
+        """
+        Saved collective variable values.
+        """
+        return self.__cv_values.copy()
