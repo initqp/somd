@@ -29,7 +29,7 @@ from .groups import ATOMGROUPS as _ATOMGROUPS
 from ._lib import CONSTRAINTS as _CONSTRAINTS
 from somd.constants import SOMDDEFAULTS as _d
 
-__all__ = ['MDSYSTEM']
+__all__ = ['MDSYSTEM', 'create_system_from_pdb', 'create_system_from_poscar']
 
 
 class MDSYSTEM(object):
