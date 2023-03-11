@@ -1,3 +1,25 @@
+#
+# SOMD is an ab-initio molecular dynamics package designed for the SIESTA code.
+# Copyright (C) 2023 github.com/initqp
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+"""
+A simple TOML input paser.
+"""
+
 import os as _os
 import numpy as _np
 import typing as _tp
@@ -9,10 +31,6 @@ from somd import apps as _mdapps
 from somd import potentials as _potentials
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
-
-"""
-A simple TOML input paser.
-"""
 
 __all__ = ['TOMLPARSER']
 
