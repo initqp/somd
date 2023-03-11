@@ -1,21 +1,3 @@
-#
-# SOMD is an ab-initio molecular dynamics package designed for the SIESTA code.
-# Copyright (C) 2023 github.com/initqp
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-
 import os as _os
 import numpy as _np
 import typing as _tp
@@ -678,7 +660,8 @@ class TOMLPARSER(object):
                                  timestep: float,
                                  temperature: float,
                                  inp: dict,
-                                 atom_list: list) -> _potentials.PLUMED:
+                                 atom_list: list,
+                                 potential_index: int) -> _potentials.PLUMED:
         """
         Parse the PLUMED potential options.
 
@@ -692,14 +675,18 @@ class TOMLPARSER(object):
             The dictionary that defines the PLUMED potential.
         atom_list : list(int)
             The atom list.
+        potential_index : int
+            Index of this potential.
         """
         if (len(atom_list) != self.__system.n_atoms):
             message = 'The PLUMED potential must act on the whole system!'
             raise RuntimeError(message)
+        prefix = self.__root['run']['label'] + \
+            '.plumed.pot_{:d}'.format(potential_index)
         return _potentials.PLUMED(atom_list, inp['file_name'], timestep,
                                   temperature,
                                   bool(self.__root['run']['restart_from']),
-                                  self.__root['run']['label'] + '.plumed')
+                                  prefix)
 
     def __parse_potentials(self,
                            timestep: float,
@@ -749,9 +736,8 @@ class TOMLPARSER(object):
             elif (potential_type == 'NEP'):
                 potential = self.__parse_potential_nep(potential, atom_list)
             elif (potential_type == 'PLUMED'):
-                potential = self.__parse_potential_plumed(timestep,
-                                                          temperature,
-                                                          potential, atom_list)
+                potential = self.__parse_potential_plumed(
+                    timestep, temperature, potential, atom_list, index)
             else:
                 message = 'Unknown potential type: ' + potential_type
                 raise RuntimeError(message)
