@@ -656,8 +656,7 @@ class H5READER(object):
             message = message.format(frame_index,
                                      self.__root['coordinates'].shape[0])
             raise RuntimeError(message)
-        if (self.__is_restart and
-                'SOMDRESTART' in str(self.__root.attrs['conventions'])):
+        if (self.__is_restart):
             if (self.__read_rng_state):
                 st_str = self.__root.attrs['randomState']
                 _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
