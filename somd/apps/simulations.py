@@ -176,7 +176,7 @@ class SIMULATION(object):
                 frame = t.root['steps'][frame]
             else:
                 frame = 0
-            self.__integrator.step = frame
+            self.__integrator.step = int(frame)
             for p in self.__system.potentials:
                 if (p.__class__.__name__ == 'PLUMED'):
                     p.step = frame + 1
