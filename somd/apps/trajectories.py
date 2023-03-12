@@ -132,6 +132,32 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         else:
             self.__root.attrs['conventions'] = 'Pande'
 
+    def __create_dataset(self,
+                         name: str,
+                         shape: tuple,
+                         max_shape: tuple,
+                         data_type: str,
+                         unit: str) -> None:
+        """
+        Create a new data set.
+
+        Parameters
+        ----------
+        name : str
+            Name of the data set.
+        shape : tuple
+            Initial shape of the data set.
+        max_shape : tuple
+            Maximum shape of the data set.
+        data_type : str
+            The data type.
+        unit : str
+            Unit of the data set.
+        """
+        self.__root.create_dataset(name, shape, maxshape=max_shape,
+                                   dtype=data_type)
+        self.__root[name].attrs['units'] = unit
+
     def __dump_datasets(self) -> None:
         """
         Setup the required datasets.
@@ -141,51 +167,37 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         else:
             type_str = '>f4'
         n_atoms = self.__system.n_atoms
-        self.__root.create_dataset('steps', (0,),
-                                   maxshape=(None,), dtype=int)
-        self.__root.create_dataset('potentialEnergy', (0,),
-                                   maxshape=(None,), dtype=type_str)
-        self.__root['potentialEnergy'].attrs['units'] = 'kilojoule/mole'
-        self.__root.create_dataset('cell_angles', (0, 3),
-                                   maxshape=(None, 3), dtype=type_str)
-        self.__root['cell_angles'].attrs['units'] = 'degrees'
-        self.__root.create_dataset('cell_lengths', (0, 3),
-                                   maxshape=(None, 3), dtype=type_str)
-        self.__root['cell_lengths'].attrs['units'] = 'nanometers'
-        self.__root.create_dataset('box', (0, 3, 3),
-                                   maxshape=(None, 3, 3), dtype=type_str)
-        self.__root['box'].attrs['units'] = 'nanometers'
-        self.__root.create_dataset('coordinates', (0, n_atoms, 3),
-                                   maxshape=(None, n_atoms, 3), dtype=type_str)
-        self.__root['coordinates'].attrs['units'] = 'nanometers'
+        self.__create_dataset('steps', (0,), (None,), 'uint64', '1')
+        self.__create_dataset('potentialEnergy', (0,), (None,), type_str,
+                              'kilojoule/mole')
+        self.__create_dataset('cell_angles', (0, 3), (None, 3), type_str,
+                              'degrees')
+        self.__create_dataset('cell_lengths', (0, 3), (None, 3), type_str,
+                              'nanometers')
+        self.__create_dataset('box', (0, 3, 3), (None, 3, 3), type_str,
+                              'nanometers')
+        self.__create_dataset('coordinates', (0, n_atoms, 3),
+                              (None, n_atoms, 3), type_str, 'nanometers')
         if (self.__write_velocities):
-            self.__root.create_dataset('velocities', (0, n_atoms, 3),
-                                       maxshape=(None, n_atoms, 3),
-                                       dtype=type_str)
-            self.__root['velocities'].attrs['units'] = 'nanometers/picosecond'
+            self.__create_dataset('velocities', (0, n_atoms, 3),
+                                  (None, n_atoms, 3), type_str,
+                                  'nanometers/picosecond')
         if (self.__write_forces):
-            self.__root.create_dataset('forces', (0, n_atoms, 3),
-                                       maxshape=(None, n_atoms, 3),
-                                       dtype=type_str)
-            self.__root['forces'].attrs['units'] = 'kilojoule/mole/nanometers'
+            self.__create_dataset('forces', (0, n_atoms, 3),
+                                  (None, n_atoms, 3), type_str,
+                                  'kilojoule/mole/nanometers')
         if (self.__write_virial):
-            self.__root.create_dataset('virial', (0, 3, 3),
-                                       maxshape=(None, 3, 3), dtype=type_str)
-            self.__root['virial'].attrs['units'] = 'kilojoule/mole'
+            self.__create_dataset('virial', (0, 3, 3), (None, 3, 3), type_str,
+                                  'kilojoule/mole')
         if (self.__is_restart):
             if (len(self.__nhchains) != 0):
+                l_nhc = _d.NHCLENGTH
                 n_nhc = len(self.__nhchains)
-                self.__root.create_dataset('nhc_positions',
-                                           (1, n_nhc, _d.NHCLENGTH),
-                                           maxshape=(1, n_nhc, _d.NHCLENGTH),
-                                           dtype=type_str)
-                self.__root['nhc_positions'].attrs['units'] = '1'
-                self.__root.create_dataset('nhc_momentums',
-                                           (1, n_nhc, _d.NHCLENGTH),
-                                           maxshape=(1, n_nhc, _d.NHCLENGTH),
-                                           dtype=type_str)
-                self.__root['nhc_momentums'].attrs['units'] = \
-                    'kilojoule/mole*picosecond'
+                self.__create_dataset('nhc_positions', (1, n_nhc, l_nhc),
+                                      (1, n_nhc, l_nhc), type_str, '1')
+                self.__create_dataset('nhc_momentums', (1, n_nhc, l_nhc),
+                                      (1, n_nhc, l_nhc), type_str,
+                                      'kilojoule/mole*picosecond')
 
     def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
             -> None:
