@@ -152,6 +152,9 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         self.__root.create_dataset('cell_lengths', (0, 3),
                                    maxshape=(None, 3), dtype=type_str)
         self.__root['cell_lengths'].attrs['units'] = 'nanometers'
+        self.__root.create_dataset('box', (0, 3, 3),
+                                   maxshape=(None, 3, 3), dtype=type_str)
+        self.__root['box'].attrs['units'] = 'nanometers'
         self.__root.create_dataset('coordinates', (0, n_atoms, 3),
                                    maxshape=(None, n_atoms, 3), dtype=type_str)
         self.__root['coordinates'].attrs['units'] = 'nanometers'
@@ -170,9 +173,6 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
                                        maxshape=(None, 3, 3), dtype=type_str)
             self.__root['virial'].attrs['units'] = 'kilojoule/mole'
         if (self.__is_restart):
-            self.__root.create_dataset('box', (1, 3, 3),
-                                       maxshape=(1, 3, 3), dtype=type_str)
-            self.__root['box'].attrs['units'] = 'nanometers'
             if (len(self.__nhchains) != 0):
                 n_nhc = len(self.__nhchains)
                 self.__root.create_dataset('nhc_positions',
@@ -225,7 +225,6 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         if (self.__is_restart):
             # The step stands for the number of trajectory frame.
             step = 0
-            self.__root['box'][0, :, :] = self.__system.box
             st = _np.random.get_state()
             st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
             self.__root.attrs['randomState'] = st_str
@@ -245,6 +244,8 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         self.__root['cell_angles'][step, :] = l[3:6]
         self.__root['cell_lengths'].resize((step + 1, 3))
         self.__root['cell_lengths'][step, :] = l[0:3]
+        self.__root['box'].resize((step + 1, 3, 3))
+        self.__root['box'][step, :, :] = self.__system.box
         if (self.__wrap_positions):
             p = self.__system.positions_wrapped
         else:
@@ -686,7 +687,7 @@ class H5READER(object):
             except:
                 _w.warn('Can not load forces form ' + self.file_name)
         if (self.__read_cell):
-            if ('SOMDRESTART' in str(self.__root.attrs['conventions'])):
+            if (str(self.__root.attrs['program']) == 'SOMD'):
                 self.__system.box[:] = self.__root['box'][frame_index][:]
             else:
                 try:
