@@ -961,10 +961,11 @@ class TOMLPARSER(object):
                 for i in tmp:
                     potential = self.__system.potentials[i]
                     if (potential.__class__.__name__ == 'PLUMED'):
-                        message = 'The forces and energies in trajectory ' + \
-                                  'file "{:s}" may include contributions ' + \
-                                  'of PLUMED bias potentials! MAKE SURE ' + \
-                                  'THAT THIS IS WHAT YOU WANT!!'
+                        message = 'The forces and energies in the ' + \
+                                  'trajectory file "{:s}" may include ' + \
+                                  'contributions of PLUMED bias ' + \
+                                  'potentials! MAKE SURE THAT THIS IS ' + \
+                                  'WHAT YOU WANT!!'
                         _w.warn(message.format(file_name))
         self.__check_trajectories()
 
