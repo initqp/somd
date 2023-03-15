@@ -23,6 +23,9 @@ subroutines to automatically train the neuroevolution potential (NEP) using the
 so-called active-learning methodology.
 """
 
+
+import warnings as _w
+import datetime as _dt
 from somd import constants
 from somd import core
 from somd import potentials
@@ -31,5 +34,6 @@ from somd import apps
 from . import _version
 __version__ = _version.get_versions()['version']
 
-import warnings as _w
 _w.simplefilter('always', UserWarning)
+_w.formatwarning = \
+    lambda msg, *args, **kwargs: f'[SOMD] [{_dt.datetime.now()}] {msg}\n'
