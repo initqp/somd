@@ -160,7 +160,7 @@ class ACTIVELEARNING(object):
         self.__write_nep_types = True
         self.__nep_parameters = self.__nep_parameters.replace('\\n', '\n')
         for line in _re.split('\n', self.__nep_parameters):
-            l = [i for i in line.split(' ') if i != '']
+            l = [i for i in line.strip().split(' ') if i != '']
             if (l != [] and l[0].lower() == 'type'):
                 e_nep = l[2:]
                 if (len(e_nep) != int(l[1])):
