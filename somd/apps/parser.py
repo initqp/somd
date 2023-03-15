@@ -954,6 +954,18 @@ class TOMLPARSER(object):
                     message = 'Unknown trajectory format ' + \
                               trajectory['format']
                     raise RuntimeError(message)
+                if (trajectory['potential_list'] is None):
+                    tmp = list(range(0, len(self.__system.potentials)))
+                else:
+                    tmp = trajectory['potential_list']
+                for i in tmp:
+                    potential = self.__system.potentials[i]
+                    if (potential.__class__.__name__ == 'PLUMED'):
+                        message = 'The forces and energies in trajectory ' + \
+                                  'file "{:s}" may include contributions ' + \
+                                  'of PLUMED bias potentials! MAKE SURE ' + \
+                                  'THAT THIS IS WHAT YOU WANT!!'
+                        _w.warn(message.format(file_name))
         self.__check_trajectories()
 
     def __parse_scripts(self):
