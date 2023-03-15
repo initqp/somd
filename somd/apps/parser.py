@@ -157,6 +157,7 @@ class TOMLPARSER(object):
         'min_new_structures_per_iter': __value__(int, False, None),
         'max_new_structures_per_iter': __value__(int, False, None),
         'initial_potential_files': __value__(list, False, None),
+        'initial_testing_set': __value__(str, False, None),
         'reference_potentials': __value__(list, False, None),
     }
 
