@@ -1165,10 +1165,11 @@ the active learning methodology.
     You could also use a job manager like SLURM to submit the training job. For
     example (the `--wait` parameter is **REQUIRED**):
     ```toml
-    nep_command = "/path/to/sbatch submit_nep.sh --wait"
+    nep_command = "/path/to/sbatch --wait /absolute/path/to/submit_nep.sh"
     ```
     `submit_nep.sh`:
     ```bash
+    #!/bin/bash
     #SBATCH -J training
     #SBATCH -o training.log
     #SBATCH -e training.err
