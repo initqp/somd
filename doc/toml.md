@@ -1212,7 +1212,7 @@ the active learning methodology.
 
     **Descriptions**: Number of the potentials to train per iteration.
 
-- **`max_steps_per_iter`**:
+- **`max_md_steps_per_iter`**:
 
     **If Mandatory**: no
 
@@ -1322,7 +1322,7 @@ the active learning methodology.
         n_potentials = 4
         msd_lower_limit = 50.0
         msd_upper_limit = 250.0
-        max_steps_per_iter = 50000
+        max_md_steps_per_iter = 50000
         min_new_structures_per_iter = 20
         max_new_structures_per_iter = 100
         initial_training_set = "train.xyz"
@@ -1338,7 +1338,7 @@ the active learning methodology.
         n_potentials = 4
         msd_lower_limit = 50.0
         msd_upper_limit = 250.0
-        max_steps_per_iter = 50000
+        max_md_steps_per_iter = 50000
         min_new_structures_per_iter = 20
         max_new_structures_per_iter = 100
         reference_potentials = [0, 1]

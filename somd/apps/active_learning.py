@@ -51,7 +51,7 @@ class ACTIVELEARNING(object):
         - n_potentials : int
             Default value : 4
             Number of potentials to train.
-        - max_steps_per_iter : int
+        - max_md_steps_per_iter : int
             Default value : 50000
             Maximum number of MD steps in each training iteration.
         - min_new_structures_per_iter : int
@@ -128,8 +128,8 @@ class ACTIVELEARNING(object):
             param['n_potentials'] = 4
         if ('perform_clustering' not in param.keys()):
             param['perform_clustering'] = False
-        if ('max_steps_per_iter' not in param.keys()):
-            param['max_steps_per_iter'] = 1000
+        if ('max_md_steps_per_iter' not in param.keys()):
+            param['max_md_steps_per_iter'] = 1000
         if ('msd_lower_limit' not in param.keys()):
             param['msd_lower_limit'] = 50.0
         if ('msd_upper_limit' not in param.keys()):
@@ -310,7 +310,7 @@ class ACTIVELEARNING(object):
         info = self.__training_iter_data[-1]
         forces_msd_limits = [param['msd_lower_limit'],
                              param['msd_upper_limit']]
-        for i in range(0, param['max_steps_per_iter']):
+        for i in range(0, param['max_md_steps_per_iter']):
             self.__simulation.run(1)
             data_writer.update()
             traj_writer.update()

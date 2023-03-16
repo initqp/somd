@@ -150,7 +150,7 @@ class TOMLPARSER(object):
         'initial_training_set': __value__(str, True, None),
         'n_iterations': __value__(int, True, None),
         'n_potentials': __value__(int, False, None),
-        'max_steps_per_iter': __value__(int, False, None),
+        'max_md_steps_per_iter': __value__(int, False, None),
         'msd_lower_limit': __value__(float, False, None),
         'msd_upper_limit': __value__(float, False, None),
         'min_new_structures_per_iter': __value__(int, False, None),
