@@ -1212,6 +1212,16 @@ the active learning methodology.
 
     **Descriptions**: Number of the potentials to train per iteration.
 
+- **`max_md_runs_per_iter`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `1`
+
+    **Descriptions**: Number of the MD runs per training iteration.
+
 - **`max_md_steps_per_iter`**:
 
     **If Mandatory**: no
