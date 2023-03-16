@@ -151,7 +151,6 @@ class TOMLPARSER(object):
         'n_iterations': __value__(int, True, None),
         'n_potentials': __value__(int, False, None),
         'max_steps_per_iter': __value__(int, False, None),
-        'restart_before_step': __value__(int, False, None),
         'msd_lower_limit': __value__(float, False, None),
         'msd_upper_limit': __value__(float, False, None),
         'min_new_structures_per_iter': __value__(int, False, None),
@@ -1037,9 +1036,6 @@ class TOMLPARSER(object):
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
                 _w.warn(message)
-        if (protocol['restart_before_step'] is None):
-            self.__root['active_learning']['restart_before_step'] = \
-                protocol['n_iterations']
         for key in protocol.copy().keys():
             if (protocol[key] is None):
                 protocol.pop(key)
@@ -1054,11 +1050,7 @@ class TOMLPARSER(object):
         if (self.__root['run']['restart_from'] is not None):
             self.__simulation.restart_from(self.__root['run']['restart_from'])
         if (self.__trainer is not None):
-            restart_before_step = \
-                self.__root['active_learning']['restart_before_step']
             for i in range(0, self.__root['active_learning']['n_iterations']):
-                if (i != 0 and i < restart_before_step):
-                    self.__trainer.restore_initial_conditions()
                 self.__trainer.run()
         else:
             self.__simulation.run(self.__root['run']['n_steps'])
