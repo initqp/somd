@@ -51,6 +51,9 @@ class ACTIVELEARNING(object):
         - n_potentials : int
             Default value : 4
             Number of potentials to train.
+        - max_md_runs_per_iter : int
+            Default value : 1
+            Maximum number of MD runs in each training iteration.
         - max_md_steps_per_iter : int
             Default value : 50000
             Maximum number of MD steps in each training iteration.
@@ -114,6 +117,8 @@ class ACTIVELEARNING(object):
         self.__check_learning_parameters()
         self.__check_nep_parameters()
         simulation.dump_restart('active_learning_start_point.h5')
+        self.__initial_conditions = \
+            _os.getcwd() + '/active_learning_start_point.h5'
 
     def __check_learning_parameters(self) -> None:
         """
@@ -128,8 +133,10 @@ class ACTIVELEARNING(object):
             param['n_potentials'] = 4
         if ('perform_clustering' not in param.keys()):
             param['perform_clustering'] = False
+        if ('max_md_runs_per_iter' not in param.keys()):
+            param['max_md_runs_per_iter'] = 1
         if ('max_md_steps_per_iter' not in param.keys()):
-            param['max_md_steps_per_iter'] = 1000
+            param['max_md_steps_per_iter'] = 50000
         if ('msd_lower_limit' not in param.keys()):
             param['msd_lower_limit'] = 50.0
         if ('msd_upper_limit' not in param.keys()):
@@ -310,24 +317,26 @@ class ACTIVELEARNING(object):
         info = self.__training_iter_data[-1]
         forces_msd_limits = [param['msd_lower_limit'],
                              param['msd_upper_limit']]
-        for i in range(0, param['max_md_steps_per_iter']):
-            self.__simulation.run(1)
-            data_writer.update()
-            traj_writer.update()
-            msd = self._get_potentials_msd(self.__potentials,
-                                           self.__simulation.system)
-            info['forces_msd'].append(msd)
-            info['n_visited_structures'] += 1
-            if (msd < forces_msd_limits[0]):
-                info['n_accurate_structures'] += 1
-            elif (msd > forces_msd_limits[1]):
-                info['n_failed_structures'] += 1
-            else:
-                info['n_candidate_structures'] += 1
-                info['candidate_structure_indices'].append(i)
-                structure = [self.__simulation.system.positions.copy(),
-                             self.__simulation.system.box.copy()]
-                candidate_structures.append(structure)
+        for i in range(0, param['max_md_runs_per_iter']):
+            self.restore_initial_conditions()
+            for j in range(0, param['max_md_steps_per_iter']):
+                self.__simulation.run(1)
+                data_writer.update()
+                traj_writer.update()
+                msd = self._get_potentials_msd(self.__potentials,
+                                               self.__simulation.system)
+                info['forces_msd'].append(msd)
+                info['n_visited_structures'] += 1
+                if (msd < forces_msd_limits[0]):
+                    info['n_accurate_structures'] += 1
+                elif (msd > forces_msd_limits[1]):
+                    info['n_failed_structures'] += 1
+                else:
+                    info['n_candidate_structures'] += 1
+                    info['candidate_structure_indices'].append(j)
+                    structure = [self.__simulation.system.positions.copy(),
+                                 self.__simulation.system.box.copy()]
+                    candidate_structures.append(structure)
         info['max_forces_msd'] = max(info['forces_msd'])
         del data_writer
         del traj_writer
@@ -613,7 +622,7 @@ class ACTIVELEARNING(object):
         Reset the initial conditions of the simulation.
         """
         # Do not read NHC/RNG data here to improve randomness.
-        self.__simulation.restart_from('active_learning_start_point.h5',
+        self.__simulation.restart_from(self.__initial_conditions,
                                        read_nhc_data=False,
                                        read_rng_state=False)
 
