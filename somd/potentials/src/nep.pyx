@@ -149,7 +149,7 @@ cdef class NEPWRAPPER(object):
                   forces: double[:, :],
                   virial: double[:, :]) -> double:
         """
-        Perform NEP calculation.
+        Perform the NEP calculation.
 
         Parameters
         ----------
@@ -158,7 +158,7 @@ cdef class NEPWRAPPER(object):
             The cell vectors. In units of (Ang).
         positions : np.array(dtype=np.double)
             dim : n_atoms * 3
-            Positions of the atom. In unit of (Ang).
+            Positions of each atom. In unit of (Ang).
         forces : np.array(dtype=np.double)
             dim : n_atoms * 3
             Total forces of each atom. In unit of (eV/Ang).
