@@ -31,7 +31,7 @@ Operating System :: Unix
 extensions = [
     Extension(
         'somd.core._lib',
-        ['./somd/core/src/lib.pyx', './somd/core/src/math_utils.c'],
+        ['./somd/core/src/lib.pyx', './somd/core/src/math_utils.cxx'],
         include_dirs=['./somd/core/src'],
         extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
                             '-march=native'],

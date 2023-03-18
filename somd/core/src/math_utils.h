@@ -16,14 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-extern "C" {
-	double veclen(double *vec, int n_elem);
-	double veclen2(double *vec, int n_elem);
-	void vecnorm(double *vec, int n_elem);
-	void vecscale(double *vec, double factor, int n_elem);
-	double vecdot(double *vec_1, double *vec_2, int n_elem);
-	double vecdis(double *vec_1, double *vec_2, int n_elem);
-	void vecadd(double *vec_1, double *vec_2, double *out, int n_elem);
-	void vecsub(double *vec_1, double *vec_2, double *out, int n_elem);
-	void veccross3(double vec_1[3], double vec_2[3], double out[3]);
-}
+double veclen(double *vec, int n_elem);
+double veclen2(double *vec, int n_elem);
+double vecdot(double *vec_1, double *vec_2, int n_elem);
+double vecdis(double *vec_1, double *vec_2, int n_elem);
+void vecnorm(double *vec, int n_elem);
+void vecscale(double *vec, double factor, int n_elem);
+void vecadd(double *vec_1, double *vec_2, double *out, int n_elem);
+void vecsub(double *vec_1, double *vec_2, double *out, int n_elem);
+void veccross3(double vec_1[3], double vec_2[3], double out[3]);
