@@ -19,7 +19,7 @@ compiler (with C++11 supports), a Python3 interpreter and four additional
 Python3 libraries (`cython`, `h5py`, `mdtraj` and `toml`). You could install
 SOMD by the following steps.
 
-1. Install the required dependence with:
+1. Install the required dependencies with:
     ```bash
     conda config --add channels conda-forge
     conda install cython h5py mdtraj toml -c conda-forge
