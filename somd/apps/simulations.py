@@ -99,10 +99,10 @@ class SIMULATION(object):
         # This will ensure a strict restarting when using barostats.
         potential_list = []
         if (_d.POTLIST is None):
-            tmp_list = list(range(0, len(self.system.potentials)))
+            tmp = list(range(0, len(self.system.potentials)))
         else:
-            tmp_list = _d.POTLIST.copy()
-        for i in tmp_list:
+            tmp = _d.POTLIST.copy()
+        for i in tmp:
             p = self.system.potentials[i]
             if (p.__class__.__name__ != 'PLUMED'):
                 potential_list.append(i)
