@@ -174,8 +174,8 @@ class ACTIVELEARNING(object):
                     message = 'Wrong Number of elements in NEP parameters!'
                     raise RuntimeError(message)
                 e_all = self.__simulation.system.atomic_symbols
-                e_lack = [e for e in e_nep if e not in e_all]
-                e_unknown = [e for e in e_all if e not in e_nep]
+                e_lack = [e for e in e_all if e not in e_nep]
+                e_unknown = [e for e in e_nep if e not in e_all]
                 if (len(e_lack) != 0):
                     message = 'Lack element {} in NEP parameters!'
                     raise RuntimeError(message.format(e_lack))
