@@ -26,7 +26,7 @@ SOMD by the following steps.
     ```
     or
     ```bash
-    pip install cython mdtraj toml
+    pip install cython h5py mdtraj toml
     ```
 2. Clone this repo:
     ```bash
