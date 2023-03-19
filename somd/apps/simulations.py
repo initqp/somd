@@ -144,8 +144,11 @@ class SIMULATION(object):
         t.write()
         del t
 
-    def restart_from(self, file_name: str, frame: int = -1,
-                     read_step: bool = True, **kwargs) -> None:
+    def restart_from(self,
+                     file_name: str,
+                     frame: int = -1,
+                     read_step: bool = True,
+                     **kwargs) -> None:
         """
         Restart the simulation from a SOMD HDF5 restart file.
 
