@@ -15,14 +15,14 @@ would like to perform production runs with SOMD, please take your own risk.
 
 ## INSTALLATION
 SOMD only runs on GNU/Linux distros. The installation requires a working `g++`
-compiler (with C++11 supports), a Python3 interpreter and three additional
-Python3 libraries (cython, mdtraj and toml). You could install SOMD by the
-following steps.
+compiler (with C++11 supports), a Python3 interpreter and four additional
+Python3 libraries (`cython`, `h5py`, `mdtraj` and `toml`). You could install
+SOMD by the following steps.
 
 1. Install the required dependence with:
     ```bash
     conda config --add channels conda-forge
-    conda install cython mdtraj toml -c conda-forge
+    conda install cython h5py mdtraj toml -c conda-forge
     ```
     or
     ```bash
@@ -46,7 +46,6 @@ following steps.
     ```bash
     pip install .
     ```
-
 4. Start a `python` REPL and enter the following lines:
     ```python
     >>> import somd
