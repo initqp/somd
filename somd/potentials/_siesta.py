@@ -23,7 +23,6 @@ import numpy as _np
 import mdtraj as _md
 import shutil as _sh
 import signal as _sg
-import psutil as _ps
 import subprocess as _sp
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
@@ -209,7 +208,12 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         """
         If the SIESTA subprocess is still alive.
         """
-        return _ps.pid_exists(self.__siesta_pid)
+        try:
+            _os.kill(self.__siesta_pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
 
     @property
     def working_directory(self):
