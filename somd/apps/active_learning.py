@@ -333,7 +333,8 @@ class ACTIVELEARNING(object):
                     info['n_failed_structures'] += 1
                 else:
                     info['n_candidate_structures'] += 1
-                    info['candidate_structure_indices'].append(j)
+                    index = param['max_md_steps_per_iter'] * i + j
+                    info['candidate_structure_indices'].append(index)
                     structure = [self.__simulation.system.positions.copy(),
                                  self.__simulation.system.box.copy()]
                     candidate_structures.append(structure)
