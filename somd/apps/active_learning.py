@@ -382,7 +382,7 @@ class ACTIVELEARNING(object):
         info = self.__training_iter_data[-1]
         traj_file_name = info['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
-            traj_file_name, write_velocities=False,
+            traj_file_name, write_velocities=False, wrap_positions=True,
             potential_list=self.__reference_potentials)
         traj_writer.bind_integrator(self.__simulation.integrator)
         traj_writer.initialize()
