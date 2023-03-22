@@ -393,6 +393,28 @@ class INTEGRATOR(object):
         if ('N' in self.__splitting_whole['operators']):
             self.__nhchains = []
 
+    def copy(self) -> 'INTEGRATOR':
+        """
+        Copy the integrator.
+        """
+        defaults = [_d.NHCLENGTH, _d.NHCNRESPA]
+        if ('N' in self.__splitting_whole['operators']):
+            _d.NHCLENGTH = self._nhchains[0].length
+            _d.NHCNRESPA = self._nhchains[0].n_respa
+        integrator = INTEGRATOR(self.timestep, self.splitting,
+                                self.temperatures, self.relaxation_times,
+                                self.thermo_groups)
+        if ('N' in self.__splitting_whole['operators']):
+            for i in range(0, len(self.__thermo_groups)):
+                integrator._nhchains[i].temperature = self.__temperatures[i]
+                integrator._nhchains[i].n_dof = self._nhchains[i].n_dof
+                integrator._nhchains[i].tau = self._nhchains[i].tau
+                integrator._nhchains[i].positions = self._nhchains[i].positions
+                integrator._nhchains[i].momentums = self._nhchains[i].momentums
+            _d.NHCLENGTH = defaults[0]
+            _d.NHCNRESPA = defaults[1]
+        return integrator
+
     @property
     def system(self) -> str:
         """
