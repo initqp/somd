@@ -185,9 +185,11 @@ class TOMLPARSER(object):
         self.__parse_barostat()
         self.__parse_loggers()
         self.__parse_trajectories()
-        self.__set_up_simulation()
         self.__parse_scripts()
-        self.__parse_active_learning()
+        if (self.__root['active_learning'] is None):
+            self.__set_up_simulation()
+        else:
+            self.__parse_active_learning()
 
     def __normalize_tables(self) -> None:
         """
@@ -613,7 +615,7 @@ class TOMLPARSER(object):
             The atom list.
         """
         if (inp['pseudopotential_dir'] is None):
-            pseudopotential_dir = './'
+            pseudopotential_dir = _os.getcwd()
         else:
             pseudopotential_dir = inp['pseudopotential_dir']
         return _potentials.create_siesta_potential(
@@ -676,9 +678,9 @@ class TOMLPARSER(object):
         return _potentials.NEP(atom_list, inp['file_name'], atom_symbols)
 
     def __parse_potential_plumed(self,
+                                 inp: dict,
                                  timestep: float,
                                  temperature: float,
-                                 inp: dict,
                                  atom_list: list,
                                  potential_index: int) -> _potentials.PLUMED:
         """
@@ -686,12 +688,12 @@ class TOMLPARSER(object):
 
         Parameters
         ----------
+        inp: dict
+            The dictionary that defines the PLUMED potential.
         timestep: float
             The integration timestep.
         temperature: float
             The temperature of the thermostat.
-        inp: dict
-            The dictionary that defines the PLUMED potential.
         atom_list : list(int)
             The atom list.
         potential_index : int
@@ -706,6 +708,48 @@ class TOMLPARSER(object):
                                   temperature,
                                   bool(self.__root['run']['restart_from']),
                                   prefix)
+
+    def __parse_potential(self,
+                          inp: dict,
+                          index: int,
+                          timestep: float,
+                          temperature: float) \
+            -> _mdcore.potential_base.POTENTIAL:
+        """
+        Parse one potential with given index.
+
+        Parameters
+        ----------
+        inp : dict
+            Information about the potential.
+        index : int
+            Index of the potential.
+        timestep : float
+            Timestep of the integrator. In unit of (ps).
+        temperatures : list(float)
+            Temperatures of the integrator. In unit of (K).
+        """
+        inp = self.__normalize_table(inp, 'potential')
+        if (inp['atom_list'] is None):
+            atom_list = list(range(0, self.__system.n_atoms))
+        else:
+            atom_list = inp['atom_list']
+        potential_type = inp['type'].upper()
+        if (potential_type == 'SIESTA'):
+            potential = self.__parse_potential_siesta(inp, atom_list)
+        elif (potential_type == 'DFTD3'):
+            potential = self.__parse_potential_dftd3(inp, atom_list)
+        elif (potential_type == 'DFTD4'):
+            potential = self.__parse_potential_dftd4(inp, atom_list)
+        elif (potential_type == 'NEP'):
+            potential = self.__parse_potential_nep(inp, atom_list)
+        elif (potential_type == 'PLUMED'):
+            potential = self.__parse_potential_plumed(
+                inp, timestep, temperature, atom_list, index)
+        else:
+            message = 'Unknown potential type: ' + potential_type
+            raise RuntimeError(message)
+        return potential
 
     def __parse_potentials(self,
                            timestep: float,
@@ -739,28 +783,17 @@ class TOMLPARSER(object):
             message = 'The "potential" key should correspond to an array ' + \
                       'of tables!'
             raise RuntimeError(message)
+        self.__potential_generators = []
         for index, potential in enumerate(potentials):
-            potential = self.__normalize_table(potential, 'potential')
-            if (potential['atom_list'] is None):
-                atom_list = list(range(0, self.__system.n_atoms))
-            else:
-                atom_list = potential['atom_list']
-            potential_type = potential['type'].upper()
-            if (potential_type == 'SIESTA'):
-                potential = self.__parse_potential_siesta(potential, atom_list)
-            elif (potential_type == 'DFTD3'):
-                potential = self.__parse_potential_dftd3(potential, atom_list)
-            elif (potential_type == 'DFTD4'):
-                potential = self.__parse_potential_dftd4(potential, atom_list)
-            elif (potential_type == 'NEP'):
-                potential = self.__parse_potential_nep(potential, atom_list)
-            elif (potential_type == 'PLUMED'):
-                potential = self.__parse_potential_plumed(
-                    timestep, temperature, potential, atom_list, index)
-            else:
-                message = 'Unknown potential type: ' + potential_type
-                raise RuntimeError(message)
-            self.__system.potentials.append(potential)
+            if ('file_name' in potential.keys()):
+                potential['file_name'] = \
+                    _os.path.abspath(potential['file_name'])
+            if ('pseudopotential_dir' in potential.keys()):
+                potential['pseudopotential_dir'] = \
+                    _os.path.abspath(potential['pseudopotential_dir'])
+            self.__potential_generators.append((
+                potential['type'].upper(), lambda i=index, p=potential:
+                self.__parse_potential(p, i, timestep, temperature)))
 
     def __parse_constraints(self):
         """
@@ -974,6 +1007,7 @@ class TOMLPARSER(object):
         Set up the post-step scripts.
         """
         scope = {}
+        self.__scripts = []
         scripts = self.__root['script']
         if (scripts is None):
             return
@@ -994,16 +1028,20 @@ class TOMLPARSER(object):
                 raise RuntimeError(message)
             obj = _mdapps._post_step.POSTSTEPOBJWRAPPER(
                 scope['update'], scope['initialize'], interval)
-            obj.bind_integrator(self.__integrator)
-            self.__simulation.post_step_objects.append(obj)
+            self.__scripts.append(obj)
 
     def __set_up_simulation(self):
         """
         Set up the simulation protocol.
         """
+        for generator in self.__potential_generators:
+            self.__system.potentials.append(generator[1]())
         self.__simulation = _mdapps.simulations.SIMULATION(
             self.__system, self.__integrator, barostat=self.__barostat,
             loggers=self.__loggers, trajectories=self.__trajectories)
+        for obj in self.__scripts:
+            obj.bind_integrator(self.__integrator)
+            self.__simulation.post_step_objects.append(obj)
 
     def __parse_active_learning(self):
         """
@@ -1014,46 +1052,61 @@ class TOMLPARSER(object):
             self.__trainer = None
             return
         protocol = self.__normalize_table(protocol, 'active_learning')
-        potentials = self.__simulation.system.potentials
         if (protocol['reference_potentials'] is None):
-            reference_potentials = list(range(0, len(potentials)))
-            for i in range(0, len(potentials)):
-                if (potentials[i].__class__.__name__ == 'PLUMED'):
+            reference_potentials = list(
+                range(0, len(self.__potential_generators)))
+            for i in range(0, len(self.__potential_generators)):
+                if (self.__potential_generators[i][0] == 'PLUMED'):
+                    reference_potentials.pop(i)
+                elif (self.__potential_generators[i][0] == 'NEP'):
                     reference_potentials.pop(i)
         else:
             reference_potentials = protocol['reference_potentials']
         for i in reference_potentials:
-            if (i >= len(potentials)):
+            if (i >= len(self.__potential_generators)):
                 message = 'Unknown potential index: {:d} in the ' + \
                           '[active_learning] table!'
                 raise IndexError(message.format(i))
-            if (potentials[i].__class__.__name__ == 'PLUMED'):
+            if (self.__potential_generators[i][0] == 'PLUMED'):
                 message = 'You are using PLUMED as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
                 _w.warn(message)
-            if (potentials[i].__class__.__name__ == 'NEP'):
+            if (self.__potential_generators[i][0] == 'NEP'):
                 message = 'You are using NEP as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
                 _w.warn(message)
+        if (protocol['initial_training_set'] is not None):
+            protocol['initial_training_set'] = \
+                _os.path.abspath(protocol['initial_training_set'])
+        if (protocol['initial_testing_set'] is not None):
+            protocol['initial_testing_set'] = \
+                _os.path.abspath(protocol['initial_testing_set'])
+        if (protocol['initial_potential_files'] is not None):
+            protocol['initial_potential_files'] = [
+                _os.path.abspath(file) for file in
+                protocol['initial_potential_files']]
+        generators = [g[1] for g in self.__potential_generators]
         for key in protocol.copy().keys():
             if (protocol[key] is None):
                 protocol.pop(key)
         self.__trainer = _mdapps.active_learning.ACTIVELEARNING(
-            self.__simulation, reference_potentials, protocol,
-            protocol['nep_options'], protocol['nep_command'])
+            self.__system, self.__integrator, generators, reference_potentials,
+            protocol, protocol['nep_options'], protocol['nep_command'],
+            self.__scripts)
 
     def run(self):
         """
         Run the simulation.
         """
-        if (self.__root['run']['restart_from'] is not None):
-            self.__simulation.restart_from(self.__root['run']['restart_from'])
         if (self.__trainer is not None):
             for i in range(0, self.__root['active_learning']['n_iterations']):
                 self.__trainer.run()
         else:
+            if (self.__root['run']['restart_from'] is not None):
+                self.__simulation.restart_from(
+                    self.__root['run']['restart_from'])
             self.__simulation.run(self.__root['run']['n_steps'])
 
     @property
