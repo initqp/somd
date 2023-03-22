@@ -614,13 +614,9 @@ class TOMLPARSER(object):
         atom_list : list(int)
             The atom list.
         """
-        if (inp['pseudopotential_dir'] is None):
-            pseudopotential_dir = _os.getcwd()
-        else:
-            pseudopotential_dir = inp['pseudopotential_dir']
         return _potentials.create_siesta_potential(
             self.__system, atom_list, inp['siesta_options'],
-            inp['siesta_command'], pseudopotential_dir)
+            inp['siesta_command'], inp['pseudopotential_dir'])
 
     def __parse_potential_dftd3(self, inp: dict, atom_list: list) \
             -> _potentials.DFTD3:
@@ -789,8 +785,11 @@ class TOMLPARSER(object):
                 potential['file_name'] = \
                     _os.path.abspath(potential['file_name'])
             if ('pseudopotential_dir' in potential.keys()):
-                potential['pseudopotential_dir'] = \
-                    _os.path.abspath(potential['pseudopotential_dir'])
+                if (potential['pseudopotential_dir'] is None):
+                    potential['pseudopotential_dir'] = _os.getcwd()
+                else:
+                    potential['pseudopotential_dir'] = \
+                        _os.path.abspath(potential['pseudopotential_dir'])
             self.__potential_generators.append((
                 potential['type'].upper(), lambda i=index, p=potential:
                 self.__parse_potential(p, i, timestep, temperature)))
