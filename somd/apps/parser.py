@@ -188,6 +188,7 @@ class TOMLPARSER(object):
         self.__parse_scripts()
         if (self.__root['active_learning'] is None):
             self.__set_up_simulation()
+            self.__trainer = None
         else:
             self.__parse_active_learning()
 
@@ -725,7 +726,6 @@ class TOMLPARSER(object):
         temperatures : list(float)
             Temperatures of the integrator. In unit of (K).
         """
-        inp = self.__normalize_table(inp, 'potential')
         if (inp['atom_list'] is None):
             atom_list = list(range(0, self.__system.n_atoms))
         else:
@@ -781,15 +781,15 @@ class TOMLPARSER(object):
             raise RuntimeError(message)
         self.__potential_generators = []
         for index, potential in enumerate(potentials):
-            if ('file_name' in potential.keys()):
+            potential = self.__normalize_table(potential, 'potential')
+            if (potential['file_name'] is not None):
                 potential['file_name'] = \
                     _os.path.abspath(potential['file_name'])
-            if ('pseudopotential_dir' in potential.keys()):
-                if (potential['pseudopotential_dir'] is None):
-                    potential['pseudopotential_dir'] = _os.getcwd()
-                else:
-                    potential['pseudopotential_dir'] = \
-                        _os.path.abspath(potential['pseudopotential_dir'])
+            if (potential['pseudopotential_dir'] is not None):
+                potential['pseudopotential_dir'] = \
+                    _os.path.abspath(potential['pseudopotential_dir'])
+            else:
+                potential['pseudopotential_dir'] = _os.getcwd()
             self.__potential_generators.append((
                 potential['type'].upper(), lambda i=index, p=potential:
                 self.__parse_potential(p, i, timestep, temperature)))
@@ -1047,9 +1047,6 @@ class TOMLPARSER(object):
         Parse the active learning information.
         """
         protocol = self.__root['active_learning']
-        if (protocol is None):
-            self.__trainer = None
-            return
         protocol = self.__normalize_table(protocol, 'active_learning')
         if (protocol['reference_potentials'] is None):
             reference_potentials = list(
