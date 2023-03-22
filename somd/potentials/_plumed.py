@@ -18,6 +18,7 @@
 
 import os as _os
 import numpy as _np
+import warnings as _w
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 
@@ -71,7 +72,9 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         # treat PLUMED as a local dependency
         try:
             import plumed
+            _w.warn('PLUMED kernel outputs begin:')
             self.__plumed = plumed.Plumed()
+            _w.warn('PLUMED kernel outputs end.')
         except:
             raise ImportError('you need to have both the PLUMED python ' +
                               'wrapper and PLUMED_KERNEL installed to use ' +
