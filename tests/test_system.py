@@ -56,3 +56,21 @@ def test_segments():
     c = [{'type': 0, 'indices': [1, 2], 'target': 1.0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
     assert (len(system.segments) == 1)
+
+
+def test_copy():
+    s1 = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14}]
+    s1.constraints.appends(c)
+    s1.velocities[:] = 1.0
+    s2 = s1.copy()
+    _nt.assert_array_almost_equal(s1.masses, s2.masses, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.positions, s2.positions, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.velocities, s2.velocities, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.atomic_types, s2.atomic_types, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.box, s2.box, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.lattice, s2.lattice, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.forces, s2.forces, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.virial, s2.virial, DECIMAL_D)
+    _nt.assert_array_almost_equal(s1.pressures, s2.pressures, DECIMAL_D)
+    assert (len(s1.segments) == len(s2.segments))

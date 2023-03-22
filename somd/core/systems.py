@@ -74,6 +74,29 @@ class MDSYSTEM(object):
         self.__potentials = []
         self.__atomic_symbols = []
 
+    def copy(self) -> 'MDSYSTEM':
+        """
+        Clone the system without potential calculators.
+        """
+        system = MDSYSTEM(self.n_atoms)
+        system._label = self._label
+        system.masses[:] = self.__masses[:]
+        system.forces[:] = self.__forces[:]
+        system.positions[:] = self.__positions[:]
+        system.velocities[:] = self.__velocities[:]
+        system.virial[:] = self.__virial[:]
+        system.box[:] = self.__box[:]
+        system.atomic_types[:] = self.__types[:]
+        system.atomic_symbols[:] = self.__atomic_symbols[:]
+        for group in self.__groups:
+            d = {'atom_list': group.atom_list, 'label': group._label,
+                 'has_translations': group.has_translations}
+            system.groups.create_from_dict(d)
+        for constraint in self.__constraints:
+            system.constraints.append(constraint)
+        system.find_segments()
+        return system
+
     def update_potentials(self, indices: list = None) -> None:
         """
         Invoke the force calculators.
