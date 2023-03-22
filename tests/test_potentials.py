@@ -80,4 +80,5 @@ def test_siesta():
     result = _np.loadtxt('data/potential_siesta.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], 5)
     _nt.assert_almost_equal(potential.virial, result[2:5], 5)
+    potential.finalize()
     _sh.rmtree(potential.working_directory)
