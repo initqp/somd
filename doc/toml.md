@@ -855,6 +855,13 @@ could define multiple trajectory writers.
     the `"exyz"` format obeys
     [GPUMD's EXYZ convention](https://gpumd.org/nep/input_files/train_test_xyz.html).
 
+    **Notes**: To view the `h5` format trajectories, you could use the
+    `mdconvert` script provided the `mdtraj` package to convert it to other
+    formats, e.g., the extensively supported `.nc` format:
+    ```bash
+    mdconvert prefix.trajectory.h5 -o traj.nc
+    ```
+
 - **`prefix`**:
 
     **If Mandatory**: no
