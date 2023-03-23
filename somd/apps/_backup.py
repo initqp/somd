@@ -64,5 +64,5 @@ def backup(file_name: str) -> None:
     """
     file_list = _os.listdir()
     n = __find_max_backup_number(file_name, file_list)
-    if (n != -2):
+    if (n != -2 and _os.path.isfile(file_name)):
         _os.rename(file_name, 'bck.' + str(n + 1) + '.' + file_name)
