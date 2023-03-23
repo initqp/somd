@@ -22,6 +22,7 @@ The active learning workflow of building a NEP model.
 
 import os as _os
 import re as _re
+import copy as _cp
 import json as _js
 import numpy as _np
 import shutil as _sh
@@ -30,7 +31,6 @@ from . import _backup
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.potentials import NEP as _NEP
-from somd.constants import SOMDDEFAULTS as _d
 
 __all__ = ['ACTIVELEARNING']
 
@@ -41,8 +41,12 @@ class ACTIVELEARNING(object):
 
     Parameters
     ----------
-    simulation : somd.apps.simulations.SIMULATION
-        The simulation protocol.
+    system : somd.core.systems.MDSYSTEM
+        The simulated system.
+    integrator : somd.core.integrator.INTEGRATOR
+        The integrator that propagate the simulated system.
+    potential_generators : List(callable)
+        Generator functions of potential calculators.
     reference_potentials : List(int)
         Indices of the reference potentials.
     parameters : dict
@@ -95,30 +99,85 @@ class ACTIVELEARNING(object):
         Different keywords should be split by newlines, as in the nep.in file.
     nep_command : str
         Command to submit a NEP training job.
+    post_step_objects : List(object):
+        The post step objects.
     """
 
     def __init__(self,
-                 simulation: _mdapps.simulations.SIMULATION,
+                 system: _mdcore.systems.MDSYSTEM,
+                 integrator: _mdcore.integrators.INTEGRATOR,
+                 potential_generators: list,
                  reference_potentials: list,
                  learning_parameters: dict,
                  nep_parameters: str = '',
-                 nep_command: str = 'nep') -> None:
+                 nep_command: str = 'nep',
+                 post_step_objects: list = []) -> None:
         """
         Create an ACTIVELEARNING instance.
         """
         self.__n_iter = 0
-        self.__simulation = simulation
+        self.__system = system
+        self.__integrstor = integrator
+        self.__post_step_objects = post_step_objects
         self.__training_iter_data = []
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
         self.__learning_parameters = learning_parameters
+        self.__potential_generators = potential_generators
         self.__reference_potentials = reference_potentials
         self.__n_untrained_structures = 0
-        self.__check_learning_parameters()
+        self.__check_system()
+        self.__check_post_step_objects()
         self.__check_nep_parameters()
-        simulation.dump_restart('active_learning_start_point.h5')
-        self.__initial_conditions = \
-            _os.getcwd() + '/active_learning_start_point.h5'
+        self.__check_learning_parameters()
+
+    def __check_post_step_objects(self):
+        """
+        Check the initialization state of the post step objects.
+        """
+        for obj in self.__post_step_objects:
+            if (obj.initialized):
+                message = 'Post step objects that are passed to the ' + \
+                          'ACTIVELEARNING wrapper must be uninitialized!'
+                raise RuntimeError(message)
+
+    def __check_system(self):
+        """
+        Check the state of the system object.
+        """
+        if (len(self.__system.potentials) != 0):
+            message = 'The system object that is passed to the ' + \
+                      'ACTIVELEARNING wrapper should not contain ' + \
+                      'potential calculators!'
+            raise RuntimeError(message)
+
+    def __set_up_simulation(self, potentials: list) \
+            -> _mdapps.simulations.SIMULATION:
+        """
+        Set up a simulation protocol using the given data.
+
+        Parameters
+        ----------
+        potentials : List(somd.core.potential_base.POTENTIAL)
+            The potentials that driven the simulation.
+        """
+        self.__check_system()
+        self.__check_post_step_objects()
+        system = self.__system.copy()
+        integrator = self.__integrstor.copy()
+        post_step_objects = _cp.deepcopy(self.__post_step_objects)
+        for potential in potentials:
+            system.potentials.append(potential)
+        barostat = None
+        for index, obj in enumerate(post_step_objects):
+            if (obj.__class.__name__ == 'BAROSTAT'):
+                barostat = post_step_objects.pop(index)
+        simulation = \
+            _mdapps.simulations.SIMULATION(system, integrator, barostat)
+        for obj in post_step_objects:
+            obj.bind_integrator(integrator)
+            simulation.post_step_objects.append(obj)
+        return simulation
 
     def __check_learning_parameters(self) -> None:
         """
@@ -173,7 +232,7 @@ class ACTIVELEARNING(object):
                 if (len(e_nep) != int(l[1])):
                     message = 'Wrong Number of elements in NEP parameters!'
                     raise RuntimeError(message)
-                e_all = self.__simulation.system.atomic_symbols
+                e_all = self.__system.atomic_symbols
                 e_lack = [e for e in e_all if e not in e_nep]
                 e_unknown = [e for e in e_nep if e not in e_all]
                 if (len(e_lack) != 0):
@@ -190,7 +249,7 @@ class ACTIVELEARNING(object):
         """
         fp = open('nep.in', 'w')
         if (self.__write_nep_types):
-            elements = list(set(self.__simulation.system.atomic_symbols))
+            elements = list(set(self.__system.atomic_symbols))
             elements.sort()
             print('type {:d}'.format(len(elements)), end='', file=fp)
             for e in elements:
@@ -230,46 +289,7 @@ class ACTIVELEARNING(object):
         _os.mkdir(iter_dir)
         return _os.getcwd() + '/' + iter_dir
 
-    def __bind_potentials(self,
-                          potential_files: list,
-                          active_potential_index: int) -> None:
-        """
-        Load trained models and use one of them to propagate the system.
-
-        Parameters
-        ----------
-        potential_files : List(str)
-            Paths of the potential files to bind.
-        active_potential_index : int
-            Index of the potential used to propagate the system.
-        """
-        self.__potentials = []
-        # Prepare new potentials.
-        for i in range(0, self.__learning_parameters['n_potentials']):
-            n_atoms = self.__simulation.system.n_atoms
-            symbols = self.__simulation.system.atomic_symbols
-            p = _NEP(range(0, n_atoms), potential_files[i], symbols)
-            setattr(p, 'SOMDAUTOPOT', 'NEP')
-            self.__potentials.append(p)
-        # Remove old potentials that binds with the system.
-        old_nep_list = []
-        for i, p in enumerate(self.__simulation.system.potentials):
-            if (hasattr(p, 'SOMDAUTOPOT') and p.SOMDAUTOPOT == 'NEP'):
-                old_nep_list.append(i)
-        for i in old_nep_list:
-            self.__simulation.system.potentials.pop(i)
-        # Bind one of the new potentials.
-        self.__simulation.system.potentials.append(
-            self.__potentials[active_potential_index])
-        # Make the active potential list. This is achieved by remove indices of
-        # the reference potentials from the full potential list.
-        potential_list = range(0, len(self.__simulation.system.potentials))
-        potential_list = list(potential_list)
-        for i in self.__reference_potentials:
-            potential_list.remove(i)
-        _d.POTLIST = potential_list
-
-    def __update_potentials(self, work_dir: str) -> None:
+    def __update_neps(self, work_dir: str) -> int:
         """
         Update the trained potentials, then select the potential with minimal
         total loss to propagate the system.
@@ -279,11 +299,18 @@ class ACTIVELEARNING(object):
         work_dir : str
             The The working directory that contains multiple potential files.
         """
+        self.__neps = []
+        # Prepare new potentials.
         min_total_loss = 1E100
         active_potential_index = 0
         param = self.__learning_parameters
         potential_files = [work_dir + '/potential_{:d}/nep.txt'.format(i)
                            for i in range(0, param['n_potentials'])]
+        for i in range(0, self.__learning_parameters['n_potentials']):
+            p = _NEP(range(0, self.__system.n_atoms), potential_files[i],
+                     self.__system.atomic_symbols)
+            self.__neps.append(p)
+        # Determine which NEP to use.
         loss_files = [work_dir + '/potential_{:d}/loss.out'.format(i)
                       for i in range(0, param['n_potentials'])]
         try:
@@ -294,37 +321,47 @@ class ACTIVELEARNING(object):
                     min_total_loss = loss
         except:
             active_potential_index = 0
-        self.__bind_potentials(potential_files, active_potential_index)
+        return active_potential_index
 
-    def __propagate(self) -> list:
+    def __propagate(self, active_potential_index: int) -> list:
         """
         Generate new trajectories with the trained potential. During the
         propagation, force MSD of the potentials will be calculated.
+
+        Parameters
+        ----------
+        active_potential_index : int
+            Index of the NEP to use.
         """
         info = self.__training_iter_data[-1]
         param = self.__learning_parameters
-        # Setup writers
+        cwd = _os.getcwd()
+        _os.chdir(info['directory'])
+        # Set up the potentials and simulation.
+        potentials = []
+        potentials.append(self.__neps[active_potential_index])
+        for index, generator in enumerate(self.__potential_generators):
+            if (index not in self.__reference_potentials):
+                potentials.append(generator())
+        simulation = self.__set_up_simulation(potentials)
+        # Set up writers
         data_file_name = info['system_data']
         data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
-        data_writer.bind_integrator(self.__simulation.integrator)
-        data_writer.initialize()
+        data_writer.bind_integrator(simulation.integrator)
         traj_file_name = info['visited_structures']
         traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
-        traj_writer.bind_integrator(self.__simulation.integrator)
-        traj_writer.initialize()
+        traj_writer.bind_integrator(simulation.integrator)
+        simulation.post_step_objects.append(data_writer)
+        simulation.post_step_objects.append(traj_writer)
         # Propagate the trajectory segment.
         candidate_structures = []
         info = self.__training_iter_data[-1]
         forces_msd_limits = [param['msd_lower_limit'],
                              param['msd_upper_limit']]
         for i in range(0, param['max_md_runs_per_iter']):
-            self.restore_initial_conditions()
             for j in range(0, param['max_md_steps_per_iter']):
-                self.__simulation.run(1)
-                data_writer.update()
-                traj_writer.update()
-                msd = self._get_potentials_msd(self.__potentials,
-                                               self.__simulation.system)
+                simulation.run(1)
+                msd = self._get_potentials_msd(self.__neps, simulation.system)
                 info['forces_msd'].append(msd)
                 info['n_visited_structures'] += 1
                 if (msd < forces_msd_limits[0]):
@@ -335,12 +372,12 @@ class ACTIVELEARNING(object):
                     info['n_candidate_structures'] += 1
                     index = param['max_md_steps_per_iter'] * i + j
                     info['candidate_structure_indices'].append(index)
-                    structure = [self.__simulation.system.positions.copy(),
-                                 self.__simulation.system.box.copy()]
+                    structure = [simulation.system.positions.copy(),
+                                 simulation.system.box.copy()]
                     candidate_structures.append(structure)
         info['max_forces_msd'] = max(info['forces_msd'])
-        del data_writer
-        del traj_writer
+        del data_writer, traj_writer, simulation
+        _os.chdir(cwd)
         return candidate_structures
 
     def __strip_candidate_structures(self, candidate_structures: list) -> list:
@@ -377,41 +414,46 @@ class ACTIVELEARNING(object):
         structures : List(List(numpy.ndarray))
             Positions and boxes data of the candidate structures.
         """
+        info = self.__training_iter_data[-1]
+        cwd = _os.getcwd()
+        _os.chdir(info['directory'])
         # Good God please forgive me for what I'm about to do ...
         # I fucking hate this shit and myself ...
-        info = self.__training_iter_data[-1]
+        # First set up the system and the integrator.
+        system = self.__system.copy()
+        for index in self.__reference_potentials:
+            generator = self.__potential_generators[index]
+            system.potentials.append(generator())
+        integrator = self.__integrstor.copy()
+        integrator.bind_system(system)
+        # Then set up the writer.
         traj_file_name = info['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
             traj_file_name, write_velocities=False, wrap_positions=True,
             potential_list=self.__reference_potentials)
-        traj_writer.bind_integrator(self.__simulation.integrator)
+        traj_writer.bind_integrator(integrator)
         traj_writer.initialize()
-        # First we get the current state of the simulated system.
-        state = [self.__simulation.system.positions.copy(),
-                 self.__simulation.system.box.copy()]
-        # Then for each candidate structure, we copy its atomic positions and
+        # For each candidate structure, we copy its atomic positions and
         # box to the system object and perform the reference potential
         # calculations.
         for structure in structures:
-            self.__simulation.system.positions[:] = structure[0][:]
-            self.__simulation.system.box[:] = structure[1][:]
+            system.positions[:] = structure[0][:]
+            system.box[:] = structure[1][:]
             try:
-                self.__simulation.system.update_potentials(
-                    self.__reference_potentials)
+                system.update_potentials()
             except:
                 # Reset SIESTA on fail.
-                for i in self.__reference_potentials:
-                    p = self.__simulation.system.potentials[i]
-                    if (type(p).__name__ == 'SIESTA'):
-                        p.reset()
+                for potential in system.potentials:
+                    if (potential.__class__.__name__ == 'SIESTA'):
+                        potential.reset()
             else:
                 # Only update the exyz file on success.
                 traj_writer.update()
-        # Finally we restore the state of the system.
-        self.__simulation.system.positions[:] = state[0][:]
-        self.__simulation.system.box[:] = state[1][:]
-        del traj_writer
-        del state
+        # Finally we clean the system.
+        for potential in system.potentials:
+            potential.finalize()
+        del system, integrator, traj_writer
+        _os.chdir(cwd)
 
     def __train(self,
                 work_dir: str,
@@ -558,7 +600,7 @@ class ACTIVELEARNING(object):
         for i in range(0, n_iterations):
             # Bind the updated potentials.
             old_work_dir = self.__training_iter_data[-1]['directory']
-            self.__update_potentials(old_work_dir)
+            nep_index = self.__update_neps(old_work_dir)
             # Initialize the iteration.
             info = self.__initialize_training_iter_dict()
             work_dir = self.__initialize_training_iter_dir()
@@ -568,7 +610,7 @@ class ACTIVELEARNING(object):
             info['accepted_structures'] = work_dir + '/accepted_structures.xyz'
             self.__training_iter_data.append(info)
             # Run the simulation and harvest candidate structures.
-            candidate_structures = self.__propagate()
+            candidate_structures = self.__propagate(nep_index)
             # Strip the candidate structures.
             accepted_structures = \
                 self.__strip_candidate_structures(candidate_structures)
@@ -618,15 +660,6 @@ class ACTIVELEARNING(object):
             del accepted_structures
             self.__n_iter += 1
 
-    def restore_initial_conditions(self):
-        """
-        Reset the initial conditions of the simulation.
-        """
-        # Do not read NHC/RNG data here to improve randomness.
-        self.__simulation.restart_from(self.__initial_conditions,
-                                       read_nhc_data=False,
-                                       read_rng_state=False)
-
     @property
     def nep_parameters(self):
         """
@@ -641,3 +674,24 @@ class ACTIVELEARNING(object):
         """
         self.__nep_parameters = v
         self.__check_nep_parameters()
+
+    @property
+    def system(self):
+        """
+        The simulated system.
+        """
+        return self.__system
+
+    @property
+    def integrator(self):
+        """
+        The integrator.
+        """
+        return self.__integrstor
+
+    @property
+    def post_step_objects(self):
+        """
+        The post step objects.
+        """
+        return self.__post_step_objects

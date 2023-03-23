@@ -75,8 +75,8 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         _os.mkfifo(self.__pipe_f)
         # we should print the PID of the SIESTA subprocess here.
         # do not use proc.pid which is the PID of the invoked shell.
-        command = (siesta_command + ' < ' + label + '.fdf > ' + label +
-                   '.out' + ' 2>' + label + '.err & echo $!')
+        command = (siesta_command + ' ' + label + '.fdf > ' + label + '.out' +
+                   ' 2>' + label + '.err & echo $!')
         cwd = _os.getcwd()
         _os.chdir(self.__work_dir)
         proc = _sp.Popen(command, shell=True, stdout=_sp.PIPE)
