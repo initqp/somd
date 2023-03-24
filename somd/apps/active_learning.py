@@ -344,6 +344,7 @@ class ACTIVELEARNING(object):
             if (index not in self.__reference_potentials):
                 potentials.append(generator())
         simulation = self.__set_up_simulation(potentials)
+        simulation.dump_restart('initial_conditions.h5')
         # Set up writers
         data_file_name = info['system_data']
         data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
@@ -359,6 +360,8 @@ class ACTIVELEARNING(object):
         forces_msd_limits = [param['msd_lower_limit'],
                              param['msd_upper_limit']]
         for i in range(0, param['max_md_runs_per_iter']):
+            simulation.restart_from('initial_conditions.h5',
+                                    read_rng_state=False, read_nhc_data=False)
             for j in range(0, param['max_md_steps_per_iter']):
                 simulation.run(1)
                 msd = self._get_potentials_msd(self.__neps, simulation.system)
