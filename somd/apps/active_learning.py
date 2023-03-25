@@ -432,8 +432,7 @@ class ACTIVELEARNING(object):
         # Then set up the writer.
         traj_file_name = info['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
-            traj_file_name, write_velocities=False, wrap_positions=True,
-            potential_list=self.__reference_potentials)
+            traj_file_name, write_velocities=False, wrap_positions=True)
         traj_writer.bind_integrator(integrator)
         traj_writer.initialize()
         # For each candidate structure, we copy its atomic positions and
