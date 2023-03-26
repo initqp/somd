@@ -9,6 +9,40 @@ DECIMAL_D = 14
 _np.random.seed(1)
 
 
+def test_splitting():
+    splitting = [{'operators': ['V', 'R']}]
+    integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    assert (integrator.splitting_whole['operators'] == ['V', 'R', 'F'])
+    assert (integrator.splitting_whole['timesteps'] == [1, 1, 1])
+    splitting = [{'operators': ['R', 'V']}]
+    integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    assert (integrator.splitting_whole['operators'] == ['R', 'F', 'V'])
+    assert (integrator.splitting_whole['timesteps'] == [1, 1, 1])
+    splitting = [{'operators': ['R', 'V', 'R']}]
+    integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    assert (integrator.splitting_whole['operators'] == ['R', 'F', 'V', 'R'])
+    assert (integrator.splitting_whole['timesteps'] == [0.5, 1, 1, 0.5])
+    splitting = [{'operators': ['R', 'V', 'R', 'V']}]
+    integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    assert (integrator.splitting_whole['operators'] ==
+            ['R', 'F', 'V', 'R', 'F', 'V'])
+    assert (integrator.splitting_whole['timesteps'] ==
+            [0.5, 1.0, 0.5, 0.5, 1.0, 0.5])
+    splitting = [{'operators': ['V', 'R', 'V', 'R']}]
+    integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    assert (integrator.splitting_whole['operators'] ==
+            ['V', 'R', 'F', 'V', 'R', 'F'])
+    assert (integrator.splitting_whole['timesteps'] ==
+            [0.5, 0.5, 1.0, 0.5, 0.5, 1.0])
+    splitting = [{'operators': ['V', 'V']}]
+    try:
+        integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
+    except:
+        pass
+    else:
+        raise AssertionError
+
+
 def test_vv():
     system = _h.get_harmonic_system()
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
