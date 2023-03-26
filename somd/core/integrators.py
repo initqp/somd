@@ -212,9 +212,9 @@ class INTEGRATOR(object):
         self.__splitting_whole['repeating'] = 1
         for i in range(0, len(self.__splitting)):
             s = self.__splitting[i]
-            try:
+            if ('repeating' in s.keys()):
                 r = s['repeating']
-            except:
+            else:
                 r = 1
             self.__splitting_whole['operators'] += s['operators'] * r
             ts = [t / r for t in s['timesteps']]
