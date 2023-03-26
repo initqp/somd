@@ -87,4 +87,4 @@ class SOMDDEFAULTS:
     GEODESICKR: int = 5
     LATTICETOL: float = 1E-7
     SIMUUPDATE: bool = False
-    SIESTATIMEOUT: int = 30
+    SIESTATIMEOUT: int = 120
