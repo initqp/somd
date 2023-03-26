@@ -236,28 +236,23 @@ class INTEGRATOR(object):
             raise RuntimeError(message.format(str(self.__splitting)))
         # Get the 'core' splitting.
         splitting_core = [o for o in op if o == 'R' or o == 'V']
-        idx_core = \
-            [i for i in range(0, len(op)) if op[i] == 'R' or op[i] == 'V']
+        index_core = [i for i in range(0, len(op)) if
+                      op[i] == 'R' or op[i] == 'V']
         # Determine where to update the forces.
         count = 0
         for i in range(0, (len(splitting_core) - 1)):
-            if (splitting_core[i] == 'R') and (splitting_core[(i + 1)] == 'V'):
-                self.__splitting_whole['operators'].insert(
-                    idx_core[(i + 1)] + count, 'F')
-                self.__splitting_whole['timesteps'].insert(
-                    idx_core[(i + 1)] + count, 1.0)
+            if (splitting_core[i] == 'R' and splitting_core[(i + 1)] == 'V'):
+                op_index = index_core[(i + 1)] + count
+                self.__splitting_whole['operators'].insert(op_index, 'F')
+                self.__splitting_whole['timesteps'].insert(op_index, 1.0)
                 count += 1
-        if (count == 0):
-            if (splitting_core[(len(splitting_core) - 1)] == 'R') and \
-                    (splitting_core[0] == 'V'):
-                self.__splitting_whole['operators'].insert(
-                    idx_core[(len(splitting_core) - 1)] + 1, 'F')
-                self.__splitting_whole['timesteps'].insert(
-                    idx_core[(len(splitting_core) - 1)] + 1, 1.0)
-            else:
-                message = 'Failed to parse splitting scheme: ' + \
-                          str(self.__splitting['operators'])
-                raise RuntimeError(message)
+        if (splitting_core[-1] == 'R' and splitting_core[0] == 'V'):
+            op_index = index_core[-1] + count + 1
+            self.__splitting_whole['operators'].insert(op_index, 'F')
+            self.__splitting_whole['timesteps'].insert(op_index, 1.0)
+        if ('F' not in self.__splitting_whole['operators']):
+            message = 'Failed to parse splitting scheme: "{}"'
+            raise RuntimeError(message.format(self.__splitting))
 
     def __splitting_dict_to_codes(self) -> None:
         """
