@@ -235,9 +235,9 @@ class INTEGRATOR(object):
                       'is invalid!'
             raise RuntimeError(message.format(str(self.__splitting)))
         # Get the 'core' splitting.
-        splitting_core = [o for o in op if o == 'R' or o == 'V']
         index_core = [i for i in range(0, len(op)) if
                       op[i] == 'R' or op[i] == 'V']
+        splitting_core = [o for o in op if o == 'R' or o == 'V']
         # Determine where to update the forces.
         count = 0
         for i in range(0, (len(splitting_core) - 1)):
