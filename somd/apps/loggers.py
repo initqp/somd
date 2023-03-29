@@ -21,14 +21,13 @@ The simulation data loggers.
 """
 
 import os as _os
-from . import _backup
-from . import _post_step
 from somd import core as _mdcore
+from . import utils as _utils
 
 __all__ = ['DEFAULTCSVLOGGER']
 
 
-class DEFAULTCSVLOGGER(_post_step.POSTSTEPOBJ):
+class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
     """
     Write information about the system to a CSV file.
 
@@ -122,7 +121,7 @@ class DEFAULTCSVLOGGER(_post_step.POSTSTEPOBJ):
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
         else:
-            _backup.backup(self.file_name)
+            _utils.backup(self.file_name)
             self.__fp = open(self.file_name, 'w')
             self.__write_file_header()
 

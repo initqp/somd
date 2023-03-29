@@ -1025,7 +1025,7 @@ class TOMLPARSER(object):
                 message = 'The function name defined in the "update" key ' + \
                           'of the [[script]] table(s) must be "update"!'
                 raise RuntimeError(message)
-            obj = _mdapps._post_step.POSTSTEPOBJWRAPPER(
+            obj = _mdapps.utils.POSTSTEPOBJWRAPPER(
                 scope['update'], scope['initialize'], interval)
             self.__scripts.append(obj)
 

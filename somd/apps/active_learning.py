@@ -24,13 +24,12 @@ import os as _os
 import re as _re
 import copy as _cp
 import json as _js
-import numpy as _np
 import shutil as _sh
 import random as _rn
-from . import _backup
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.potentials import NEP as _NEP
+from . import utils as _utils
 
 __all__ = ['ACTIVELEARNING']
 
@@ -285,7 +284,7 @@ class ACTIVELEARNING(object):
         Initialize the directory of one training iteration.
         """
         iter_dir = 'training_iter_{:d}'.format(self.__n_iter)
-        _backup.backup(iter_dir)
+        _utils.backup(iter_dir)
         _os.mkdir(iter_dir)
         return _os.getcwd() + '/' + iter_dir
 
@@ -315,7 +314,7 @@ class ACTIVELEARNING(object):
                       for i in range(0, param['n_potentials'])]
         try:
             for i, f in enumerate(loss_files):
-                loss = self._get_loss(f)[1]
+                loss = _utils.nep.get_loss(f)[1]
                 if (loss < min_total_loss):
                     active_potential_index = i
                     min_total_loss = loss
@@ -364,7 +363,8 @@ class ACTIVELEARNING(object):
                                     read_rng_state=False, read_nhc_data=False)
             for j in range(0, param['max_md_steps_per_iter']):
                 simulation.run(1)
-                msd = self._get_potentials_msd(self.__neps, simulation.system)
+                msd = _utils.nep.get_potentials_msd(self.__neps,
+                                                    simulation.system)
                 info['forces_msd'].append(msd)
                 info['n_visited_structures'] += 1
                 if (msd < forces_msd_limits[0]):
@@ -476,7 +476,7 @@ class ACTIVELEARNING(object):
         param = self.__learning_parameters
         # Setup the training and testing set.
         # TODO: rational building of the testing set.
-        self._cat_exyz(training_set_list, work_dir + '/train.xyz')
+        _utils.nep.cat_exyz(training_set_list, work_dir + '/train.xyz')
         _sh.copy(param['initial_testing_set'], work_dir + '/test.xyz')
         # Train.
         cwd = _os.getcwd()
@@ -491,70 +491,6 @@ class ACTIVELEARNING(object):
             self.__make_nep_in()
             _os.system(self.__nep_command + '> nep.log 2> nep.err')
             _os.chdir(cwd)
-
-    @staticmethod
-    def _cat_exyz(set_in: list, set_out: str) -> None:
-        """
-        Combine two EXYZ training sets.
-
-        Parameters
-        ----------
-        set_in : List(str)
-            Names of input training sets.
-        set_out : str
-            Name of output training set.
-        """
-        fp = open(set_out, 'w')
-        for fn in set_in:
-            if (fn is not None):
-                fp_in = open(fn, 'r')
-                for l in fp_in:
-                    fp.write(l)
-                fp_in.close()
-        fp.close()
-
-    @staticmethod
-    def _get_potentials_msd(potentials: list,
-                            system: _mdcore.systems.MDSYSTEM) -> float:
-        """
-        Return the maximum standard deviation of the forces calculated by
-        a list of potentials.
-
-        Parameters
-        ----------
-        potentials: List(somd.core.potential_base.POTENTIAL)
-            The potentials.
-        system: somd.core.systems.MDSYSTEM
-            The simulated system.
-        """
-        sd = _np.zeros(system.n_atoms)
-        mean = _np.zeros((system.n_atoms, 3))
-        for p in potentials:
-            p.update(system)
-            mean += p.forces
-        mean /= len(potentials)
-        for i in range(0, system.n_atoms):
-            for j in range(0, len(potentials)):
-                tmp = _np.linalg.norm(potentials[j].forces[i] - mean[i])
-                sd[i] += tmp ** 2
-            sd[i] /= len(potentials)
-        return _np.max(_np.sqrt(sd))
-
-    @staticmethod
-    def _get_loss(file_name: str) -> list:
-        """
-        Read losses from a loss.out file.
-        """
-        fp = open(file_name, 'rb')
-        try:
-            fp.seek(-2, _os.SEEK_END)
-            while fp.read(1) != b'\n':
-                fp.seek(-2, _os.SEEK_CUR)
-        except OSError:
-            fp.seek(0)
-        loss = fp.readline().decode().strip().split(' ')
-        fp.close()
-        return [float(i) for i in loss if i != '']
 
     def run(self, n_iterations: int = 1):
         """
@@ -578,10 +514,10 @@ class ACTIVELEARNING(object):
             work_dir = self.__initialize_training_iter_dir()
             if ('initial_potential_files' in param.keys()):
                 # Write the sets.
-                self._cat_exyz([param['initial_training_set']],
-                               work_dir + '/train.xyz')
-                self._cat_exyz([param['initial_testing_set']],
-                               work_dir + '/test.xyz')
+                _utils.nep.cat_exyz([param['initial_training_set']],
+                                    work_dir + '/train.xyz')
+                _utils.nep.cat_exyz([param['initial_testing_set']],
+                                    work_dir + '/test.xyz')
                 # Write the potentials.
                 for i in range(0, param['n_potentials']):
                     potential_dir = work_dir + '/potential_{:d}'.format(i)
