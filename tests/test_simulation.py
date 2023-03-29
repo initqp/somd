@@ -78,3 +78,17 @@ def test_restart_2():
     result = _np.loadtxt('data/integrators_gobabo.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
+
+
+def test_restart_3():
+    system = _h.get_harmonic_system()
+    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
+    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    integrator = somd.core.integrators.nhc_integrator(
+        -0.001, relaxation_times=[0.01])
+    simulation = somd.apps.simulations.SIMULATION(system, integrator)
+    simulation.restart_from('data/restart_3.h5')
+    simulation.run(1)
+    result = _h.get_harmonic_system()
+    _nt.assert_almost_equal(system.positions, result.positions, DECIMAL_D)
+    _nt.assert_almost_equal(system.velocities, result.velocities, DECIMAL_D)
