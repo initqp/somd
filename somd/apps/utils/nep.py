@@ -21,10 +21,15 @@ NEP utils.
 """
 
 import os as _os
+import re as _re
 import numpy as _np
 from somd import core as _mdcore
 
-__all__ = ['cat_exyz', 'get_potentials_msd', 'get_loss']
+__all__ = ['cat_exyz',
+           'get_loss',
+           'make_nep_in',
+           'get_potentials_msd',
+           'check_nep_parameters']
 
 
 def cat_exyz(set_in: list, set_out: str) -> None:
@@ -89,3 +94,65 @@ def get_loss(file_name: str) -> list:
     loss = fp.readline().decode().strip().split(' ')
     fp.close()
     return [float(i) for i in loss if i != '']
+
+
+def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
+    """
+    Check the NEP training parameters.
+
+    Parameters
+    ----------
+    nep_parameters : str
+        The keywords and corresponding values to be used in a nep.in file.
+        Different keywords should be split by newlines, as in the nep.in file.
+    symbols : List(str)
+        Symbols of each atom in the system.
+
+    Returns
+    -------
+    If element symbols should be written in the nep.in file manually.
+    """
+    write_symbols = True
+    parameters = nep_parameters.replace('\\n', '\n')
+    for line in _re.split('\n', parameters):
+        l = [i for i in line.strip().split(' ') if i != '']
+        if (l != [] and l[0].lower() == 'type'):
+            e_nep = l[2:]
+            if (len(e_nep) != int(l[1])):
+                message = 'Wrong Number of elements in NEP parameters!'
+                raise RuntimeError(message)
+            e_lack = [e for e in symbols if e not in e_nep]
+            e_unknown = [e for e in e_nep if e not in symbols]
+            if (len(e_lack) != 0):
+                message = 'Lack element {} in NEP parameters!'
+                raise RuntimeError(message.format(e_lack))
+            if (len(e_unknown) != 0):
+                message = 'Unknown element {} in NEP parameters!'
+                raise RuntimeError(message.format(e_unknown))
+            write_symbols = False
+    return write_symbols
+
+
+def make_nep_in(nep_parameters: str, symbols: list = None) -> None:
+    """
+    Write the nep.in file.
+
+    Parameters
+    ----------
+    nep_parameters : str
+        The keywords and corresponding values to be used in a nep.in file.
+        Different keywords should be split by newlines, as in the nep.in file.
+    symbols : List(str)
+        Symbols of each atom in the system. If this option is None, the symbols
+        will not be written.
+    """
+    fp = open('nep.in', 'w')
+    if (symbols is not None):
+        symbols = list(set(symbols))
+        symbols.sort()
+        print('type {:d}'.format(len(symbols)), end='', file=fp)
+        for s in symbols:
+            print(' ' + s, end='', file=fp)
+        print('\n', file=fp)
+    print(nep_parameters, file=fp)
+    fp.close()

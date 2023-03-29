@@ -21,7 +21,6 @@ The active learning workflow of building a NEP model.
 """
 
 import os as _os
-import re as _re
 import copy as _cp
 import json as _js
 import shutil as _sh
@@ -127,8 +126,8 @@ class ACTIVELEARNING(object):
         self.__n_untrained_structures = 0
         self.__check_system()
         self.__check_post_step_objects()
-        self.__check_nep_parameters()
         self.__check_learning_parameters()
+        _utils.nep.check_nep_parameters(nep_parameters, system.atomic_symbols)
 
     def __check_post_step_objects(self):
         """
@@ -217,45 +216,6 @@ class ACTIVELEARNING(object):
             message = 'min_new_structures_per_iter is larger than ' + \
                       'max_new_structures_per_iter !'
             raise RuntimeError(message)
-
-    def __check_nep_parameters(self) -> None:
-        """
-        Check the NEP training parameters.
-        """
-        self.__write_nep_types = True
-        self.__nep_parameters = self.__nep_parameters.replace('\\n', '\n')
-        for line in _re.split('\n', self.__nep_parameters):
-            l = [i for i in line.strip().split(' ') if i != '']
-            if (l != [] and l[0].lower() == 'type'):
-                e_nep = l[2:]
-                if (len(e_nep) != int(l[1])):
-                    message = 'Wrong Number of elements in NEP parameters!'
-                    raise RuntimeError(message)
-                e_all = self.__system.atomic_symbols
-                e_lack = [e for e in e_all if e not in e_nep]
-                e_unknown = [e for e in e_nep if e not in e_all]
-                if (len(e_lack) != 0):
-                    message = 'Lack element {} in NEP parameters!'
-                    raise RuntimeError(message.format(e_lack))
-                if (len(e_unknown) != 0):
-                    message = 'Unknown element {} in NEP parameters!'
-                    raise RuntimeError(message.format(e_unknown))
-                self.__write_nep_types = False
-
-    def __make_nep_in(self) -> None:
-        """
-        Write the nep.in file.
-        """
-        fp = open('nep.in', 'w')
-        if (self.__write_nep_types):
-            elements = list(set(self.__system.atomic_symbols))
-            elements.sort()
-            print('type {:d}'.format(len(elements)), end='', file=fp)
-            for e in elements:
-                print(' ' + e, end='', file=fp)
-            print('\n', file=fp)
-        print(self.__nep_parameters, file=fp)
-        fp.close()
 
     def __initialize_training_iter_dict(self) -> dict:
         """
@@ -488,7 +448,8 @@ class ACTIVELEARNING(object):
             _os.symlink('../test.xyz', 'test.xyz')
             if (restart_files is not None):
                 _sh.copy(restart_files[i], 'nep.restart')
-            self.__make_nep_in()
+            _utils.nep.make_nep_in(self.__nep_parameters,
+                                   self.__system.atomic_symbols)
             _os.system(self.__nep_command + '> nep.log 2> nep.err')
             _os.chdir(cwd)
 
@@ -611,7 +572,8 @@ class ACTIVELEARNING(object):
         Set the keywords and corresponding values to be used in a nep.in file.
         """
         self.__nep_parameters = v
-        self.__check_nep_parameters()
+        _utils.nep.check_nep_parameters(self.__nep_parameters,
+                                        self.__system.atomic_symbols)
 
     @property
     def system(self):
