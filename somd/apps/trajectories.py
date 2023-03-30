@@ -27,17 +27,16 @@ import numpy as _np
 import pickle as _pl
 import base64 as _bs
 import warnings as _w
-from . import _backup
-from . import _post_step
 from somd import _version
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
+from . import utils as _utils
 
 __all__ = ['H5READER', 'H5WRITER', 'EXYZWRITER']
 
 
-class H5WRITER(_post_step.POSTSTEPOBJ):
+class H5WRITER(_utils.POSTSTEPOBJ):
     """
     Write the MDTraj HDF5 trajectory file [1].
 
@@ -220,7 +219,7 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
         if (self.__append):
             self.__root = _h5.File(self.file_name, 'a')
         else:
-            _backup.backup(self.file_name)
+            _utils.backup(self.file_name)
             self.__root = _h5.File(self.file_name, 'w')
             self.__dump_attributes()
             self.__dump_datasets()
@@ -327,7 +326,7 @@ class H5WRITER(_post_step.POSTSTEPOBJ):
             return _np.float
 
 
-class EXYZWRITER(_post_step.POSTSTEPOBJ):
+class EXYZWRITER(_utils.POSTSTEPOBJ):
     """
     Write the extended XYZ trajectory file [1].
 
@@ -454,7 +453,7 @@ class EXYZWRITER(_post_step.POSTSTEPOBJ):
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
         else:
-            _backup.backup(self.file_name)
+            _utils.backup(self.file_name)
             self.__fp = open(self.file_name, 'w')
 
     def write(self) -> None:
