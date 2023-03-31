@@ -166,11 +166,12 @@ class ATOMGROUP(object):
             if scale velocities to keep the total kinetic energy unchanged.
         """
         if (scale_after_removal):
-            E_k_1 = self.energy_kinetic
+            E_k = self.energy_kinetic
         self.com_velocities = 0.0
         if (scale_after_removal):
-            factor = _np.sqrt(E_k_1 / self.energy_kinetic)
-            self.velocities *= factor
+            E_k_1 = self.energy_kinetic
+            if (E_k_1 != 0):
+                self.velocities *= _np.sqrt(E_k / E_k_1)
 
     def add_velocities_from_temperature(self, temperature: float) -> None:
         """
@@ -186,6 +187,8 @@ class ATOMGROUP(object):
             message = 'Number of DOF of group \'{}\' has not been calculated!'
             message = message.format(self._label)
             raise RuntimeError(message)
+        if (temperature == 0):
+            return
         v = _np.random.randn(self.n_atoms, 3) * \
             _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
         # remove COM translational motions
