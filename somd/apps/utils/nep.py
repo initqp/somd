@@ -125,10 +125,10 @@ def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
             e_unknown = [e for e in e_nep if e not in symbols]
             if (len(e_lack) != 0):
                 message = 'Lack element {} in NEP parameters!'
-                raise RuntimeError(message.format(e_lack))
+                raise RuntimeError(message.format(list(set(e_lack))))
             if (len(e_unknown) != 0):
                 message = 'Unknown element {} in NEP parameters!'
-                raise RuntimeError(message.format(e_unknown))
+                raise RuntimeError(message.format(list(set(e_unknown))))
             write_symbols = False
     return write_symbols
 

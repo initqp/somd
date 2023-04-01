@@ -127,7 +127,8 @@ class ACTIVELEARNING(object):
         self.__check_system()
         self.__check_post_step_objects()
         self.__check_learning_parameters()
-        _utils.nep.check_nep_parameters(nep_parameters, system.atomic_symbols)
+        self.__write_nep_types = _utils.nep.check_nep_parameters(
+            nep_parameters, system.atomic_symbols)
 
     def __check_post_step_objects(self):
         """
@@ -448,8 +449,11 @@ class ACTIVELEARNING(object):
             _os.symlink('../test.xyz', 'test.xyz')
             if (restart_files is not None):
                 _sh.copy(restart_files[i], 'nep.restart')
-            _utils.nep.make_nep_in(self.__nep_parameters,
-                                   self.__system.atomic_symbols)
+            if (self.__write_nep_types):
+                _utils.nep.make_nep_in(self.__nep_parameters,
+                                       self.__system.atomic_symbols)
+            else:
+                _utils.nep.make_nep_in(self.__nep_parameters)
             _os.system(self.__nep_command + '> nep.log 2> nep.err')
             _os.chdir(cwd)
 
@@ -572,8 +576,8 @@ class ACTIVELEARNING(object):
         Set the keywords and corresponding values to be used in a nep.in file.
         """
         self.__nep_parameters = v
-        _utils.nep.check_nep_parameters(self.__nep_parameters,
-                                        self.__system.atomic_symbols)
+        self.__write_nep_types = _utils.nep.check_nep_parameters(
+            self.__nep_parameters, self.__system.atomic_symbols)
 
     @property
     def system(self):
