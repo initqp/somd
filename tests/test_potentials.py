@@ -15,7 +15,8 @@ _np.random.seed(1)
 def test_nep():
     system = somd.core.systems.create_system_from_poscar('data/model.poscar')
     system.positions[:] = [[0.1, 0.1, 0.1], [0.11, 0.11, 0.11]]
-    potential = somd.potentials.NEP([0, 1], 'data/nep.txt', ["Si", "Si"])
+    potential = somd.potentials.NEP([0, 1], 'data/nep.txt', ["Si", "Si"],
+                                    False)
     potential.update(system)
     result = _np.loadtxt('data/potential_nep.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_F)

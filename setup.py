@@ -42,6 +42,14 @@ extensions = [
         include_dirs=['./somd/potentials/src'],
         extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
                             '-march=native'],
+        extra_link_args=['-fopenmp']),
+    Extension(
+        'somd.potentials._nepwrapper_t',
+        ['./somd/potentials/src/nep_t.pyx'],
+        include_dirs=['./somd/potentials/src'],
+        extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
+                            '-march=native',
+                            '-DUSE_TABLE_FOR_RADIAL_FUNCTIONS'],
         extra_link_args=['-fopenmp'])]
 
 metadata = dict(
@@ -69,3 +77,5 @@ if __name__ == '__main__':
             os.remove('somd/core/src/lib.cpp')
         if os.path.isfile('somd/potentials/src/nep.cpp'):
             os.remove('somd/potentials/src/nep.cpp')
+        if os.path.isfile('somd/potentials/src/nep_t.cpp'):
+            os.remove('somd/potentials/src/nep_t.cpp')

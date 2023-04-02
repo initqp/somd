@@ -18,7 +18,6 @@
 
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
-from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
 
 __all__ = ['NEP']
 
@@ -35,6 +34,8 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         Name of the potential data file.
     atomic_symbols : List(str)
         Symbols of each element in the simulated system.
+    use_tabulating : bool
+        If invoke the tabulated version of NEP.
 
     References
     ----------
@@ -50,11 +51,16 @@ class NEP(_mdcore.potential_base.POTENTIAL):
     def __init__(self,
                  atom_list: list,
                  file_name: str,
-                 atomic_symbols: str) -> None:
+                 atomic_symbols: str,
+                 use_tabulating: bool = True) -> None:
         """
         Create a NEP instance.
         """
         super().__init__(atom_list)
+        if (use_tabulating):
+            from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
+        else:
+            from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
         self.__nep = _NEPWRAPPER(file_name, atomic_symbols)
         self.__conversion = _c.AVOGACONST * _c.ELECTCONST
 

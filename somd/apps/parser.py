@@ -102,7 +102,8 @@ class TOMLPARSER(object):
         'damping': __value__(str, False, __dep__('type', ['dftd3'])),
         'atm': __value__(bool, False, __dep__('type', ['dftd3', 'dftd4'])),
         'total_charge': __value__(int, False, __dep__('type', ['dftd4'])),
-        'file_name': __value__(str, True, __dep__('type', ['plumed', 'nep']))
+        'file_name': __value__(str, True, __dep__('type', ['plumed', 'nep'])),
+        'use_tabulating': __value__(bool, False, __dep__('type', ['nep']))
     }
     __parameters__['group'] = {
         'atom_list': __value__(_tp.Union[list, str], True, None),
@@ -672,7 +673,8 @@ class TOMLPARSER(object):
             The atom list.
         """
         atom_symbols = [self.__system.atomic_symbols[i] for i in atom_list]
-        return _potentials.NEP(atom_list, inp['file_name'], atom_symbols)
+        return _potentials.NEP(atom_list, inp['file_name'], atom_symbols,
+                               bool(inp['use_tabulating']))
 
     def __parse_potential_plumed(self,
                                  inp: dict,
