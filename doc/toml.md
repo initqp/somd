@@ -427,6 +427,20 @@ to be present.
     **Descriptions**: Path to the NEP potential file (`nep.txt`) or path to
     the PLUMED input file, depending on the value of the `type` key.
 
+- **`use_tabulating`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: False
+
+    **Dependency**: `type = "nep"`
+
+    **Descriptions**: If invoke the tabulated version of NEP. This could speed
+    up the calculation, read
+    [this page](https://github.com/brucefan1983/NEP_CPU/pull/18) for details.
+
 **Examples**:
 ```toml
 [[potential]]
