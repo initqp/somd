@@ -160,6 +160,7 @@ class TOMLPARSER(object):
         'initial_potential_files': __value__(list, False, None),
         'initial_testing_set': __value__(str, False, None),
         'reference_potentials': __value__(list, False, None),
+        'use_tabulating': __value__(bool, False, None)
     }
 
     def __init__(self, file_name: str) -> None:
@@ -1086,13 +1087,14 @@ class TOMLPARSER(object):
                 _os.path.abspath(file) for file in
                 protocol['initial_potential_files']]
         generators = [g[1] for g in self.__potential_generators]
+        use_tabulating = bool(protocol['use_tabulating'])
         for key in protocol.copy().keys():
             if (protocol[key] is None):
                 protocol.pop(key)
         self.__trainer = _mdapps.active_learning.ACTIVELEARNING(
             self.__system, self.__integrator, generators, reference_potentials,
             protocol, protocol['nep_options'], protocol['nep_command'],
-            self.__scripts)
+            use_tabulating, self.__scripts)
 
     def run(self):
         """

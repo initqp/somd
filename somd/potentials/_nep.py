@@ -52,7 +52,7 @@ class NEP(_mdcore.potential_base.POTENTIAL):
                  atom_list: list,
                  file_name: str,
                  atomic_symbols: str,
-                 use_tabulating: bool = True) -> None:
+                 use_tabulating: bool = False) -> None:
         """
         Create a NEP instance.
         """

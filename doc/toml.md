@@ -1346,6 +1346,20 @@ the active learning methodology.
     **Notes**: The computational level defined by these potentials **MUST BE**
     the same as the computational level of the initial training set.
 
+- **`use_tabulating`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: False
+
+    **Descriptions**: If invoke the tabulated version of NEP. This could speed
+    up the calculation, read
+    [this page](https://github.com/brucefan1983/NEP_CPU/pull/18) for details.
+
+
+
 **Examples**:
 ```toml
 [active_learning]
@@ -1367,6 +1381,7 @@ the active learning methodology.
 [active_learning]
         n_iterations = 4
         n_potentials = 4
+        use_tabulating = true
         msd_lower_limit = 50.0
         msd_upper_limit = 250.0
         max_md_steps_per_iter = 50000

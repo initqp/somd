@@ -97,6 +97,8 @@ class ACTIVELEARNING(object):
         Different keywords should be split by newlines, as in the nep.in file.
     nep_command : str
         Command to submit a NEP training job.
+    use_tabulating : bool
+        If invoke the tabulated version of NEP.
     post_step_objects : List(object):
         The post step objects.
     """
@@ -109,6 +111,7 @@ class ACTIVELEARNING(object):
                  learning_parameters: dict,
                  nep_parameters: str = '',
                  nep_command: str = 'nep',
+                 use_tabulating: bool = False,
                  post_step_objects: list = []) -> None:
         """
         Create an ACTIVELEARNING instance.
@@ -120,6 +123,7 @@ class ACTIVELEARNING(object):
         self.__training_iter_data = []
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
+        self.__use_tabulating = use_tabulating
         self.__learning_parameters = learning_parameters
         self.__potential_generators = potential_generators
         self.__reference_potentials = reference_potentials
@@ -268,7 +272,7 @@ class ACTIVELEARNING(object):
                            for i in range(0, param['n_potentials'])]
         for i in range(0, self.__learning_parameters['n_potentials']):
             p = _NEP(range(0, self.__system.n_atoms), potential_files[i],
-                     self.__system.atomic_symbols)
+                     self.__system.atomic_symbols, self.__use_tabulating)
             self.__neps.append(p)
         # Determine which NEP to use.
         loss_files = [work_dir + '/potential_{:d}/loss.out'.format(i)
