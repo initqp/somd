@@ -32,6 +32,8 @@ def test_splitting():
     integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
     assert (integrator.splitting_whole['operators'] ==
             ['V', 'R', 'F', 'V', 'R', 'F'])
+    assert (integrator.splitting_whole['timesteps'] ==
+            [0.5, 0.5, 1.0, 0.5, 0.5, 1.0])
     splitting = [{'operators': ['V', 'Cr', 'R', 'Cv', 'V', 'Cr', 'R', 'Cv']}]
     integrator = somd.core.integrators.INTEGRATOR(0.001, splitting)
     assert (integrator.splitting_whole['operators'] ==
