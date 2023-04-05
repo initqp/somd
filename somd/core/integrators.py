@@ -235,21 +235,20 @@ class INTEGRATOR(object):
                       'is invalid!'
             raise RuntimeError(message.format(str(self.__splitting)))
         # Get the 'core' splitting.
-        index_core = [i for i in range(0, len(op)) if
-                      op[i] == 'R' or op[i] == 'V']
-        splitting_core = [o for o in op if o == 'R' or o == 'V']
+        index_core = [i for i in range(0, len(op)) if op[i] in ['R', 'V']]
+        splitting_core = [o for o in op if o in ['R', 'V']]
+        # Wrap the first core operator to the last to complete the operator
+        # sequence.
+        index_core.append(index_core[-1] + 1)
+        splitting_core.append(splitting_core[0])
         # Determine where to update the forces.
-        count = 0
+        shifting = 0
         for i in range(0, (len(splitting_core) - 1)):
             if (splitting_core[i] == 'R' and splitting_core[(i + 1)] == 'V'):
-                op_index = index_core[(i + 1)] + count
+                op_index = index_core[(i + 1)] + shifting
                 self.__splitting_whole['operators'].insert(op_index, 'F')
                 self.__splitting_whole['timesteps'].insert(op_index, 1.0)
-                count += 1
-        if (splitting_core[-1] == 'R' and splitting_core[0] == 'V'):
-            op_index = index_core[-1] + count + 1
-            self.__splitting_whole['operators'].insert(op_index, 'F')
-            self.__splitting_whole['timesteps'].insert(op_index, 1.0)
+                shifting += 1
         if ('F' not in self.__splitting_whole['operators']):
             message = 'Failed to parse splitting scheme: "{}"'
             raise RuntimeError(message.format(self.__splitting))
