@@ -283,7 +283,7 @@ to be present.
       `pseudopotential_dir`
     - **`"dftd3"`**: `atom_list`, `functional`, `damping`, `atm`
     - **`"dftd4"`**: `atom_list`, `functional`, `total_charge`, `atm`
-    - **`"nep"`**: `atom_list`, `file_name`
+    - **`"nep"`**: `atom_list`, `file_name`, `use_tabulating`
     - **`"plumed"`**: `file_name`
 
 - **`atom_list`**
