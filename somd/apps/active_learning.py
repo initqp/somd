@@ -23,6 +23,7 @@ The active learning workflow of building a NEP model.
 import os as _os
 import copy as _cp
 import json as _js
+import numpy as _np
 import shutil as _sh
 import random as _rn
 from somd import apps as _mdapps
@@ -265,24 +266,20 @@ class ACTIVELEARNING(object):
         """
         self.__neps = []
         # Prepare new potentials.
-        min_total_loss = 1E100
         active_potential_index = 0
         param = self.__learning_parameters
         potential_files = [work_dir + '/potential_{:d}/nep.txt'.format(i)
                            for i in range(0, param['n_potentials'])]
-        for i in range(0, self.__learning_parameters['n_potentials']):
+        for i in range(0, param['n_potentials']):
             p = _NEP(range(0, self.__system.n_atoms), potential_files[i],
                      self.__system.atomic_symbols, self.__use_tabulating)
             self.__neps.append(p)
         # Determine which NEP to use.
-        loss_files = [work_dir + '/potential_{:d}/loss.out'.format(i)
-                      for i in range(0, param['n_potentials'])]
         try:
-            for i, f in enumerate(loss_files):
-                loss = _utils.nep.get_loss(f)[1]
-                if (loss < min_total_loss):
-                    active_potential_index = i
-                    min_total_loss = loss
+            files = [work_dir + '/potential_{:d}/loss.out'.format(i)
+                     for i in range(0, param['n_potentials'])]
+            losses = [_utils.nep.get_loss(f)[1] for f in files]
+            active_potential_index = _np.argmin(losses)
         except:
             active_potential_index = 0
         return active_potential_index
