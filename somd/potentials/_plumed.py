@@ -80,7 +80,11 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                               'wrapper and PLUMED_KERNEL installed to use ' +
                               'the PLUMED functionality!')
         if (output_prefix is None):
-            output_prefix = _os.path.basename(file_name)
+            log_file = _os.path.basename(file_name) + '.log'
+        elif (output_prefix == ''):
+            log_file = _os.devnull
+        else:
+            log_file = output_prefix + '.log'
         self.__plumed.cmd("setMDEngine", "SOMD")
         self.__plumed.cmd("setMDTimeUnits", 1.0)
         self.__plumed.cmd("setMDMassUnits", 1.0)
@@ -91,7 +95,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("setTimestep", timestep)
         self.__plumed.cmd("setPlumedDat", file_name)
         self.__plumed.cmd("setNatoms", len(atom_list))
-        self.__plumed.cmd("setLogFile", output_prefix + '.log')
+        self.__plumed.cmd("setLogFile", log_file)
         if (temperature is not None):
             self.__plumed.cmd("setKbT", temperature * _c.BOLTZCONST)
         self.__plumed.cmd("init")
