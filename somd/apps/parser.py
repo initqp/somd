@@ -132,6 +132,7 @@ class TOMLPARSER(object):
         'write_velocities': __value__(bool, False, None),
         'wrap_positions': __value__(bool, False, None),
         'potential_list': __value__(list, False, None),
+        'use_float64': __value__(bool, False, __dep__('format', ['h5'])),
         'is_restart_file': __value__(bool, False, __dep__('format', ['h5']))
     }
     __parameters__['logger'] = {
@@ -973,6 +974,7 @@ class TOMLPARSER(object):
                         wrap_positions=bool(trajectory['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
                         restart_file=bool(trajectory['is_restart_file']),
+                        use_double=bool(trajectory['use_float64']),
                         potential_list=trajectory['potential_list'])
                     self.__trajectories.append(writer)
                 elif (trajectory_format == 'EXYZ'):
