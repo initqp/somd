@@ -183,15 +183,16 @@ cdef class CONSTRAINTS(object):
         ----------
         positions : np.array(dtype=np.float64)
             dim : n_atoms * 3
-            Positions of the atoms in the simulated system.
+            Positions of the atoms in the simulated system. In unit of (nm).
         velocities : np.array(dtype=np.float64)
             dim : n_atoms * 3
-            Velocities of the atoms in the simulated system.
+            Velocities of the atoms in the simulated system. In unit of
+            (nm/ps).
         mass : np.array(dtype=np.float64)
             dim : n_atoms
-            Atomic masses.
+            Atomic masses. In unit of (g/mol).
         dt : float
-            Timestep of the simulation.
+            Timestep of the simulation. In unit of (ps).
         """
         cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
@@ -210,15 +211,16 @@ cdef class CONSTRAINTS(object):
         ----------
         positions : np.array(dtype=np.float64)
             dim : n_atoms * 3
-            Positions of the atoms in the simulated system.
+            Positions of the atoms in the simulated system. In unit of (nm).
         velocities : np.array(dtype=np.float64)
             dim : n_atoms * 3
-            Velocities of the atoms in the simulated system.
+            Velocities of the atoms in the simulated system. In unit of
+            (nm/ps).
         mass : np.array(dtype=np.float64)
             dim : n_atoms
-            Atomic masses.
+            Atomic masses. In unit of (g/mol).
         dt : float
-            Timestep of the simulation.
+            Timestep of the simulation. In unit of (ps).
         """
         cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
@@ -232,7 +234,7 @@ cdef class CONSTRAINTS(object):
         Parameters
         ----------
         dt : float
-            Timestep of the simulation.
+            Timestep of the simulation. In unit of (ps).
         """
         self.rattle_constrain_q_wrapper(
             self.__system.positions, self.__system.velocities,
@@ -245,7 +247,7 @@ cdef class CONSTRAINTS(object):
         Parameters
         ----------
         dt : float
-            Timestep of the simulation.
+            Timestep of the simulation. In unit of (ps).
         """
         self.rattle_constrain_p_wrapper(
             self.__system.positions, self.__system.velocities,

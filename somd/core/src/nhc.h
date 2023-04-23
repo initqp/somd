@@ -31,21 +31,21 @@ protected:
 	// Number of RESPA iterations.
 	int n_respa;
 	// Chain temperature.
-	//   unit : K
+	//   unit : (K)
 	double temperature;
 	// Coupling time scale.
-	//   unit : ps
+	//   unit : (ps)
 	double tau;
 	// The chain "mass".
-	//   unit : kJ/mol * ps * ps
+	//   unit : (kJ/mol*ps*ps)
 	//   size : length
 	std::vector<double> Q;
 	// The "momentum" of each bead.
-	//   unit : kJ/mol * ps
+	//   unit : (kJ/mol*ps)
 	//   size : length
 	std::vector<double> p;
 	// The "position" of each bead.
-	//   unit : 1
+	//   unit : (1)
 	//   size : length
 	std::vector<double> q;
 	// The sixth-order Suzuki-Yoshida parameters. Comes from Tuckerman.

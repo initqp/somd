@@ -25,8 +25,8 @@
 
 using namespace std;
 
-// T : temperature, unit : K
-// t : coupling time scale, unit : ps
+// T : temperature, unit : (K)
+// t : coupling time scale, unit : (ps)
 // n_bead : chain length
 // n_d : DOF
 // n_r : number of RESPA iterations.
