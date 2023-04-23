@@ -225,7 +225,7 @@ cdef class CONSTRAINTS(object):
             self.__cxx_obj_ptr.rattle_constrain_p(
                 &positions[0,0], &velocities[0,0], &mass[0,0], dt, n_atoms)
 
-    def rattle_constrain_q(self, dt):
+    def rattle_constrain_q(self, dt: double):
         """
         Perform the upper part of RATTLE.
 
@@ -238,7 +238,7 @@ cdef class CONSTRAINTS(object):
             self.__system.positions, self.__system.velocities,
             self.__system.masses, dt)
 
-    def rattle_constrain_p(self, dt):
+    def rattle_constrain_p(self, dt: double):
         """
         Perform the lower part of RATTLE.
 
