@@ -53,7 +53,7 @@ def test_dftd4():
 def test_plumed():
     system = somd.core.systems.create_system_from_poscar('data/model.poscar')
     potential = somd.potentials.PLUMED([0, 1], 'data/plumed.inp', 0.001, 1,
-                                       cv_names=[{'d1': []}])
+                                       cv_names=[{'d1': ''}])
     potential.update(system)
     result = _np.loadtxt('data/potential_plumed.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_D)

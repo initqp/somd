@@ -46,7 +46,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         Prefix of the output file.
     cv_names : List(dict)
         Names and components of the collective variables to save. For example:
-        cv_names = [{'d1': ['x']}, {'d2': []}, [{'d3': ['x', 'y', 'z']}]
+        cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
 
     References
     ----------
@@ -80,7 +80,11 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                               'wrapper and PLUMED_KERNEL installed to use ' +
                               'the PLUMED functionality!')
         if (output_prefix is None):
-            output_prefix = _os.path.basename(file_name)
+            log_file = _os.path.basename(file_name) + '.log'
+        elif (output_prefix == ''):
+            log_file = _os.devnull
+        else:
+            log_file = output_prefix + '.log'
         self.__plumed.cmd("setMDEngine", "SOMD")
         self.__plumed.cmd("setMDTimeUnits", 1.0)
         self.__plumed.cmd("setMDMassUnits", 1.0)
@@ -91,7 +95,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("setTimestep", timestep)
         self.__plumed.cmd("setPlumedDat", file_name)
         self.__plumed.cmd("setNatoms", len(atom_list))
-        self.__plumed.cmd("setLogFile", output_prefix + '.log')
+        self.__plumed.cmd("setLogFile", log_file)
         if (temperature is not None):
             self.__plumed.cmd("setKbT", temperature * _c.BOLTZCONST)
         self.__plumed.cmd("init")
@@ -109,7 +113,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         cv_names : List(dict)
             Names and components of the collective variables to save. For
             example:
-            cv_names = [{'d1': ['x']}, {'d2': []}, [{'d3': ['x', 'y', 'z']}]
+            cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
         """
         self.__cv_values = []
         self.__cv_names = cv_names
@@ -119,19 +123,17 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                           'one item!'
                 raise RuntimeError(message)
             name = list(cv.keys())[0]
-            if (len(cv[name]) == 0):
+            if (type(cv[name]) == str):
                 data = _np.zeros(1, dtype=_np.double)
-                command = "setMemoryForData " + name
+                if (cv[name] == ''):
+                    command = 'setMemoryForData ' + name
+                else:
+                    command = 'setMemoryForData ' + name + '.' + cv[name]
                 self.__plumed.cmd(command, data)
-                self.__cv_values.append([data])
+                self.__cv_values.append(data)
             else:
-                values = []
-                for component in cv[name]:
-                    data = _np.zeros(1, dtype=_np.double)
-                    command = "setMemoryForData " + name + '.' + component
-                    self.__plumed.cmd(command, data)
-                    values.append(data)
-                self.__cv_values.append(values)
+                message = 'Type of CV components should be str!'
+                raise RuntimeError(message)
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

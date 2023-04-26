@@ -49,9 +49,9 @@ cdef class NHCHAINS(object):
         Parameters
         ----------
         temperature : double
-            Target temperature of the chains. In unit of K.
+            Target temperature of the chains. In unit of (K).
         tau : double
-            Relaxation timescale of the chains. In unit of ps.
+            Relaxation timescale of the chains. In unit of (ps).
         n_bead : int
             Length of the chains.
         n_dof : int
@@ -77,7 +77,7 @@ cdef class NHCHAINS(object):
 
     @property
     def positions(self) -> list:
-        """ Positions of the chains. In units of (1). """
+        """ Positions of the chains. In unit of (1). """
         return self.__cxx_obj_ptr.get_q()
 
     @positions.setter
@@ -89,7 +89,7 @@ cdef class NHCHAINS(object):
 
     @property
     def momentums(self) -> list:
-        """ Momentums of the chains. In units of (kJ/mol * ps). """
+        """ Momentums of the chains. In unit of (kJ/mol*ps). """
         return self.__cxx_obj_ptr.get_p()
 
     @momentums.setter
@@ -146,9 +146,9 @@ cdef class NHCHAINS(object):
 
         Parameters
         ----------
-        E_k : double
-            The kinetic energy of the simulated system. In unit of kJ/mol.
-        dt : double
-            The timestep. In unit of ps.
+        E_k : float
+            The kinetic energy of the simulated system. In unit of (kJ/mol).
+        dt : float
+            The timestep. In unit of (ps).
         """
         return self.__cxx_obj_ptr.propagate(E_k, dt)
