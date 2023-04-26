@@ -992,12 +992,12 @@ class TOMLPARSER(object):
                               trajectory['format']
                     raise RuntimeError(message)
                 if (trajectory['potential_list'] is None):
-                    tmp = list(range(0, len(self.__system.potentials)))
+                    tmp = list(range(0, len(self.__potential_generators)))
                 else:
                     tmp = trajectory['potential_list']
                 for i in tmp:
-                    potential = self.__system.potentials[i]
-                    if (potential.__class__.__name__ == 'PLUMED'):
+                    potential_name = self.__potential_generators[i][0]
+                    if (potential_name == 'PLUMED'):
                         message = 'The forces and energies in the ' + \
                                   'trajectory file "{:s}" may include ' + \
                                   'contributions of PLUMED bias ' + \
