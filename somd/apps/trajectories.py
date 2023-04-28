@@ -390,9 +390,10 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__potential_list = potential_list
         self.__conversion = _c.AVOGACONST * _c.ELECTCONST
         if (energy_shift is None):
-            self.__energy_shift = 0.0
+            energy_shift = 0.0
         else:
-            self.__energy_shift = energy_shift / self.__conversion * 1000
+            energy_shift = energy_shift / self.__conversion * 1000
+        self.__energy_shift = _np.array([energy_shift], dtype=_np.double)
         _np.set_printoptions(formatter={'float': format_str.format},
                              linewidth=10000)
         super().__init__(interval)
@@ -411,7 +412,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         if (self.__potential_list is None):
             self.__energy_potential[0] = self.__system.energy_potential / \
                 self.__conversion * 1000
-            self.__energy_potential[0] -= self.__energy_shift
+            self.__energy_potential[0] -= self.__energy_shift[0]
             if (self.__write_forces):
                 self.__forces[:] = \
                     self.__system.forces[:] / self.__conversion * 100
@@ -424,7 +425,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
                 self.__energy_potential[0] += \
                     self.__system.potentials[i].energy_potential
             self.__energy_potential[0] /= self.__conversion * 0.001
-            self.__energy_potential[0] -= self.__energy_shift
+            self.__energy_potential[0] -= self.__energy_shift[0]
             if (self.__write_forces):
                 self.__forces[:] = 0
                 for i in self.__potential_list:
@@ -476,8 +477,9 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__convert_data()
         print(self.__system.n_atoms, file=self.__fp)
         s = format(self.__energy_potential)[1:-1]
-        header = 'energy={} energy_shift={} '.format(s, self.__energy_shift)
-        header += 'pbc="T T T" '
+        header = 'energy={} '.format(s)
+        s = format(self.__energy_shift)[1:-1]
+        header += 'energy_shift={} pbc="T T T" '.format(s)
         if (self.__write_virial):
             s = format(self.__virial.reshape(-1))[1:-1]
             header += 'virial="{}" '.format(s)
