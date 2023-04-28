@@ -1010,13 +1010,32 @@ could define multiple trajectory writers.
 
     **Type**: `float`
 
-    **Default Value**: `false`
+    **Default Value**: `0.0`
 
     **Dependency**: `format = "exyz"`
 
     **Descriptions**: Shift the total energy by this value before recording the
-    total energy to the trajectory. In unit of (kJ/mol). This is useful when
-    generating training sets of NEP.
+    total energy to the trajectory (this value could be set to the potential
+    energy of the initial conformation, which is usually negative). In unit of
+    (kJ/mol). This is useful when generating training sets of NEP.
+
+    **Notes**: If you enabled this option and would like to use the generated
+    trajectory as the initial training set of an active learning task, you
+    *MUST* also set this option in the `[active_learning]` table to the same
+    value that you used here. For example, you could use the following setup in
+    generating the initial training set:
+    ```toml
+    [[trajectory]]
+        format = "exyz"
+        write_forces = true
+        potential_list = [0, 1]
+        energy_shift = -50000.0
+    ```
+    Then, you should use the following setup in the active learning process:
+    ```toml
+    [active_learning]
+        energy_shift = -50000.0 # This is mandatory!
+    ```
 
 **Examples**:
 ```toml
@@ -1395,12 +1414,31 @@ the active learning methodology.
 
     **Type**: `float`
 
-    **Default Value**: `false`
+    **Default Value**: `0.0`
 
     **Dependency**: `format = "exyz"`
 
     **Descriptions**: Shift the total energy by this value before recording the
-    total energy to the trajectory. In unit of (kJ/mol).
+    total energy to the trajectory (this value could be set to the potential
+    energy of the initial conformation, which is usually negative). In unit of
+    (kJ/mol).
+
+    **Notes**: If you enabled this option in the `[[trajectory]]` table when
+    generating the initial training sets, you *MUST* set this option to the
+    same value that you used there. For example, you could use the following
+    setup in generating the initial training set:
+    ```toml
+    [[trajectory]]
+        format = "exyz"
+        write_forces = true
+        potential_list = [0, 1]
+        energy_shift = -50000.0
+    ```
+    Then, you should use the following setup in the active learning process:
+    ```toml
+    [active_learning]
+        energy_shift = -50000.0 # This is mandatory!
+    ```
 
 **Examples**:
 ```toml
