@@ -477,9 +477,9 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__convert_data()
         print(self.__system.n_atoms, file=self.__fp)
         s = format(self.__energy_potential)[1:-1]
-        header = 'energy={} '.format(s)
+        header = 'energy={} '.format(s.strip())
         s = format(self.__energy_shift)[1:-1]
-        header += 'energy_shift={} pbc="T T T" '.format(s)
+        header += 'energy_shift={} pbc="T T T" '.format(s.strip())
         if (self.__write_virial):
             s = format(self.__virial.reshape(-1))[1:-1]
             header += 'virial="{}" '.format(s)
