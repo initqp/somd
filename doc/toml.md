@@ -987,6 +987,37 @@ could define multiple trajectory writers.
     **Notes**: The restart file only contains one frame, and will be named
     `prefix.restart.h5`.
 
+- **`use_float64`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `false`
+
+    **Dependency**: `format = "h5"`
+
+    **Descriptions**: If use 64-bit floating point data in the trajectory
+    instead of the original 32-bit convention.
+
+    **Notes**: Enabling this option will lead to non-standard trajectories and
+    may cause some readers to fail. Besides, sizes of the trajectories will
+    largely be increased.
+
+- **`energy_shift`**:
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Default Value**: `false`
+
+    **Dependency**: `format = "exyz"`
+
+    **Descriptions**: Shift the total energy by this value before recording the
+    total energy to the trajectory. In unit of (kJ/mol). This is useful when
+    generating training sets of NEP.
+
 **Examples**:
 ```toml
 [[trajectory]]
@@ -1358,7 +1389,18 @@ the active learning methodology.
     up the calculation, read
     [this page](https://github.com/brucefan1983/NEP_CPU/pull/18) for details.
 
+- **`energy_shift`**:
 
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Default Value**: `false`
+
+    **Dependency**: `format = "exyz"`
+
+    **Descriptions**: Shift the total energy by this value before recording the
+    total energy to the trajectory. In unit of (kJ/mol).
 
 **Examples**:
 ```toml

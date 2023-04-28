@@ -103,7 +103,7 @@ class ACTIVELEARNING(object):
     post_step_objects : List(object):
         The post step objects.
     energy_shift : float
-        Shift the total energy by this value before recode the total energy
+        Shift the total energy by this value before recording the total energy
         to the trajectory. In unit of (kJ/mol).
     """
 

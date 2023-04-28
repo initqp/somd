@@ -353,7 +353,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
     format_str : str
         The ascii data format string. E.g.: '{:-24.15e}'.
     energy_shift : float
-        Shift the total energy by this value before recode the total energy
+        Shift the total energy by this value before recording the total energy
         to the trajectory. In unit of (kJ/mol).
 
     Notes
