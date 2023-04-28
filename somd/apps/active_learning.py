@@ -102,6 +102,9 @@ class ACTIVELEARNING(object):
         If invoke the tabulated version of NEP.
     post_step_objects : List(object):
         The post step objects.
+    energy_shift : float
+        Shift the total energy by this value before recode the total energy
+        to the trajectory. In unit of (kJ/mol).
     """
 
     def __init__(self,
@@ -113,7 +116,8 @@ class ACTIVELEARNING(object):
                  nep_parameters: str = '',
                  nep_command: str = 'nep',
                  use_tabulating: bool = False,
-                 post_step_objects: list = []) -> None:
+                 post_step_objects: list = [],
+                 energy_shift: float = 0.0) -> None:
         """
         Create an ACTIVELEARNING instance.
         """
@@ -125,6 +129,7 @@ class ACTIVELEARNING(object):
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
         self.__use_tabulating = use_tabulating
+        self.__energy_shift = energy_shift
         self.__learning_parameters = learning_parameters
         self.__potential_generators = potential_generators
         self.__reference_potentials = reference_potentials
@@ -394,7 +399,8 @@ class ACTIVELEARNING(object):
         # Then set up the writer.
         traj_file_name = info['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
-            traj_file_name, write_velocities=False, wrap_positions=True)
+            traj_file_name, write_velocities=False, wrap_positions=True,
+            energy_shift=self.__energy_shift)
         traj_writer.bind_integrator(integrator)
         traj_writer.initialize()
         # For each candidate structure, we copy its atomic positions and

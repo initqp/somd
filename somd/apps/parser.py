@@ -133,6 +133,7 @@ class TOMLPARSER(object):
         'wrap_positions': __value__(bool, False, None),
         'potential_list': __value__(list, False, None),
         'use_float64': __value__(bool, False, __dep__('format', ['h5'])),
+        'energy_shift': __value__(float, False, __dep__('format', ['exyz'])),
         'is_restart_file': __value__(bool, False, __dep__('format', ['h5']))
     }
     __parameters__['logger'] = {
@@ -161,7 +162,8 @@ class TOMLPARSER(object):
         'initial_potential_files': __value__(list, False, None),
         'initial_testing_set': __value__(str, False, None),
         'reference_potentials': __value__(list, False, None),
-        'use_tabulating': __value__(bool, False, None)
+        'use_tabulating': __value__(bool, False, None),
+        'energy_shift': __value__(float, False, None),
     }
 
     def __init__(self, file_name: str) -> None:
@@ -985,7 +987,8 @@ class TOMLPARSER(object):
                         write_forces=bool(trajectory['write_forces']),
                         wrap_positions=bool(trajectory['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
-                        potential_list=trajectory['potential_list'])
+                        potential_list=trajectory['potential_list'],
+                        energy_shift=trajectory['energy_shift'])
                     self.__trajectories.append(writer)
                 else:
                     message = 'Unknown trajectory format ' + \
@@ -1089,6 +1092,7 @@ class TOMLPARSER(object):
                 _os.path.abspath(file) for file in
                 protocol['initial_potential_files']]
         generators = [g[1] for g in self.__potential_generators]
+        energy_shift = protocol['energy_shift']
         use_tabulating = bool(protocol['use_tabulating'])
         for key in protocol.copy().keys():
             if (protocol[key] is None):
@@ -1096,7 +1100,7 @@ class TOMLPARSER(object):
         self.__trainer = _mdapps.active_learning.ACTIVELEARNING(
             self.__system, self.__integrator, generators, reference_potentials,
             protocol, protocol['nep_options'], protocol['nep_command'],
-            use_tabulating, self.__scripts)
+            use_tabulating, self.__scripts, energy_shift)
 
     def run(self):
         """

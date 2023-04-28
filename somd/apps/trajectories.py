@@ -352,6 +352,9 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         If append to the old trajectory.
     format_str : str
         The ascii data format string. E.g.: '{:-24.15e}'.
+    energy_shift : float
+        Shift the total energy by this value before recode the total energy
+        to the trajectory. In unit of (kJ/mol).
 
     Notes
     -----
@@ -372,7 +375,8 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
                  wrap_positions: bool = False,
                  format_str: str = '{:-24.15e}',
                  append: bool = False,
-                 potential_list: list = None) -> None:
+                 potential_list: list = None,
+                 energy_shift: float = 0.0) -> None:
         """
         Create an EXYZWRITER instance.
         """
@@ -385,6 +389,10 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__wrap_positions = wrap_positions
         self.__potential_list = potential_list
         self.__conversion = _c.AVOGACONST * _c.ELECTCONST
+        if (energy_shift is None):
+            self.__energy_shift = 0.0
+        else:
+            self.__energy_shift = energy_shift / self.__conversion * 1000
         _np.set_printoptions(formatter={'float': format_str.format},
                              linewidth=10000)
         super().__init__(interval)
@@ -403,6 +411,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         if (self.__potential_list is None):
             self.__energy_potential[0] = self.__system.energy_potential / \
                 self.__conversion * 1000
+            self.__energy_potential[0] -= self.__energy_shift
             if (self.__write_forces):
                 self.__forces[:] = \
                     self.__system.forces[:] / self.__conversion * 100
@@ -415,6 +424,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
                 self.__energy_potential[0] += \
                     self.__system.potentials[i].energy_potential
             self.__energy_potential[0] /= self.__conversion * 0.001
+            self.__energy_potential[0] -= self.__energy_shift
             if (self.__write_forces):
                 self.__forces[:] = 0
                 for i in self.__potential_list:
@@ -466,7 +476,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__convert_data()
         print(self.__system.n_atoms, file=self.__fp)
         s = format(self.__energy_potential)[1:-1]
-        header = 'energy={} '.format(s)
+        header = 'energy={} energy_shift={} '.format(s, self.__energy_shift)
         header += 'pbc="T T T" '
         if (self.__write_virial):
             s = format(self.__virial.reshape(-1))[1:-1]
