@@ -51,6 +51,13 @@ def test_dftd4():
 
 
 def test_plumed():
+    try:
+        import plumed
+    except Exception as e:
+        message = 'Can not import the PLUMED wrapper! PLUMED has NOT been ' + \
+                  'tested! Reason: {} '.format(e)
+        _w.warn(message)
+        return
     system = somd.core.systems.create_system_from_poscar('data/model.poscar')
     potential = somd.potentials.PLUMED([0, 1], 'data/plumed.inp', 0.001, 1,
                                        cv_names=[{'d1': ''}])
