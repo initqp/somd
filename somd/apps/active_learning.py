@@ -328,7 +328,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         system = self.system.copy()
         for index in self.__reference_potentials:
             system.potentials.append(self.potential_generators[index]())
-        integrator = self.integrstor.copy()
+        integrator = self.integrator.copy()
         integrator.bind_system(system)
         # Then set up the writer.
         traj_file_name = info['accepted_structures']
