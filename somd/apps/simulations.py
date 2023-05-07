@@ -272,14 +272,18 @@ class STAGEDSIMULATION(object):
                       'potential calculators!'
             raise RuntimeError(message)
 
-    def _set_up_simulation(self, potential_indices: list) -> SIMULATION:
+    def _set_up_simulation(self,
+                           potential_indices: list,
+                           extra_potentials: list = None) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.
 
         Parameters
         ----------
-        potentials : List(int)
+        potential_indices : List(int)
             Indices of the potentials that drive the simulation.
+        extra_potentials : List(somd.core.potential_base.POTENTIAL)
+            Extra potentials that drive the simulation.
         """
         self.__check_system()
         self.__check_post_step_objects()
@@ -288,6 +292,8 @@ class STAGEDSIMULATION(object):
         post_step_objects = _cp.deepcopy(self.__post_step_objects)
         for i in potential_indices:
             system.potentials.append(self.__potential_generators[i]())
+        for p in extra_potentials:
+            system.potentials.append(p)
         barostat = None
         for index, obj in enumerate(post_step_objects):
             if (obj.__class.__name__ == 'BAROSTAT'):

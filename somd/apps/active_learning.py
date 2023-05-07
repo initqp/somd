@@ -244,7 +244,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         potential_indices = range(0, len(self.potential_generators))
         potential_indices = [i for i in potential_indices if
                              i not in self.__reference_potentials]
-        simulation = self._set_up_simulation(potential_indices)
+        simulation = self._set_up_simulation(
+            potential_indices, self.__neps[active_potential_index])
         simulation.dump_restart('initial_conditions.h5')
         # Set up writers
         data_file_name = info['system_data']
