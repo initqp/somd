@@ -21,7 +21,6 @@ The active learning workflow of building a NEP model.
 """
 
 import os as _os
-import copy as _cp
 import json as _js
 import numpy as _np
 import shutil as _sh
@@ -34,7 +33,7 @@ from . import utils as _utils
 __all__ = ['ACTIVELEARNING']
 
 
-class ACTIVELEARNING(object):
+class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
     """
     The active learning workflow of building a NEP model.
 
@@ -121,72 +120,19 @@ class ACTIVELEARNING(object):
         """
         Create an ACTIVELEARNING instance.
         """
-        self.__n_iter = 0
-        self.__system = system
-        self.__integrstor = integrator
-        self.__post_step_objects = post_step_objects
         self.__training_iter_data = []
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
         self.__use_tabulating = use_tabulating
         self.__energy_shift = energy_shift
         self.__learning_parameters = learning_parameters
-        self.__potential_generators = potential_generators
         self.__reference_potentials = reference_potentials
         self.__n_untrained_structures = 0
-        self.__check_system()
-        self.__check_post_step_objects()
         self.__check_learning_parameters()
         self.__write_nep_types = _utils.nep.check_nep_parameters(
             nep_parameters, system.atomic_symbols)
-
-    def __check_post_step_objects(self):
-        """
-        Check the initialization state of the post step objects.
-        """
-        for obj in self.__post_step_objects:
-            if (obj.initialized):
-                message = 'Post step objects that are passed to the ' + \
-                          'ACTIVELEARNING wrapper must be uninitialized!'
-                raise RuntimeError(message)
-
-    def __check_system(self):
-        """
-        Check the state of the system object.
-        """
-        if (len(self.__system.potentials) != 0):
-            message = 'The system object that is passed to the ' + \
-                      'ACTIVELEARNING wrapper should not contain ' + \
-                      'potential calculators!'
-            raise RuntimeError(message)
-
-    def __set_up_simulation(self, potentials: list) \
-            -> _mdapps.simulations.SIMULATION:
-        """
-        Set up a simulation protocol using the given data.
-
-        Parameters
-        ----------
-        potentials : List(somd.core.potential_base.POTENTIAL)
-            The potentials that driven the simulation.
-        """
-        self.__check_system()
-        self.__check_post_step_objects()
-        system = self.__system.copy()
-        integrator = self.__integrstor.copy()
-        post_step_objects = _cp.deepcopy(self.__post_step_objects)
-        for potential in potentials:
-            system.potentials.append(potential)
-        barostat = None
-        for index, obj in enumerate(post_step_objects):
-            if (obj.__class.__name__ == 'BAROSTAT'):
-                barostat = post_step_objects.pop(index)
-        simulation = \
-            _mdapps.simulations.SIMULATION(system, integrator, barostat)
-        for obj in post_step_objects:
-            obj.bind_integrator(integrator)
-            simulation.post_step_objects.append(obj)
-        return simulation
+        super().__init__(system, integrator, potential_generators,
+                         post_step_objects)
 
     def __check_learning_parameters(self) -> None:
         """
@@ -250,15 +196,6 @@ class ACTIVELEARNING(object):
         result['forces_msd'] = []
         return result
 
-    def __initialize_training_iter_dir(self) -> str:
-        """
-        Initialize the directory of one training iteration.
-        """
-        iter_dir = 'training_iter_{:d}'.format(self.__n_iter)
-        _utils.backup(iter_dir)
-        _os.mkdir(iter_dir)
-        return _os.getcwd() + '/' + iter_dir
-
     def __update_neps(self, work_dir: str) -> int:
         """
         Update the trained potentials, then select the potential with minimal
@@ -276,8 +213,8 @@ class ACTIVELEARNING(object):
         potential_files = [work_dir + '/potential_{:d}/nep.txt'.format(i)
                            for i in range(0, param['n_potentials'])]
         for i in range(0, param['n_potentials']):
-            p = _NEP(range(0, self.__system.n_atoms), potential_files[i],
-                     self.__system.atomic_symbols, self.__use_tabulating)
+            p = _NEP(range(0, self.system.n_atoms), potential_files[i],
+                     self.system.atomic_symbols, self.__use_tabulating)
             self.__neps.append(p)
         # Determine which NEP to use.
         try:
@@ -304,12 +241,10 @@ class ACTIVELEARNING(object):
         cwd = _os.getcwd()
         _os.chdir(info['directory'])
         # Set up the potentials and simulation.
-        potentials = []
-        potentials.append(self.__neps[active_potential_index])
-        for index, generator in enumerate(self.__potential_generators):
-            if (index not in self.__reference_potentials):
-                potentials.append(generator())
-        simulation = self.__set_up_simulation(potentials)
+        potential_indices = range(0, len(self.potential_generators))
+        potential_indices = [i for i in potential_indices if
+                             i not in self.__reference_potentials]
+        simulation = self._set_up_simulation(potential_indices)
         simulation.dump_restart('initial_conditions.h5')
         # Set up writers
         data_file_name = info['system_data']
@@ -390,11 +325,10 @@ class ACTIVELEARNING(object):
         # Good God please forgive me for what I'm about to do ...
         # I fucking hate this shit and myself ...
         # First set up the system and the integrator.
-        system = self.__system.copy()
+        system = self.system.copy()
         for index in self.__reference_potentials:
-            generator = self.__potential_generators[index]
-            system.potentials.append(generator())
-        integrator = self.__integrstor.copy()
+            system.potentials.append(self.potential_generators[index]())
+        integrator = self.integrstor.copy()
         integrator.bind_system(system)
         # Then set up the writer.
         traj_file_name = info['accepted_structures']
@@ -458,7 +392,7 @@ class ACTIVELEARNING(object):
                 _sh.copy(restart_files[i], 'nep.restart')
             if (self.__write_nep_types):
                 _utils.nep.make_nep_in(self.__nep_parameters,
-                                       self.__system.atomic_symbols)
+                                       self.system.atomic_symbols)
             else:
                 _utils.nep.make_nep_in(self.__nep_parameters)
             _os.system(self.__nep_command + '> nep.log 2> nep.err')
@@ -475,7 +409,7 @@ class ACTIVELEARNING(object):
         """
         param = self.__learning_parameters
         # Train or copy the initial potentials.
-        if (self.__n_iter == 0):
+        if (self.n_iter == 0):
             if ('initial_potential_files' in param.keys()):
                 # Read the potentials.
                 potentials_data = []
@@ -483,7 +417,7 @@ class ACTIVELEARNING(object):
                     with open(param['initial_potential_files'][i], 'rb') as fp:
                         potentials_data.append(fp.read())
             # Make the new iter_0 directory.
-            work_dir = self.__initialize_training_iter_dir()
+            work_dir = self._set_up_iter_dir('training_iter')
             if ('initial_potential_files' in param.keys()):
                 # Write the sets.
                 _utils.nep.cat_exyz([param['initial_training_set']],
@@ -505,7 +439,7 @@ class ACTIVELEARNING(object):
             self.__training_iter_data.append(info)
             with open(work_dir + '/training_info.json', 'w') as fp:
                 _js.dump(info, fp, indent=4)
-            self.__n_iter += 1
+            self.n_iter += 1
         # Training iterations.
         for i in range(0, n_iterations):
             # Bind the updated potentials.
@@ -513,7 +447,7 @@ class ACTIVELEARNING(object):
             nep_index = self.__update_neps(old_work_dir)
             # Initialize the iteration.
             info = self.__initialize_training_iter_dict()
-            work_dir = self.__initialize_training_iter_dir()
+            work_dir = self._set_up_iter_dir('training_iter')
             info['directory'] = work_dir
             info['system_data'] = work_dir + '/system_data.csv'
             info['visited_structures'] = work_dir + '/visited_structures.h5'
@@ -568,7 +502,7 @@ class ACTIVELEARNING(object):
             # Clean up.
             del candidate_structures
             del accepted_structures
-            self.__n_iter += 1
+            self.n_iter += 1
 
     @property
     def nep_parameters(self):
@@ -584,25 +518,4 @@ class ACTIVELEARNING(object):
         """
         self.__nep_parameters = v
         self.__write_nep_types = _utils.nep.check_nep_parameters(
-            self.__nep_parameters, self.__system.atomic_symbols)
-
-    @property
-    def system(self):
-        """
-        The simulated system.
-        """
-        return self.__system
-
-    @property
-    def integrator(self):
-        """
-        The integrator.
-        """
-        return self.__integrstor
-
-    @property
-    def post_step_objects(self):
-        """
-        The post step objects.
-        """
-        return self.__post_step_objects
+            self.__nep_parameters, self.system.atomic_symbols)
