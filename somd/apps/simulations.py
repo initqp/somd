@@ -355,7 +355,7 @@ class STAGEDSIMULATION(object):
         return self.__n_iter
 
     @n_iter.setter
-    def n_iter(self, n: int) -> int:
+    def n_iter(self, n: int) -> None:
         """
         Set number of the total simulation iteration.
         """
