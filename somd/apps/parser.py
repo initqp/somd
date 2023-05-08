@@ -1091,17 +1091,16 @@ class TOMLPARSER(object):
             protocol['initial_potential_files'] = [
                 _os.path.abspath(file) for file in
                 protocol['initial_potential_files']]
-        generators = [g[1] for g in self.__potential_generators]
-        energy_shift = protocol['energy_shift']
-        use_tabulating = bool(protocol['use_tabulating'])
         post_step_objects = [*self.__scripts]
         if (self.__barostat is not None):
             post_step_objects.insert(0, self.__barostat)
+        generators = [g[1] for g in self.__potential_generators]
         self.__trainer = _mdapps.active_learning.ACTIVELEARNING(
             self.__system, self.__integrator, generators, reference_potentials,
             {k: v for k, v in protocol.items() if v is not None},
-            protocol['nep_options'], protocol['nep_command'], use_tabulating,
-            post_step_objects, energy_shift)
+            protocol['nep_options'], protocol['nep_command'],
+            bool(protocol['use_tabulating']), post_step_objects,
+            protocol['energy_shift'])
 
     def run(self):
         """
