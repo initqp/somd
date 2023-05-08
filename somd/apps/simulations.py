@@ -233,7 +233,8 @@ class STAGEDSIMULATION(object):
     potential_generators : List(callable)
         Generator functions of potential calculators.
     post_step_objects : List(object):
-        The post step objects.
+        The post step objects, including the barostat and any trajectory
+        writers.
     """
 
     def __init__(self,

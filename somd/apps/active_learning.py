@@ -100,7 +100,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
     use_tabulating : bool
         If invoke the tabulated version of NEP.
     post_step_objects : List(object):
-        The post step objects.
+        The post step objects, including the barostat.
     energy_shift : float
         Shift the total energy by this value before recording the total energy
         to the trajectory. In unit of (kJ/mol).
