@@ -19,12 +19,14 @@
 """
 The pre-defined simulation protocols.
 """
-
+import os as _os
+import copy as _cp
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.constants import SOMDDEFAULTS as _d
+from . import utils as _utils
 
-__all__ = ['SIMULATION']
+__all__ = ['SIMULATION', 'STAGEDSIMULATION']
 
 
 class SIMULATION(object):
@@ -213,3 +215,148 @@ class SIMULATION(object):
         which will be invoked after each timestep.
         """
         return self.__post_step_objects
+
+
+class STAGEDSIMULATION(object):
+    """
+    The staged simulation protocol. In this type of simulations, the
+    `somd.apps.simulations.SIMULATION` class will be dynamically instantiated
+    and destroyed, alone with the required potential calculators and
+    integrators.
+
+    Parameters
+    ----------
+    system : somd.core.systems.MDSYSTEM
+        The simulated system.
+    integrator : somd.core.integrator.INTEGRATOR
+        The integrator that propagate the simulated system.
+    potential_generators : List(callable)
+        Generator functions of potential calculators.
+    post_step_objects : List(object):
+        The post step objects, including the barostat and any trajectory
+        writers.
+    """
+
+    def __init__(self,
+                 system: _mdcore.systems.MDSYSTEM,
+                 integrator: _mdcore.integrators.INTEGRATOR,
+                 potential_generators: list,
+                 post_step_objects: list = []) -> None:
+        """
+        Create a STAGEDSIMULATION instance.
+        """
+        self.__n_iter = 0
+        self.__system = system
+        self.__integrstor = integrator
+        self.__post_step_objects = post_step_objects
+        self.__potential_generators = potential_generators
+        self.__check_post_step_objects()
+        self.__check_system()
+
+    def __check_post_step_objects(self) -> None:
+        """
+        Check the initialization state of the post step objects.
+        """
+        for obj in self.__post_step_objects:
+            if (obj.initialized):
+                message = 'Post step objects that are passed to the ' + \
+                          'STAGEDSIMULATION wrapper must be uninitialized!'
+                raise RuntimeError(message)
+
+    def __check_system(self) -> None:
+        """
+        Check the state of the system object.
+        """
+        if (len(self.__system.potentials) != 0):
+            message = 'The system object that is passed to the ' + \
+                      'STAGEDSIMULATION wrapper should not contain ' + \
+                      'potential calculators!'
+            raise RuntimeError(message)
+
+    def _set_up_simulation(self,
+                           potential_indices: list,
+                           extra_potentials: list = None) -> SIMULATION:
+        """
+        Set up a simulation protocol using the given data.
+
+        Parameters
+        ----------
+        potential_indices : List(int)
+            Indices of the potentials that drive the simulation.
+        extra_potentials : List(somd.core.potential_base.POTENTIAL)
+            Extra potentials that drive the simulation.
+        """
+        self.__check_system()
+        self.__check_post_step_objects()
+        system = self.__system.copy()
+        integrator = self.__integrstor.copy()
+        post_step_objects = _cp.deepcopy(self.__post_step_objects)
+        for i in potential_indices:
+            system.potentials.append(self.__potential_generators[i]())
+        for p in extra_potentials:
+            system.potentials.append(p)
+        barostat = None
+        for index, obj in enumerate(post_step_objects):
+            if (obj.__class.__name__ == 'BAROSTAT'):
+                barostat = post_step_objects.pop(index)
+        simulation = SIMULATION(system, integrator, barostat)
+        for obj in post_step_objects:
+            obj.bind_integrator(integrator)
+            simulation.post_step_objects.append(obj)
+        return simulation
+
+    def _set_up_iter_dir(self, prefix: str) -> str:
+        """
+        Initialize the directory of one simulation iteration.
+
+        Parameters
+        ----------
+        prefix : str
+            Prefix of the directory.
+        """
+        iter_dir = prefix + '_' + str(self.__n_iter)
+        _utils.backup(iter_dir)
+        _os.mkdir(iter_dir)
+        return _os.getcwd() + '/' + iter_dir
+
+    @property
+    def system(self) -> _mdcore.systems.MDSYSTEM:
+        """
+        The simulated system.
+        """
+        return self.__system
+
+    @property
+    def integrator(self) -> _mdcore.integrators.INTEGRATOR:
+        """
+        The integrator.
+        """
+        return self.__integrstor
+
+    @property
+    def post_step_objects(self) -> list:
+        """
+        The post step objects.
+        """
+        return self.__post_step_objects
+
+    @property
+    def potential_generators(self) -> list:
+        """
+        The potential generators.
+        """
+        return self.__potential_generators
+
+    @property
+    def n_iter(self) -> int:
+        """
+        Number of the total simulation iteration.
+        """
+        return self.__n_iter
+
+    @n_iter.setter
+    def n_iter(self, n: int) -> int:
+        """
+        Set number of the total simulation iteration.
+        """
+        self.__n_iter = n
