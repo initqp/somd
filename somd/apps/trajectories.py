@@ -21,13 +21,11 @@ The trajectory writters.
 """
 
 import os as _os
-import time as _t
 import h5py as _h5
 import numpy as _np
 import pickle as _pl
 import base64 as _bs
 import warnings as _w
-from somd import _version
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
@@ -119,11 +117,13 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         """
         Dump attributes to the trajectory file.
         """
+        import time
+        from somd import _version
         self.__root.attrs['conventionVersion'] = '1.1'
         self.__root.attrs['program'] = 'SOMD'
         self.__root.attrs['programVersion'] = str(_version.get_versions())
         self.__root.attrs['application'] = 'H5WRITER'
-        self.__root.attrs['createdTime'] = _t.ctime()
+        self.__root.attrs['createdTime'] = time.ctime()
         self.__root.attrs['title'] = self.__file_name
         if (self.__is_restart):
             self.__root.attrs['conventions'] = ['Pande', 'SOMDRESTART']
