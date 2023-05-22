@@ -20,7 +20,9 @@
 The pre-defined simulation protocols.
 """
 import os as _os
+import h5py as _h5
 import copy as _cp
+import warnings as _w
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.constants import SOMDDEFAULTS as _d
@@ -235,23 +237,90 @@ class STAGEDSIMULATION(object):
     post_step_objects : List(object):
         The post step objects, including the barostat and any trajectory
         writers.
+    output_prefix : str
+        Prefix of the output file.
     """
 
     def __init__(self,
                  system: _mdcore.systems.MDSYSTEM,
                  integrator: _mdcore.integrators.INTEGRATOR,
                  potential_generators: list,
-                 post_step_objects: list = []) -> None:
+                 post_step_objects: list = [],
+                 output_prefix: str = 'staged_simulation') -> None:
         """
         Create a STAGEDSIMULATION instance.
         """
-        self.__n_iter = 0
         self.__system = system
         self.__integrstor = integrator
         self.__post_step_objects = post_step_objects
         self.__potential_generators = potential_generators
+        self.__output_prefix = output_prefix
         self.__check_post_step_objects()
         self.__check_system()
+        self.__initialize_outputs()
+
+    def __dump_attributes(self) -> None:
+        """
+        Dump attributes to the output file.
+        """
+        import time
+        from somd import _version
+        self.__root.attrs['program'] = 'SOMD'
+        self.__root.attrs['version'] = str(_version.get_versions())
+        self.__root.attrs['created_time'] = time.ctime()
+        self.__root.attrs['title'] = self.__output_prefix + '.h5'
+        self.__root.attrs['root_directory'] = _os.getcwd()
+        self.__root.attrs['working_directory'] = \
+            _os.getcwd() + '/' + self.__output_prefix + '.dir'
+
+    def __dump_groups(self) -> None:
+        """
+        Dump groups to the output file.
+        """
+        group = self.__root.create_group('iteration_data')
+        group.create_group(str(0))
+        self._set_up_iter_dir()
+
+    def __initialize_outputs(self) -> None:
+        """
+        Create output files and directories.
+        """
+        title = self.__output_prefix + '.h5'
+        directory = self.__output_prefix + '.dir'
+        if (_os.path.exists(title)):
+            self.__is_restart = True
+            if (not _os.path.isdir(directory)):
+                message = 'Can not find directory {:s}! SOMD will back up ' + \
+                          'the file {:s} and run the required simulation ' + \
+                          'from scratch!'
+                _w.warn(message.format(directory, title))
+                self.__is_restart = False
+                _utils.backup(title)
+                _os.mkdir(directory)
+            else:
+                message = 'Found directory {:s}! SOMD will restart the ' + \
+                          'required simulation from the break point!'
+                _w.warn(message.format(directory))
+        else:
+            if (_os.path.isdir(directory)):
+                message = 'Can not find file {:s}! SOMD will back up the ' + \
+                          'directory {:d} and run the required simulation ' + \
+                          'from scratch!'
+                _w.warn(message.format(title, directory))
+                _utils.backup(directory)
+            _os.mkdir(directory)
+            self.__is_restart = False
+        self.__root = _h5.File(title, 'a')
+        if (self.__is_restart):
+            group = self.__root['/iteration_data/' + str(self.n_iter)]
+            working_dir = group.attrs['working_directory']
+            if (not _os.path.isdir(working_dir)):
+                if (_os.path.exists(working_dir)):
+                    _os.remove(working_dir)
+                _os.mkdir(working_dir)
+        else:
+            self.__dump_attributes()
+            self.__dump_groups()
 
     def __check_post_step_objects(self) -> None:
         """
@@ -272,6 +341,33 @@ class STAGEDSIMULATION(object):
                       'STAGEDSIMULATION wrapper should not contain ' + \
                       'potential calculators!'
             raise RuntimeError(message)
+
+    def _create_dataset(self,
+                        path: str,
+                        shape: tuple,
+                        max_shape: tuple,
+                        data_type: str,
+                        unit: str = None) -> None:
+        """
+        Create a new data set.
+
+        Parameters
+        ----------
+        path : str
+            Path of the dataset.
+        shape : tuple
+            Initial shape of the data set.
+        max_shape : tuple
+            Maximum shape of the data set.
+        data_type : str
+            The data type.
+        unit : str
+            Unit of the data set.
+        """
+        self.__root.create_dataset(path, shape, maxshape=max_shape,
+                                   dtype=data_type)
+        if (unit is not None):
+            self.__root[path].attrs['units'] = unit
 
     def _set_up_simulation(self,
                            potential_indices: list,
@@ -305,19 +401,26 @@ class STAGEDSIMULATION(object):
             simulation.post_step_objects.append(obj)
         return simulation
 
-    def _set_up_iter_dir(self, prefix: str) -> str:
+    def _set_up_iter_dir(self) -> str:
         """
         Initialize the directory of one simulation iteration.
-
-        Parameters
-        ----------
-        prefix : str
-            Prefix of the directory.
         """
-        iter_dir = prefix + '_' + str(self.__n_iter)
+        iter_dir = self.__root.attrs['working_directory'] + \
+            '/iteration_' + str(self.n_iter)
+        group = self.__root['/iteration_data/' + str(self.n_iter)]
+        group.attrs['working_directory'] = iter_dir
+        group.attrs['initialized'] = False
+        self.__root.flush()
         _utils.backup(iter_dir)
         _os.mkdir(iter_dir)
-        return _os.getcwd() + '/' + iter_dir
+        return iter_dir
+
+    def _increase_n_iter(self) -> None:
+        """
+        Increase the number of iterations by 1.
+        """
+        self.__root['/iteration_data'].create_group(str(self.n_iter + 1))
+        self._set_up_iter_dir()
 
     @property
     def system(self) -> _mdcore.systems.MDSYSTEM:
@@ -352,11 +455,18 @@ class STAGEDSIMULATION(object):
         """
         Number of the total simulation iteration.
         """
-        return self.__n_iter
+        return (len(self.__root['/iteration_data']) - 1)
 
-    @n_iter.setter
-    def n_iter(self, n: int) -> None:
+    @property
+    def is_restart(self) -> bool:
         """
-        Set number of the total simulation iteration.
+        If this simulation is a restarted one.
         """
-        self.__n_iter = n
+        return self.__is_restart
+
+    @property
+    def root(self) -> _h5.File:
+        """
+        The HDF5 file root.
+        """
+        return self.__root
