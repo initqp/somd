@@ -304,7 +304,7 @@ class STAGEDSIMULATION(object):
         else:
             if (_os.path.isdir(directory)):
                 message = 'Can not find file {:s}! SOMD will back up the ' + \
-                          'directory {:d} and run the required simulation ' + \
+                          'directory {:s} and run the required simulation ' + \
                           'from scratch!'
                 _w.warn(message.format(title, directory))
                 _utils.backup(directory)
