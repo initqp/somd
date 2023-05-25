@@ -1479,6 +1479,16 @@ the active learning methodology.
         nep_command = '/path/to/nep'
 ```
 
+**Notes**:
+
+- How to restart.
+
+  If your active learning simulation was interrupted accidentally, you could
+  restart it by simply resubmit your task under the same directory. Since the
+  simulation progress is recorded in the `HDF5` file, SOMD will try to load
+  the latest state from the file and restart the simulation from the break
+  point.
+
 ## The `[[script]]` array. <a name="script"></a>
 
 **If Mandatory**: no
