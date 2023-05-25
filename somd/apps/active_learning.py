@@ -21,10 +21,10 @@ The active learning workflow of building a NEP model.
 """
 
 import os as _os
-import json as _js
 import numpy as _np
 import shutil as _sh
 import random as _rn
+import warnings as _w
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.potentials import NEP as _NEP
@@ -104,6 +104,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
     energy_shift : float
         Shift the total energy by this value before recording the total energy
         to the trajectory. In unit of (kJ/mol).
+    output_prefix : str
+        Prefix of the output file.
     """
 
     def __init__(self,
@@ -116,23 +118,24 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                  nep_command: str = 'nep',
                  use_tabulating: bool = False,
                  post_step_objects: list = [],
-                 energy_shift: float = 0.0) -> None:
+                 energy_shift: float = 0.0,
+                 output_prefix: str = '') -> None:
         """
         Create an ACTIVELEARNING instance.
         """
-        self.__training_iter_data = []
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
         self.__use_tabulating = use_tabulating
         self.__energy_shift = energy_shift
         self.__learning_parameters = learning_parameters
         self.__reference_potentials = reference_potentials
-        self.__n_untrained_structures = 0
-        self.__check_learning_parameters()
         self.__write_nep_types = _utils.nep.check_nep_parameters(
             nep_parameters, system.atomic_symbols)
+        if (output_prefix == ''):
+            output_prefix = 'active_learning'
         super().__init__(system, integrator, potential_generators,
-                         post_step_objects)
+                         post_step_objects, output_prefix)
+        self.__check_learning_parameters()
 
     def __check_learning_parameters(self) -> None:
         """
@@ -140,8 +143,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         """
         param = self.__learning_parameters
         # required parameters
-        if ('initial_training_set' not in param.keys()):
-            raise KeyError('Key \'initial_training_set\' is required!')
+        if ('initial_training_set' not in param.keys() and self.n_iter == 0):
+            raise KeyError('The key "initial_training_set" is required!')
         # default parameters
         if ('n_potentials' not in param.keys()):
             param['n_potentials'] = 4
@@ -162,7 +165,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         if ('initial_testing_set' not in param.keys()):
             param['initial_testing_set'] = param['initial_training_set']
         # some checks
-        if ('initial_potential_files' in param.keys()):
+        if ('initial_potential_files' in param.keys() and self.n_iter == 0):
             if (len(param['initial_potential_files']) !=
                     param['n_potentials']):
                 message = 'Number of the initial potential files should ' + \
@@ -173,58 +176,116 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             message = 'min_new_structures_per_iter is larger than ' + \
                       'max_new_structures_per_iter !'
             raise RuntimeError(message)
+        if ('initial_training_set' in param.keys() and self.n_iter != 0):
+            param['initial_training_set'] = \
+                self.root['/iteration_data/0'].attrs['training_sets'][0]
+            message = 'The key "initial_training_set" will be ignored ' + \
+                      'since the simulation is being restarted.'
+            _w.warn(message)
+        if ('initial_potential_files' in param.keys() and self.n_iter != 0):
+            message = 'The key "initial_potential_files" will be ignored ' + \
+                      'since the simulation is being restarted.'
+            _w.warn(message)
 
-    def __initialize_training_iter_dict(self) -> dict:
+    def __initialize_iteration_data_group(self, path: str) -> None:
         """
-        Initialize a dictionary that records the information about one training
-        iteration.
-        """
-        result = dict()
-        result["pre_training"] = False
-        result["directory"] = ""
-        result["system_data"] = ""
-        result['visited_structures'] = ""
-        result['accepted_structures'] = ""
-        result['n_visited_structures'] = 0
-        result['n_accurate_structures'] = 0
-        result['n_candidate_structures'] = 0
-        result['n_accepted_structures'] = 0
-        result['n_failed_structures'] = 0
-        result['max_forces_msd'] = 0
-        result['candidate_structure_indices'] = []
-        result['accepted_structure_indices'] = []
-        result['forces_msd'] = []
-        return result
+        Initialize an iteration data group in the output file.
 
-    def __update_neps(self, work_dir: str) -> int:
+        Parameters
+        ----------
+        path : str
+            Path to the group.
+        """
+        group = self.root[path]
+        group.attrs['initialized'] = True
+        group.attrs["system_data"] = ""
+        group.attrs['invoked_nep'] = ""
+        group.attrs["pre_training"] = False
+        group.attrs["training_sets"] = []
+        group.attrs['visited_structures'] = ""
+        group.attrs['accepted_structures'] = ""
+        param = self.__learning_parameters
+        self._create_dataset(path + '/n_visited_structures',
+                             (1,), (1,), int)
+        group['n_visited_structures'][0] = 0
+        self._create_dataset(path + '/n_accurate_structures',
+                             (1,), (1,), int)
+        group['n_accurate_structures'][0] = 0
+        self._create_dataset(path + '/n_candidate_structures',
+                             (1,), (1,), int)
+        group['n_candidate_structures'][0] = 0
+        self._create_dataset(path + '/n_accepted_structures',
+                             (1,), (1,), int)
+        group['n_accepted_structures'][0] = 0
+        self._create_dataset(path + '/n_failed_structures',
+                             (1,), (1,), int)
+        group['n_failed_structures'][0] = 0
+        self._create_dataset(path + '/n_untrained_structures',
+                             (1,), (1,), int)
+        group['n_untrained_structures'][0] = 0
+        self._create_dataset(path + '/min_new_structures_per_iter',
+                             (1,), (1,), int)
+        group['min_new_structures_per_iter'][0] = \
+            param['min_new_structures_per_iter']
+        self._create_dataset(path + '/max_new_structures_per_iter',
+                             (1,), (1,), int)
+        group['max_new_structures_per_iter'][0] = \
+            param['max_new_structures_per_iter']
+        self._create_dataset(path + '/max_force_msd',
+                             (1,), (1,), _np.double, 'kJ/mol/nm')
+        group['max_force_msd'][0] = 0.0
+        self._create_dataset(path + '/force_msd_lower_limit',
+                             (1,), (1,), _np.double, 'kJ/mol/nm')
+        group['force_msd_lower_limit'][0] = param['msd_lower_limit']
+        self._create_dataset(path + '/force_msd_upper_limit',
+                             (1,), (1,), _np.double, 'kJ/mol/nm')
+        group['force_msd_upper_limit'][0] = param['msd_upper_limit']
+        self._create_dataset(path + '/candidate_structure_indices',
+                             (0,), (None,), int)
+        self._create_dataset(path + '/accepted_structure_indices',
+                             (0,), (None,), int)
+        self._create_dataset(path + '/force_msd',
+                             (0,), (None,), _np.double, 'kJ/mol/nm')
+        progress = group.create_group('progress')
+        progress.attrs['training_finished'] = \
+            [False for i in range(0, param['n_potentials'])]
+        progress.attrs['ab_initial_finished'] = False
+        self.root.flush()
+
+    def __update_neps(self, n_iter: int) -> tuple:
         """
         Update the trained potentials, then select the potential with minimal
         total loss to propagate the system.
 
         Parameters
         ----------
-        work_dir : str
-            The The working directory that contains multiple potential files.
+        n_iter : int
+            Number of the training iteration.
         """
         self.__neps = []
         # Prepare new potentials.
         active_potential_index = 0
         param = self.__learning_parameters
-        potential_files = [work_dir + '/potential_{:d}/nep.txt'.format(i)
-                           for i in range(0, param['n_potentials'])]
-        for i in range(0, param['n_potentials']):
+        nep_path = '/potential_{:d}/nep.txt'
+        group = self.root['/iteration_data/' + str(n_iter)]
+        working_dir = group.attrs['working_directory']
+        training_state = group['progress'].attrs['training_finished']
+        n_potentials = min(param['n_potentials'], len(training_state))
+        potential_files = [working_dir + nep_path.format(i) for
+                           i in range(0, n_potentials)]
+        for i in range(0, n_potentials):
             p = _NEP(range(0, self.system.n_atoms), potential_files[i],
                      self.system.atomic_symbols, self.__use_tabulating)
             self.__neps.append(p)
         # Determine which NEP to use.
         try:
-            files = [work_dir + '/potential_{:d}/loss.out'.format(i)
-                     for i in range(0, param['n_potentials'])]
+            files = [working_dir + '/potential_{:d}/loss.out'.format(i)
+                     for i in range(0, n_potentials)]
             losses = [_utils.nep.get_loss(f)[1] for f in files]
             active_potential_index = _np.argmin(losses)
         except:
             active_potential_index = 0
-        return active_potential_index
+        return active_potential_index, potential_files[active_potential_index]
 
     def __propagate(self, active_potential_index: int) -> list:
         """
@@ -236,10 +297,10 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         active_potential_index : int
             Index of the NEP to use.
         """
-        info = self.__training_iter_data[-1]
-        param = self.__learning_parameters
         cwd = _os.getcwd()
-        _os.chdir(info['directory'])
+        param = self.__learning_parameters
+        group = self.root['/iteration_data/' + str(self.n_iter)]
+        _os.chdir(group.attrs['working_directory'])
         # Set up the potentials and simulation.
         potential_indices = range(0, len(self.potential_generators))
         potential_indices = [i for i in potential_indices if
@@ -248,19 +309,17 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             potential_indices, [self.__neps[active_potential_index]])
         simulation.dump_restart('initial_conditions.h5')
         # Set up writers
-        data_file_name = info['system_data']
+        data_file_name = group.attrs['system_data']
         data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
         data_writer.bind_integrator(simulation.integrator)
-        traj_file_name = info['visited_structures']
+        traj_file_name = group.attrs['visited_structures']
         traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
         traj_writer.bind_integrator(simulation.integrator)
         simulation.post_step_objects.append(data_writer)
         simulation.post_step_objects.append(traj_writer)
         # Propagate the trajectory segment.
         candidate_structures = []
-        info = self.__training_iter_data[-1]
-        forces_msd_limits = [param['msd_lower_limit'],
-                             param['msd_upper_limit']]
+        force_msd_limits = [param['msd_lower_limit'], param['msd_upper_limit']]
         for i in range(0, param['max_md_runs_per_iter']):
             simulation.restart_from('initial_conditions.h5',
                                     read_rng_state=False, read_nhc_data=False)
@@ -268,21 +327,27 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 simulation.run(1)
                 msd = _utils.nep.get_potentials_msd(self.__neps,
                                                     simulation.system)
-                info['forces_msd'].append(msd)
-                info['n_visited_structures'] += 1
-                if (msd < forces_msd_limits[0]):
-                    info['n_accurate_structures'] += 1
-                elif (msd > forces_msd_limits[1]):
-                    info['n_failed_structures'] += 1
+                n_structures = group['force_msd'].shape[0]
+                group['force_msd'].resize((n_structures + 1,))
+                group['force_msd'][n_structures] = msd
+                group['n_visited_structures'][0] += 1
+                if (msd < force_msd_limits[0]):
+                    group['n_accurate_structures'][0] += 1
+                elif (msd > force_msd_limits[1]):
+                    group['n_failed_structures'][0] += 1
                 else:
-                    info['n_candidate_structures'] += 1
+                    group['n_candidate_structures'][0] += 1
                     index = param['max_md_steps_per_iter'] * i + j
-                    info['candidate_structure_indices'].append(index)
+                    group['candidate_structure_indices'].resize(
+                        (group['n_candidate_structures'][0],))
+                    group['candidate_structure_indices'][-1] = index
                     structure = [simulation.system.positions.copy(),
                                  simulation.system.box.copy()]
                     candidate_structures.append(structure)
-        info['max_forces_msd'] = max(info['forces_msd'])
+            self.root.flush()
+        group['max_force_msd'][0] = max(group['force_msd'])
         del data_writer, traj_writer, simulation
+        self.root.flush()
         _os.chdir(cwd)
         return candidate_structures
 
@@ -295,18 +360,20 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         candidate_structures : List(List(numpy.ndarray))
             Positions and boxes data of the candidate structures.
         """
-        info = self.__training_iter_data[-1]
         param = self.__learning_parameters
+        group = self.root['/iteration_data/' + str(self.n_iter)]
         result = list(range(0, len(candidate_structures)))
-        indices = info['candidate_structure_indices']
+        indices = group['candidate_structure_indices']
         if (len(candidate_structures) < param['max_new_structures_per_iter']):
             pass
         elif (not param['perform_clustering']):
             result = _rn.sample(result, param['max_new_structures_per_iter'])
         else:
             raise NotImplementedError()
-        info['n_accepted_structures'] = len(result)
-        info['accepted_structure_indices'] = [indices[i] for i in result]
+        group['n_accepted_structures'][0] = len(result)
+        group['accepted_structure_indices'].resize((len(result),))
+        group['accepted_structure_indices'][:] = [indices[i] for i in result]
+        self.root.flush()
         return [candidate_structures[i] for i in result]
 
     def __perform_ab_initio_calculations(self, structures: list) -> None:
@@ -315,14 +382,12 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
 
         Parameters
         ----------
-        work_dir : str
-            The working directory.
         structures : List(List(numpy.ndarray))
             Positions and boxes data of the candidate structures.
         """
-        info = self.__training_iter_data[-1]
         cwd = _os.getcwd()
-        _os.chdir(info['directory'])
+        group = self.root['/iteration_data/' + str(self.n_iter)]
+        _os.chdir(group.attrs['working_directory'])
         # Good God please forgive me for what I'm about to do ...
         # I fucking hate this shit and myself ...
         # First set up the system and the integrator.
@@ -332,7 +397,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         integrator = self.integrator.copy()
         integrator.bind_system(system)
         # Then set up the writer.
-        traj_file_name = info['accepted_structures']
+        traj_file_name = group.attrs['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
             traj_file_name, write_velocities=False, wrap_positions=True,
             energy_shift=self.__energy_shift)
@@ -355,51 +420,178 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 # Only update the exyz file on success.
                 traj_writer.update()
         # Finally we clean the system.
+        group['progress'].attrs['ab_initial_finished'] = True
         for potential in system.potentials:
             potential.finalize()
         del system, integrator, traj_writer
+        self.root.flush()
         _os.chdir(cwd)
 
     def __train(self,
-                work_dir: str,
-                training_set_list: list,
+                n_iter: int,
                 restart_files: list = None) -> None:
         """
         Train the model.
 
         Parameters
         ----------
-        work_dir : str
-            The working directory.
-        training_set_list : List(str)
-            Paths of the training set exyz files.
+        n_iter : int
+            Number of the training iteration.
         restart_files : List(str)
             Paths of the restart files.
         """
-        param = self.__learning_parameters
-        # Setup the training and testing set.
-        # TODO: rational building of the testing set.
-        _utils.nep.cat_exyz(training_set_list, work_dir + '/train.xyz')
-        _sh.copy(param['initial_testing_set'], work_dir + '/test.xyz')
-        # Train.
         cwd = _os.getcwd()
-        for i in range(0, param['n_potentials']):
-            potential_dir = work_dir + '/potential_{:d}'.format(i)
-            _os.mkdir(potential_dir)
-            _os.chdir(potential_dir)
-            _os.symlink('../train.xyz', 'train.xyz')
-            _os.symlink('../test.xyz', 'test.xyz')
-            if (restart_files is not None):
-                _sh.copy(restart_files[i], 'nep.restart')
-            if (self.__write_nep_types):
-                _utils.nep.make_nep_in(self.__nep_parameters,
-                                       self.system.atomic_symbols)
-            else:
-                _utils.nep.make_nep_in(self.__nep_parameters)
-            _os.system(self.__nep_command + '> nep.log 2> nep.err')
-            _os.chdir(cwd)
+        param = self.__learning_parameters
+        group = self.root['/iteration_data/' + str(n_iter)]
+        working_dir = group.attrs['working_directory']
+        training_sets = group.attrs['training_sets']
+        training_state = group['progress'].attrs['training_finished']
+        # Setup the training and testing set.
+        _utils.nep.cat_exyz(training_sets, working_dir + '/train.xyz')
+        _sh.copy(param['initial_testing_set'], working_dir + '/test.xyz')
+        # Train.
+        # Note that there we use len(training_state) instead of
+        # param['n_potentials']. This is because when restarting a half-trained
+        # iteration, the 'n_potentials' parameter may change.
+        for i in range(0, len(training_state)):
+            if (not training_state[i]):
+                potential_dir = working_dir + '/potential_{:d}'.format(i)
+                if (_os.path.isdir(potential_dir)):
+                    _sh.rmtree(potential_dir)
+                _os.mkdir(potential_dir)
+                _os.chdir(potential_dir)
+                _os.symlink('../train.xyz', 'train.xyz')
+                _os.symlink('../test.xyz', 'test.xyz')
+                if (restart_files is not None):
+                    _sh.copy(restart_files[i], 'nep.restart')
+                if (self.__write_nep_types):
+                    _utils.nep.make_nep_in(self.__nep_parameters,
+                                           self.system.atomic_symbols)
+                else:
+                    _utils.nep.make_nep_in(self.__nep_parameters)
+                _os.system(self.__nep_command + '> nep.log 2> nep.err')
+                training_state[i] = True
+                group['progress'].attrs['training_finished'] = training_state
+                self.root.flush()
+                _os.chdir(cwd)
 
-    def run(self, n_iterations: int = 1):
+    def __perform_pretraining(self) -> None:
+        """
+        Perform the first iteration of training.
+        """
+        path = '/iteration_data/0'
+        param = self.__learning_parameters
+        working_dir = self.root[path].attrs['working_directory']
+        if (not self.root[path].attrs['initialized']):
+            self.__initialize_iteration_data_group(path)
+            self.root[path].attrs['pre_training'] = True
+            self.root[path].attrs['training_sets'] = \
+                [param['initial_training_set']]
+            self.root.flush()
+            if ('initial_potential_files' in param.keys()):
+                # Read the potentials.
+                potentials_data = []
+                for i in range(0, param['n_potentials']):
+                    with open(param['initial_potential_files'][i], 'rb') as fp:
+                        potentials_data.append(fp.read())
+                # Write the sets.
+                _utils.nep.cat_exyz([param['initial_training_set']],
+                                    working_dir + '/train.xyz')
+                _utils.nep.cat_exyz([param['initial_testing_set']],
+                                    working_dir + '/test.xyz')
+                # Write the potentials.
+                for i in range(0, param['n_potentials']):
+                    potential_dir = working_dir + '/potential_{:d}'.format(i)
+                    _os.mkdir(potential_dir)
+                    with open(potential_dir + '/nep.txt', 'wb') as fp:
+                        fp.write(potentials_data[i])
+                self.root[path]['progress'].attrs['training_finished'] = \
+                    [True for i in range(0, param['n_potentials'])]
+                del potentials_data
+                self.root.flush()
+            else:
+                self.__train(0)
+        else:
+            self.__train(0)
+
+    def __perform_training(self) -> None:
+        """
+        Perform the regular iterations of training.
+        """
+        param = self.__learning_parameters
+        # Bind the updated potentials.
+        path = '/iteration_data/' + str(self.n_iter)
+        path_old = '/iteration_data/' + str(self.n_iter - 1)
+        group = self.root[path]
+        group_old = self.root[path_old]
+        working_dir = group.attrs['working_directory']
+        working_dir_old = group_old.attrs['working_directory']
+        # Initialize the iteration.
+        if (not group.attrs['initialized']):
+            self.__initialize_iteration_data_group(path)
+            group.attrs['system_data'] = \
+                working_dir + '/system_data.csv'
+            group.attrs['visited_structures'] = \
+                working_dir + '/visited_structures.h5'
+            group.attrs['accepted_structures'] = \
+                working_dir + '/accepted_structures.xyz'
+            self.root.flush()
+        if (not group['progress'].attrs['ab_initial_finished']):
+            # Run the simulation and harvest candidate structures.
+            nep_index, nep_name = self.__update_neps(self.n_iter - 1)
+            group.attrs['invoked_nep'] = nep_name
+            candidate_structures = self.__propagate(nep_index)
+            # Strip the candidate structures.
+            accepted_structures = \
+                self.__strip_candidate_structures(candidate_structures)
+            # Perform ab initio calculations.
+            if (len(accepted_structures) > 0):
+                self.__perform_ab_initio_calculations(accepted_structures)
+        else:
+            accepted_structures = None
+            candidate_structures = None
+        # Determine if train new potentials.
+        n_new_structures = group['n_accepted_structures'][0] + \
+            group_old['n_untrained_structures'][0]
+        if (n_new_structures > param['min_new_structures_per_iter']):
+            # Train new potentials.
+            training_sets = []
+            for j in range(1, (self.n_iter + 1)):
+                group = self.root['/iteration_data/' + str(j)]
+                if (group['n_accepted_structures'][0] > 0):
+                    training_sets.append(group.attrs['accepted_structures'])
+            training_sets.append(param['initial_training_set'])
+            group.attrs['training_sets'] = training_sets
+            self.root.flush()
+            self.__train(self.n_iter)
+        else:
+            # Use the previous trained potentials. Here we use relative paths
+            # to perform the symlink to avoid conflictions.
+            cwd = _os.getcwd()
+            _os.chdir(working_dir)
+            test_xyz_old = working_dir_old + '/test.xyz'
+            train_xyz_old = working_dir_old + '/train.xyz'
+            potential_dir_old = working_dir_old + '/potential_{:d}'
+            if (not _os.path.islink('test.xyz')):
+                _os.symlink(_os.path.relpath(test_xyz_old), 'test.xyz')
+            if (not _os.path.islink('train.xyz')):
+                _os.symlink(_os.path.relpath(train_xyz_old), 'train.xyz')
+            for j in range(0, param['n_potentials']):
+                if (not _os.path.islink('potential_{:d}'.format(j))):
+                    _os.symlink(_os.path.relpath(potential_dir_old.format(j)),
+                                'potential_{:d}'.format(j))
+            group.attrs['training_sets'] = group_old.attrs['training_sets']
+            group['progress'].attrs['training_finished'] = \
+                [True for i in range(0, param['n_potentials'])]
+            # We did not train the new accepted structures, accumulate
+            # the untrained structure count.
+            group['n_untrained_structures'][0] = n_new_structures
+            _os.chdir(cwd)
+        # Clean up.
+        del candidate_structures
+        del accepted_structures
+
+    def run(self, n_iterations: int = 1) -> None:
         """
         Run the training.
 
@@ -408,112 +600,24 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         n_iterations : int
             Number of iterations to run.
         """
-        param = self.__learning_parameters
         # Train or copy the initial potentials.
         if (self.n_iter == 0):
-            if ('initial_potential_files' in param.keys()):
-                # Read the potentials.
-                potentials_data = []
-                for i in range(0, param['n_potentials']):
-                    with open(param['initial_potential_files'][i], 'rb') as fp:
-                        potentials_data.append(fp.read())
-            # Make the new iter_0 directory.
-            work_dir = self._set_up_iter_dir('training_iter')
-            if ('initial_potential_files' in param.keys()):
-                # Write the sets.
-                _utils.nep.cat_exyz([param['initial_training_set']],
-                                    work_dir + '/train.xyz')
-                _utils.nep.cat_exyz([param['initial_testing_set']],
-                                    work_dir + '/test.xyz')
-                # Write the potentials.
-                for i in range(0, param['n_potentials']):
-                    potential_dir = work_dir + '/potential_{:d}'.format(i)
-                    _os.mkdir(potential_dir)
-                    with open(potential_dir + '/nep.txt', 'wb') as fp:
-                        fp.write(potentials_data[i])
-                del potentials_data
-            else:
-                self.__train(work_dir, [param['initial_training_set']])
-            info = self.__initialize_training_iter_dict()
-            info["pre_training"] = True
-            info['directory'] = work_dir
-            self.__training_iter_data.append(info)
-            with open(work_dir + '/training_info.json', 'w') as fp:
-                _js.dump(info, fp, indent=4)
-            self.n_iter += 1
-        # Training iterations.
+            self.__perform_pretraining()
+            self._increase_n_iter()
+        # Train for more iterations.
         for i in range(0, n_iterations):
-            # Bind the updated potentials.
-            old_work_dir = self.__training_iter_data[-1]['directory']
-            nep_index = self.__update_neps(old_work_dir)
-            # Initialize the iteration.
-            info = self.__initialize_training_iter_dict()
-            work_dir = self._set_up_iter_dir('training_iter')
-            info['directory'] = work_dir
-            info['system_data'] = work_dir + '/system_data.csv'
-            info['visited_structures'] = work_dir + '/visited_structures.h5'
-            info['accepted_structures'] = work_dir + '/accepted_structures.xyz'
-            self.__training_iter_data.append(info)
-            # Run the simulation and harvest candidate structures.
-            candidate_structures = self.__propagate(nep_index)
-            # Strip the candidate structures.
-            accepted_structures = \
-                self.__strip_candidate_structures(candidate_structures)
-            # Dump the training results.
-            with open(work_dir + '/training_info.json', 'w') as fp:
-                _js.dump(info, fp, indent=4)
-            # Perform ab initio calculations.
-            if (len(accepted_structures) > 0):
-                self.__perform_ab_initio_calculations(accepted_structures)
-            # Determine if train new potentials.
-            if ((len(accepted_structures) + self.__n_untrained_structures) >
-                    param['min_new_structures_per_iter']):
-                # Train new potentials.
-                training_sets = [d['accepted_structures']
-                                 for d in self.__training_iter_data[1:]
-                                 if (d['n_accurate_structures'] > 0)]
-                training_sets.append(param['initial_training_set'])
-                self.__train(work_dir, training_sets)
-                # A training process is triggered, reset the untrained
-                # structure count.
-                self.__n_untrained_structures = 0
-            else:
-                # Use the previous trained potentials.
-                old_training_xyz = \
-                    self.__training_iter_data[-2]['directory'] + '/train.xyz'
-                new_training_xyz = \
-                    self.__training_iter_data[-1]['directory'] + '/train.xyz'
-                _os.symlink(old_training_xyz, new_training_xyz)
-                old_test_xyz = self.__training_iter_data[-2]['directory'] + \
-                    '/test.xyz'
-                new_test_xyz = self.__training_iter_data[-1]['directory'] + \
-                    '/test.xyz'
-                _os.symlink(old_test_xyz, new_test_xyz)
-                for j in range(0, param['n_potentials']):
-                    old_potential_dir = \
-                        self.__training_iter_data[-2]['directory'] + \
-                        '/potential_{:d}'.format(j)
-                    new_potential_dir = \
-                        self.__training_iter_data[-1]['directory'] + \
-                        '/potential_{:d}'.format(j)
-                    _os.symlink(old_potential_dir, new_potential_dir)
-                # We did not train the new accepted structures, accumulate
-                # the untrained structure count.
-                self.__n_untrained_structures += len(accepted_structures)
-            # Clean up.
-            del candidate_structures
-            del accepted_structures
-            self.n_iter += 1
+            self.__perform_training()
+            self._increase_n_iter()
 
     @property
-    def nep_parameters(self):
+    def nep_parameters(self) -> str:
         """
         The keywords and corresponding values to be used in a nep.in file.
         """
         return self.__nep_parameters
 
     @nep_parameters.setter
-    def nep_parameters(self, v: str):
+    def nep_parameters(self, v: str) -> None:
         """
         Set the keywords and corresponding values to be used in a nep.in file.
         """

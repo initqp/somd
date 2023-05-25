@@ -1100,19 +1100,19 @@ class TOMLPARSER(object):
             {k: v for k, v in protocol.items() if v is not None},
             protocol['nep_options'], protocol['nep_command'],
             bool(protocol['use_tabulating']), post_step_objects,
-            protocol['energy_shift'])
+            protocol['energy_shift'],
+            self.__root['run']['label'] + '.active_learning')
 
     def run(self):
         """
         Run the simulation.
         """
         if (self.__trainer is not None):
-            for i in range(0, self.__root['active_learning']['n_iterations']):
-                self.__trainer.run()
+            self.__trainer.run(self.__root['active_learning']['n_iterations'])
         else:
-            if (self.__root['run']['restart_from'] is not None):
-                self.__simulation.restart_from(
-                    self.__root['run']['restart_from'])
+            restart_file = self.__root['run']['restart_from']
+            if (restart_file is not None):
+                self.__simulation.restart_from(restart_file)
             self.__simulation.run(self.__root['run']['n_steps'])
 
     @property

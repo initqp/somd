@@ -83,6 +83,11 @@ def get_potentials_msd(potentials: list,
 def get_loss(file_name: str) -> list:
     """
     Read losses from a loss.out file.
+
+    Parameters
+    ----------
+    file_name : str
+        Name of the loss.out file.
     """
     fp = open(file_name, 'rb')
     try:
