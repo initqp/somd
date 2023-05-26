@@ -18,14 +18,14 @@ of an active learning simulation.
 **Structure**:
 ```bash
 /
-│   ├── created_time      # (attr, (1,), str)
-│   ├── program           # (attr, (1,), str)
-│   ├── root_directory    # (attr, (1,), str)
-│   ├── title             # (attr, (1,), str)
-│   ├── version           # (attr, (1,), str)
-│   ├── working_directory # (attr, (1,), str)
-└── iteration_data # (group)
-    ├── 0          # (group)
+├── created_time      # (attr, (1,), str)
+├── program           # (attr, (1,), str)
+├── root_directory    # (attr, (1,), str)
+├── title             # (attr, (1,), str)
+├── version           # (attr, (1,), str)
+├── working_directory # (attr, (1,), str)
+└── iteration_data    # (group)
+    ├── 0             # (group)
     │   ├── accepted_structures         # (attr, (1,), str)
     │   ├── initialized                 # (attr, (1,), bool)
     │   ├── invoked_nep                 # (attr, (1,), str)
