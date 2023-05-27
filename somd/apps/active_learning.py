@@ -223,6 +223,9 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         self._create_dataset(path + '/n_untrained_structures',
                              (1,), (1,), int)
         group['n_untrained_structures'][0] = 0
+        self._create_dataset(path + '/energy_shift',
+                             (1,), (1,), _np.double, 'kJ/mol')
+        group['energy_shift'][0] = self.__energy_shift
         self._create_dataset(path + '/min_new_structures_per_iter',
                              (1,), (1,), int)
         group['min_new_structures_per_iter'][0] = \
@@ -246,6 +249,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                              (0,), (None,), int)
         self._create_dataset(path + '/force_msd',
                              (0,), (None,), _np.double, 'kJ/mol/nm')
+        self._create_dataset(path + '/accepted_structure_energies',
+                             (0,), (None,), _np.double, 'kJ/mol')
         progress = group.create_group('progress')
         progress.attrs['training_finished'] = \
             [False for i in range(0, param['n_potentials'])]
@@ -327,9 +332,9 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 simulation.run(1)
                 msd = _utils.nep.get_potentials_msd(self.__neps,
                                                     simulation.system)
-                n_structures = group['force_msd'].shape[0]
-                group['force_msd'].resize((n_structures + 1,))
-                group['force_msd'][n_structures] = msd
+                n = group['force_msd'].shape[0]
+                group['force_msd'].resize((n + 1,))
+                group['force_msd'][n] = msd
                 group['n_visited_structures'][0] += 1
                 if (msd < force_msd_limits[0]):
                     group['n_accurate_structures'][0] += 1
@@ -406,9 +411,11 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         # For each candidate structure, we copy its atomic positions and
         # box to the system object and perform the reference potential
         # calculations.
-        for structure in structures:
+        for i, structure in enumerate(structures):
             system.positions[:] = structure[0][:]
             system.box[:] = structure[1][:]
+            group['accepted_structure_energies'].resize((i + 1,))
+            group['accepted_structure_energies'][i] = 0.0
             try:
                 system.update_potentials()
             except:
@@ -419,6 +426,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             else:
                 # Only update the exyz file on success.
                 traj_writer.update()
+                group['accepted_structure_energies'][i] = \
+                    system.energy_potential - self.__energy_shift
         # Finally we clean the system.
         group['progress'].attrs['ab_initial_finished'] = True
         for potential in system.potentials:
