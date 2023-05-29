@@ -371,7 +371,7 @@ class STAGEDSIMULATION(object):
 
     def _set_up_simulation(self,
                            potential_indices: list,
-                           extra_potentials: list = None) -> SIMULATION:
+                           extra_potentials: list = []) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.
 
