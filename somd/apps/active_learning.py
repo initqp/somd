@@ -198,12 +198,12 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         """
         group = self.root[path]
         group.attrs['initialized'] = True
-        group.attrs["system_data"] = ""
-        group.attrs['invoked_nep'] = ""
-        group.attrs["pre_training"] = False
-        group.attrs["training_sets"] = []
-        group.attrs['visited_structures'] = ""
-        group.attrs['accepted_structures'] = ""
+        group.attrs['system_data'] = ''
+        group.attrs['invoked_nep'] = ''
+        group.attrs['pre_training'] = False
+        group.attrs['training_sets'] = []
+        group.attrs['visited_structures'] = ''
+        group.attrs['accepted_structures'] = ''
         param = self.__learning_parameters
         self._create_dataset(path + '/n_visited_structures',
                              (1,), (1,), int)
