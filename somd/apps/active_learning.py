@@ -187,16 +187,16 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                       'since the simulation is being restarted.'
             _w.warn(message)
 
-    def __initialize_iteration_data_group(self, path: str) -> None:
+    def __initialize_iteration_data_group(self, h5_path: str) -> None:
         """
         Initialize an iteration data group in the output file.
 
         Parameters
         ----------
         path : str
-            Path to the group.
+            Path to the HDF5 data group.
         """
-        group = self.root[path]
+        group = self.root[h5_path]
         group.attrs['initialized'] = True
         group.attrs['system_data'] = ''
         group.attrs['invoked_nep'] = ''
@@ -205,51 +205,51 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         group.attrs['visited_structures'] = ''
         group.attrs['accepted_structures'] = ''
         param = self.__learning_parameters
-        self._create_dataset(path + '/n_visited_structures',
+        self._create_dataset(h5_path + '/n_visited_structures',
                              (1,), (1,), int)
         group['n_visited_structures'][0] = 0
-        self._create_dataset(path + '/n_accurate_structures',
+        self._create_dataset(h5_path + '/n_accurate_structures',
                              (1,), (1,), int)
         group['n_accurate_structures'][0] = 0
-        self._create_dataset(path + '/n_candidate_structures',
+        self._create_dataset(h5_path + '/n_candidate_structures',
                              (1,), (1,), int)
         group['n_candidate_structures'][0] = 0
-        self._create_dataset(path + '/n_accepted_structures',
+        self._create_dataset(h5_path + '/n_accepted_structures',
                              (1,), (1,), int)
         group['n_accepted_structures'][0] = 0
-        self._create_dataset(path + '/n_failed_structures',
+        self._create_dataset(h5_path + '/n_failed_structures',
                              (1,), (1,), int)
         group['n_failed_structures'][0] = 0
-        self._create_dataset(path + '/n_untrained_structures',
+        self._create_dataset(h5_path + '/n_untrained_structures',
                              (1,), (1,), int)
         group['n_untrained_structures'][0] = 0
-        self._create_dataset(path + '/energy_shift',
+        self._create_dataset(h5_path + '/energy_shift',
                              (1,), (1,), _np.double, 'kJ/mol')
         group['energy_shift'][0] = self.__energy_shift
-        self._create_dataset(path + '/min_new_structures_per_iter',
+        self._create_dataset(h5_path + '/min_new_structures_per_iter',
                              (1,), (1,), int)
         group['min_new_structures_per_iter'][0] = \
             param['min_new_structures_per_iter']
-        self._create_dataset(path + '/max_new_structures_per_iter',
+        self._create_dataset(h5_path + '/max_new_structures_per_iter',
                              (1,), (1,), int)
         group['max_new_structures_per_iter'][0] = \
             param['max_new_structures_per_iter']
-        self._create_dataset(path + '/max_force_msd',
+        self._create_dataset(h5_path + '/max_force_msd',
                              (1,), (1,), _np.double, 'kJ/mol/nm')
         group['max_force_msd'][0] = 0.0
-        self._create_dataset(path + '/force_msd_lower_limit',
+        self._create_dataset(h5_path + '/force_msd_lower_limit',
                              (1,), (1,), _np.double, 'kJ/mol/nm')
         group['force_msd_lower_limit'][0] = param['msd_lower_limit']
-        self._create_dataset(path + '/force_msd_upper_limit',
+        self._create_dataset(h5_path + '/force_msd_upper_limit',
                              (1,), (1,), _np.double, 'kJ/mol/nm')
         group['force_msd_upper_limit'][0] = param['msd_upper_limit']
-        self._create_dataset(path + '/candidate_structure_indices',
+        self._create_dataset(h5_path + '/candidate_structure_indices',
                              (0,), (None,), int)
-        self._create_dataset(path + '/accepted_structure_indices',
+        self._create_dataset(h5_path + '/accepted_structure_indices',
                              (0,), (None,), int)
-        self._create_dataset(path + '/force_msd',
+        self._create_dataset(h5_path + '/force_msd',
                              (0,), (None,), _np.double, 'kJ/mol/nm')
-        self._create_dataset(path + '/accepted_structure_energies',
+        self._create_dataset(h5_path + '/accepted_structure_energies',
                              (0,), (None,), _np.double, 'kJ/mol')
         progress = group.create_group('progress')
         progress.attrs['training_finished'] = \
@@ -488,13 +488,13 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         """
         Perform the first iteration of training.
         """
-        path = '/iteration_data/0'
+        h5_path = '/iteration_data/0'
         param = self.__learning_parameters
-        working_dir = self.root[path].attrs['working_directory']
-        if (not self.root[path].attrs['initialized']):
-            self.__initialize_iteration_data_group(path)
-            self.root[path].attrs['pre_training'] = True
-            self.root[path].attrs['training_sets'] = \
+        working_dir = self.root[h5_path].attrs['working_directory']
+        if (not self.root[h5_path].attrs['initialized']):
+            self.__initialize_iteration_data_group(h5_path)
+            self.root[h5_path].attrs['pre_training'] = True
+            self.root[h5_path].attrs['training_sets'] = \
                 [param['initial_training_set']]
             self.root.flush()
             if ('initial_potential_files' in param.keys()):
@@ -514,7 +514,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     _os.mkdir(potential_dir)
                     with open(potential_dir + '/nep.txt', 'wb') as fp:
                         fp.write(potentials_data[i])
-                self.root[path]['progress'].attrs['training_finished'] = \
+                self.root[h5_path]['progress'].attrs['training_finished'] = \
                     [True for i in range(0, param['n_potentials'])]
                 del potentials_data
                 self.root.flush()
@@ -529,15 +529,15 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         """
         param = self.__learning_parameters
         # Bind the updated potentials.
-        path = '/iteration_data/' + str(self.n_iter)
-        path_old = '/iteration_data/' + str(self.n_iter - 1)
-        group = self.root[path]
-        group_old = self.root[path_old]
+        h5_path = '/iteration_data/' + str(self.n_iter)
+        h5_path_old = '/iteration_data/' + str(self.n_iter - 1)
+        group = self.root[h5_path]
+        group_old = self.root[h5_path_old]
         working_dir = group.attrs['working_directory']
         working_dir_old = group_old.attrs['working_directory']
         # Initialize the iteration.
         if (not group.attrs['initialized']):
-            self.__initialize_iteration_data_group(path)
+            self.__initialize_iteration_data_group(h5_path)
             group.attrs['system_data'] = \
                 working_dir + '/system_data.csv'
             group.attrs['visited_structures'] = \
