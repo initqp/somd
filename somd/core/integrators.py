@@ -265,7 +265,10 @@ class INTEGRATOR(object):
         for i, j in zip(self.__splitting_whole['operators'],
                         self.__splitting_whole['timesteps']):
             s += '    self._operator_{}({})\n'.format(i, count)
-            t.append(self.__timestep * j)
+            if (i == 'O'):
+                t.append(_np.abs(self.__timestep * j))
+            else:
+                t.append(self.__timestep * j)
             count += 1
         s += '    self.step += 1\n'
         self.__timesteps = _np.array(t, dtype=_np.double)
