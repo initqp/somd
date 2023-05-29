@@ -193,7 +193,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
 
         Parameters
         ----------
-        path : str
+        h5_path : str
             Path to the HDF5 data group.
         """
         group = self.root[h5_path]
