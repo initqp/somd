@@ -257,6 +257,29 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         progress.attrs['ab_initial_finished'] = False
         self.root.flush()
 
+    def __reset_propagation_data(self, h5_path: str) -> None:
+        """
+        Reset the propagation data.
+
+        Parameters
+        ----------
+        h5_path : str
+            Path to the HDF5 data group.
+        """
+        h5_group = self.root[h5_path]
+        h5_group['max_force_msd'][0] = 0
+        h5_group['n_visited_structures'][0] = 0
+        h5_group['n_accurate_structures'][0] = 0
+        h5_group['n_candidate_structures'][0] = 0
+        h5_group['n_accepted_structures'][0] = 0
+        h5_group['n_failed_structures'][0] = 0
+        h5_group['n_untrained_structures'][0] = 0
+        h5_group['candidate_structure_indices'].resize((0,))
+        h5_group['accepted_structure_indices'].resize((0,))
+        h5_group['accepted_structure_energies'].resize((0,))
+        h5_group['force_msd'].resize((0,))
+        self.root.flush()
+
     def __update_neps(self, n_iter: int) -> tuple:
         """
         Update the trained potentials, then select the potential with minimal
@@ -551,6 +574,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             # Run the simulation and harvest candidate structures.
             nep_index, nep_name = self.__update_neps(self.n_iter - 1)
             h5_group.attrs['invoked_nep'] = nep_name
+            self.__reset_propagation_data(h5_path)
             candidate_structures = self.__propagate(nep_index)
             # Strip the candidate structures.
             accepted_structures = \
