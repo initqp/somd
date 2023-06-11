@@ -254,6 +254,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         progress = h5_group.create_group('progress')
         progress.attrs['training_finished'] = \
             [False for i in range(0, param['n_potentials'])]
+        progress.attrs['propagation_finished'] = False
         progress.attrs['ab_initial_finished'] = False
         self.root.flush()
 
@@ -315,7 +316,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             active_potential_index = 0
         return active_potential_index, potential_files[active_potential_index]
 
-    def __propagate(self, active_potential_index: int) -> list:
+    def __propagate(self, active_potential_index: int) -> None:
         """
         Generate new trajectories with the trained potential. During the
         propagation, force MSD of the potentials will be calculated.
@@ -346,7 +347,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         simulation.post_step_objects.append(data_writer)
         simulation.post_step_objects.append(traj_writer)
         # Propagate the trajectory segment.
-        candidate_structures = []
         force_msd_limits = [param['msd_lower_limit'], param['msd_upper_limit']]
         for i in range(0, param['max_md_runs_per_iter']):
             simulation.restart_from('initial_conditions.h5',
@@ -369,30 +369,22 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     h5_group['candidate_structure_indices'].resize(
                         (h5_group['n_candidate_structures'][0],))
                     h5_group['candidate_structure_indices'][-1] = index
-                    structure = [simulation.system.positions.copy(),
-                                 simulation.system.box.copy()]
-                    candidate_structures.append(structure)
             self.root.flush()
         h5_group['max_force_msd'][0] = max(h5_group['force_msd'])
-        del data_writer, traj_writer, simulation
+        h5_group['progress'].attrs['propagation_finished'] = True
         self.root.flush()
         _os.chdir(cwd)
-        return candidate_structures
 
-    def __strip_candidate_structures(self, candidate_structures: list) -> list:
+    def __strip_candidate_structures(self) -> None:
         """
         Reduce number of the candidate structures.
-
-        Parameters
-        ----------
-        candidate_structures : List(List(numpy.ndarray))
-            Positions and boxes data of the candidate structures.
         """
         param = self.__learning_parameters
         h5_group = self.root['/iteration_data/' + str(self.n_iter)]
-        result = list(range(0, len(candidate_structures)))
+        n_candidate_structures = h5_group['n_candidate_structures'][0]
+        result = list(range(0, n_candidate_structures))
         indices = h5_group['candidate_structure_indices']
-        if (len(candidate_structures) < param['max_new_structures_per_iter']):
+        if (n_candidate_structures < param['max_new_structures_per_iter']):
             pass
         elif (not param['perform_clustering']):
             result = _rn.sample(result, param['max_new_structures_per_iter'])
@@ -403,22 +395,14 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         h5_group['accepted_structure_indices'][:] = \
             [indices[i] for i in result]
         self.root.flush()
-        return [candidate_structures[i] for i in result]
 
-    def __perform_ab_initio_calculations(self, structures: list) -> None:
+    def __perform_ab_initio_calculations(self) -> None:
         """
         Perform ab initio calculations to the candidate structures.
-
-        Parameters
-        ----------
-        structures : List(List(numpy.ndarray))
-            Positions and boxes data of the candidate structures.
         """
         cwd = _os.getcwd()
         h5_group = self.root['/iteration_data/' + str(self.n_iter)]
         _os.chdir(h5_group.attrs['working_directory'])
-        # Good God please forgive me for what I'm about to do ...
-        # I fucking hate this shit and myself ...
         # First set up the system and the integrator.
         system = self.system.copy()
         for index in self.__reference_potentials:
@@ -435,11 +419,15 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         # For each candidate structure, we copy its atomic positions and
         # box to the system object and perform the reference potential
         # calculations.
-        for i, structure in enumerate(structures):
-            system.positions[:] = structure[0][:]
-            system.box[:] = structure[1][:]
+        traj_reader = _mdapps.trajectories.H5READER(
+            h5_group.attrs['visited_structures'], read_cell=True,
+            read_velocities=False, read_forces=False,
+            read_nhc_data=False, read_rng_state=False)
+        traj_reader.bind_integrator(integrator)
+        for i, j in enumerate(h5_group['accepted_structure_indices']):
             h5_group['accepted_structure_energies'].resize((i + 1,))
             h5_group['accepted_structure_energies'][i] = 0.0
+            traj_reader.read(j)
             try:
                 system.update_potentials()
             except:
@@ -570,21 +558,17 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             h5_group.attrs['accepted_structures'] = \
                 working_dir + '/accepted_structures.xyz'
             self.root.flush()
-        if (not h5_group['progress'].attrs['ab_initial_finished']):
-            # Run the simulation and harvest candidate structures.
+        # Run the simulation and harvest candidate structures.
+        if (not h5_group['progress'].attrs['propagation_finished']):
             nep_index, nep_name = self.__update_neps(self.n_iter - 1)
             h5_group.attrs['invoked_nep'] = nep_name
             self.__reset_propagation_data(h5_path)
-            candidate_structures = self.__propagate(nep_index)
-            # Strip the candidate structures.
-            accepted_structures = \
-                self.__strip_candidate_structures(candidate_structures)
-            # Perform ab initio calculations.
-            if (len(accepted_structures) > 0):
-                self.__perform_ab_initio_calculations(accepted_structures)
-        else:
-            accepted_structures = None
-            candidate_structures = None
+            self.__propagate(nep_index)
+            self.__strip_candidate_structures()
+        # Perform ab initio calculations.
+        if (not h5_group['progress'].attrs['ab_initial_finished']):
+            if (h5_group['n_candidate_structures'][0] > 0):
+                self.__perform_ab_initio_calculations()
         # Determine if train new potentials.
         n_new_structures = h5_group['n_accepted_structures'][0] + \
             h5_group_old['n_untrained_structures'][0]
@@ -623,9 +607,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             # the untrained structure count.
             h5_group['n_untrained_structures'][0] = n_new_structures
             _os.chdir(cwd)
-        # Clean up.
-        del candidate_structures
-        del accepted_structures
 
     def run(self, n_iterations: int = 1) -> None:
         """
