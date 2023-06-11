@@ -56,9 +56,10 @@ of an active learning simulation.
     │   │   └── units                   # (attr, (1,), str)
     │   ├── accepted_structure_energies # (dataset, (unlimited,), int) Relative potential energies of the accepted structures.
     │   │   └── units                   # (attr, (1,), str)
-    │   └── progress                # (group) Progress of the training process (for internally usage only).
-    │       ├── ab_initial_finished # (attr, (1,), bool) If the ab-initio calculation has been finished.
-    │       └── training_finished   # (attr, (unlimited,), List[bool]) If the potentials has been trained.
+    │   └── progress                 # (group) Progress of the training process (for internally usage only).
+    │       ├── ab_initial_finished  # (attr, (1,), bool) If the ab-initio calculation has been finished.
+    │       ├── propagation_finished # (attr, (1,), bool) If the ML potential-based propagations has been finished.
+    │       └── training_finished    # (attr, (unlimited,), List[bool]) If the potentials has been trained.
     ├── 1
     │   ├── ...
     │   ...
