@@ -310,7 +310,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         try:
             files = [working_dir + '/potential_{:d}/loss.out'.format(i)
                      for i in range(0, n_potentials)]
-            losses = [_utils.nep.get_loss(f)[1] for f in files]
+            losses = [_utils.nep.get_loss(f)[5] for f in files]
             active_potential_index = _np.argmin(losses)
         except:
             active_potential_index = 0
@@ -369,6 +369,11 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     h5_group['candidate_structure_indices'].resize(
                         (h5_group['n_candidate_structures'][0],))
                     h5_group['candidate_structure_indices'][-1] = index
+            # Here we reset every potential calculator to reduce memory
+            # effects, especially for PLUMED.
+            if (i != (param['max_md_runs_per_iter'] - 1)):
+                for potential in simulation.system.potentials:
+                    potential.reset()
             self.root.flush()
         h5_group['max_force_msd'][0] = max(h5_group['force_msd'])
         h5_group['progress'].attrs['propagation_finished'] = True

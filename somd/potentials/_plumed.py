@@ -69,6 +69,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         Create a PLUMED instance.
         """
         super().__init__(atom_list)
+        self.__args = [atom_list, file_name, timestep, temperature, restart,
+                       output_prefix, cv_names]
         # treat PLUMED as a local dependency
         try:
             import plumed
@@ -165,6 +167,13 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         super().finalize()
         self.__plumed.finalize()
+
+    def reset(self) -> None:
+        """
+        Reset the interface.
+        """
+        self.finalize()
+        self.__init__(*self.__args)
 
     @property
     def restart(self) -> bool:

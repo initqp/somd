@@ -96,6 +96,12 @@ class POTENTIAL(object):
         self.virial[:] = 0.0
         self.energy_potential[0] = 0.0
 
+    def reset(self) -> None:
+        """
+        Reset the potential.
+        """
+        pass
+
     def finalize(self) -> None:
         """
         Clean up.
