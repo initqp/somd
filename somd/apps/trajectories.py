@@ -603,7 +603,7 @@ class H5READER(object):
             attr = self.__root.attrs[name]
         except:
             message = 'Attribute {} does not exist in file {}'
-            message.format(name, self.__file_name)
+            message = message.format(name, self.__file_name)
             if (die_on_fail):
                 raise AttributeError(message)
             else:
