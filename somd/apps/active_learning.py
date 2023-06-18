@@ -495,7 +495,10 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                                            self.system.atomic_symbols)
                 else:
                     _utils.nep.make_nep_in(self.__nep_parameters)
-                _os.system(self.__nep_command + '> nep.log 2> nep.err')
+                errno = _os.system(self.__nep_command + '> nep.log 2> nep.err')
+                if (errno != 0):
+                    message = 'NEP command {:s} returns a non-zero exit code!'
+                    raise RuntimeError(message.format(self.__nep_command))
                 training_state[i] = True
                 h5_group['progress'].attrs['training_finished'] = \
                     training_state
