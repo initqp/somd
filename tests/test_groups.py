@@ -69,7 +69,7 @@ def test_positions():
 
 def test_temperature():
     system = _h.get_harmonic_system()
-    result = _np.loadtxt('data/group_temperature.dat')
+    result = _np.loadtxt('data/groups/group_temperature.dat')
     _nt.assert_almost_equal(system.groups[0].temperature, result, DECIMAL_D)
 
 

@@ -20,7 +20,7 @@ def test_run_1():
         0.001, relaxation_times=[0.01])
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
     simulation.run(1)
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -36,7 +36,7 @@ def test_run_2():
         0.0005, relaxation_times=[0.01])
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
     simulation.run(1)
-    result = _np.loadtxt('data/integrators_gobabo.dat')
+    result = _np.loadtxt('data/integrators/integrators_gobabo.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -54,9 +54,9 @@ def test_restart_1():
     system.positions[:] = 0.0
     system.velocities[:] = 0.0
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
-    simulation.restart_from('data/restart_1.h5')
+    simulation.restart_from('data/simulation/restart_1.h5')
     simulation.run(1)
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -73,9 +73,9 @@ def test_restart_2():
     system.positions[:] = 0.0
     system.velocities[:] = 0.0
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
-    simulation.restart_from('data/restart_2.h5', read_nhc_data=False)
+    simulation.restart_from('data/simulation/restart_2.h5', read_nhc_data=False)
     simulation.run(1)
-    result = _np.loadtxt('data/integrators_gobabo.dat')
+    result = _np.loadtxt('data/integrators/integrators_gobabo.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -87,7 +87,7 @@ def test_restart_3():
     integrator = somd.core.integrators.nhc_integrator(
         -0.001, relaxation_times=[0.01])
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
-    simulation.restart_from('data/restart_3.h5')
+    simulation.restart_from('data/simulation/restart_3.h5')
     simulation.run(1)
     result = _h.get_harmonic_system()
     _nt.assert_almost_equal(system.positions, result.positions, DECIMAL_D)

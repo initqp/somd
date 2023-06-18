@@ -58,7 +58,7 @@ def test_vv():
     integrator = somd.core.integrators.vv_integrator(0.001)
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_vv.dat')
+    result = _np.loadtxt('data/integrators/integrators_vv.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -72,7 +72,7 @@ def test_cs4():
     integrator = somd.core.integrators.cs4_integrator(0.001)
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_cs4.dat')
+    result = _np.loadtxt('data/integrators/integrators_cs4.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -89,7 +89,7 @@ def test_nhc():
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -108,7 +108,7 @@ def test_nhc_copy_system():
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -125,7 +125,7 @@ def test_nhc_copy_integrator():
     integrator = i1.copy()
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -147,7 +147,7 @@ def test_nhc_copy_integrator_rev():
     integrator.propagate()
     integrator.timestep *= -1.0
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_nhc.dat')
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_F)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_F)
 
@@ -159,7 +159,7 @@ def test_obabo():
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_obabo.dat')
+    result = _np.loadtxt('data/integrators/integrators_obabo.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -171,7 +171,7 @@ def test_baoab():
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_baoab.dat')
+    result = _np.loadtxt('data/integrators/integrators_baoab.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -187,7 +187,7 @@ def test_gobabo():
         0.0005, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_gobabo.dat')
+    result = _np.loadtxt('data/integrators/integrators_gobabo.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -203,7 +203,7 @@ def test_gbaoab():
         0.0005, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_gbaoab.dat')
+    result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -220,7 +220,7 @@ def test_gbaoab_copy_integrator():
     integrator = i1.copy()
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_gbaoab.dat')
+    result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
@@ -238,6 +238,6 @@ def test_gbaoab_copy_system():
         0.0005, relaxation_times=[0.01])
     integrator.bind_system(system)
     integrator.propagate()
-    result = _np.loadtxt('data/integrators_gbaoab.dat')
+    result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)

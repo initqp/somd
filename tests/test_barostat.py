@@ -25,7 +25,7 @@ def test_barostat_1():
     barostat.initialize()
     integrator.propagate()
     barostat.update()
-    result = _np.loadtxt('data/barostat_1.dat')
+    result = _np.loadtxt('data/barostat/barostat_1.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.box, result[4:7], DECIMAL_D)
 
@@ -48,6 +48,6 @@ def test_barostat_2():
     barostat.initialize()
     integrator.propagate()
     barostat.update()
-    result = _np.loadtxt('data/barostat_2.dat')
+    result = _np.loadtxt('data/barostat/barostat_2.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.box, result[4:7], DECIMAL_D)

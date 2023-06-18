@@ -13,39 +13,45 @@ _np.random.seed(1)
 
 
 def test_nep():
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
     system.positions[:] = [[0.1, 0.1, 0.1], [0.11, 0.11, 0.11]]
-    potential = somd.potentials.NEP([0, 1], 'data/nep.txt', ["Si", "Si"], 0)
+    potential = somd.potentials.NEP([0, 1], 'data/potentials/nep.txt',
+                                    ["Si", "Si"], 0)
     potential.update(system)
-    result = _np.loadtxt('data/potential_nep.dat')
+    result = _np.loadtxt('data/potentials/potential_nep.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_F)
     _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_F)
 
 
 def test_nep_t():
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
     system.positions[:] = [[0.1, 0.1, 0.1], [0.11, 0.11, 0.11]]
-    potential = somd.potentials.NEP([0, 1], 'data/nep.txt', ["Si", "Si"], 1)
+    potential = somd.potentials.NEP([0, 1], 'data/potentials/nep.txt',
+                                    ["Si", "Si"], 1)
     potential.update(system)
-    result = _np.loadtxt('data/potential_nep_t.dat')
+    result = _np.loadtxt('data/potentials/potential_nep_t.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_F)
     _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_F)
 
 
 def test_dftd3():
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
     potential = somd.potentials.DFTD3([0, 1], [13, 13], 'pbe')
     potential.update(system)
-    result = _np.loadtxt('data/potential_dftd3.dat')
+    result = _np.loadtxt('data/potentials/potential_dftd3.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_D)
     _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_D)
 
 
 def test_dftd4():
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
     potential = somd.potentials.DFTD4([0, 1], [13, 13], 'pbe')
     potential.update(system)
-    result = _np.loadtxt('data/potential_dftd4.dat')
+    result = _np.loadtxt('data/potentials/potential_dftd4.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_D)
     _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_D)
 
@@ -58,14 +64,15 @@ def test_plumed():
                   'tested! Reason: {} '.format(e)
         _w.warn(message)
         return
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
-    potential = somd.potentials.PLUMED([0, 1], 'data/plumed.inp', 0.001, 1,
-                                       cv_names=[{'d1': ''}])
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
+    potential = somd.potentials.PLUMED([0, 1], 'data/potentials/plumed.inp',
+                                       0.001, 1, cv_names=[{'d1': ''}])
     potential.update(system)
-    result = _np.loadtxt('data/potential_plumed.dat')
+    result = _np.loadtxt('data/potentials/potential_plumed.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_D)
     _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_D)
-    result = _np.loadtxt('./data/potential_plumed_cv.dat')
+    result = _np.loadtxt('data/potentials/potential_plumed_cv.dat')
     _nt.assert_almost_equal(potential.cv_values[0], result, DECIMAL_D)
     _os.remove('plumed.inp.log')
 
@@ -78,7 +85,8 @@ def test_siesta():
         return
     else:
         command = _os.environ.get('SIESTA_COMMAND')
-    system = somd.core.systems.create_system_from_poscar('data/model.poscar')
+    system = somd.core.systems.create_system_from_poscar(
+        'data/system/model.poscar')
     system.positions[:] = [[0.1, 0.1, 0.1], [0.11, 0.11, 0.11]]
     options = r"""
     xc.functional          GGA
@@ -92,9 +100,9 @@ def test_siesta():
     ElectronicTemperature  1 meV
     """
     potential = somd.potentials.create_siesta_potential(
-        system, [0, 1], options, command, 'data')
+        system, [0, 1], options, command, 'data/potentials')
     potential.update(system)
-    result = _np.loadtxt('data/potential_siesta.dat')
+    result = _np.loadtxt('data/potentials/potential_siesta.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], 5)
     _nt.assert_almost_equal(potential.virial, result[2:5], 5)
     potential.finalize()
