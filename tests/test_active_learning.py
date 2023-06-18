@@ -19,7 +19,8 @@ def test_active_learning():
     integrator = somd.core.integrators.nhc_integrator(0.001)
 
     def get_potential():
-        return somd.potentials.DFTD3([0, 1], [13, 13], 'pbe')
+        return somd.potentials.DFTD3(
+            list(range(0, 8)), system.atomic_types, 'pbe')
 
     if (_os.path.exists('active_learning.h5')):
         _os.remove('active_learning.h5')
@@ -48,12 +49,20 @@ def test_active_learning():
         read_forces=False, read_nhc_data=False, read_rng_state=False,
         read_velocities=False)
     reader.bind_integrator(integrator)
-    nep_file = 'data/active_learning/nep.{:d}.txt'
-    for i in range(0, 4):
-        system.potentials.append(somd.potentials.NEP(
-            range(0, system.n_atoms), nep_file.format(i),
-            system.atomic_symbols))
     for i in indices:
+        reader.read(i)
+        potential.update(system)
+        energies.append(potential.energy_potential[0].copy())
+    _nt.assert_array_almost_equal(
+        _np.array(h5_root['accepted_structure_energies']),
+        _np.array(energies), DECIMAL_D)
+    energies = []
+    reader = somd.apps.trajectories.H5READER(
+        'data/active_learning/traj.h5',
+        read_forces=False, read_nhc_data=False, read_rng_state=False,
+        read_velocities=False)
+    reader.bind_integrator(integrator)
+    for i in range(0, 5):
         reader.read(i)
         potential.update(system)
         energies.append(potential.energy_potential[0].copy())
