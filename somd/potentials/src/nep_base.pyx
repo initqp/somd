@@ -73,6 +73,7 @@ cdef class NEPWRAPPER(object):
     def __dealloc__(self) -> None:
         """ Finalize the internal data. """
         del self.__cxx_obj_ptr
+        self.__cxx_obj_ptr = NULL
 
     cdef __init_type_vec(self, atomic_symbols: list(str)):
         """
@@ -174,3 +175,8 @@ cdef class NEPWRAPPER(object):
                                    self.__cxx_force_vec,
                                    self.__cxx_virial_vec)
         return self.__copy_output_data(forces, virial)
+
+    def dealloc(self) -> None:
+        """ Finalize the internal data. """
+        del self.__cxx_obj_ptr
+        self.__cxx_obj_ptr = NULL

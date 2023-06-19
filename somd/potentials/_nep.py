@@ -81,3 +81,10 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         self.virial[:] *= self.__conversion * 0.001
         self.forces[:] *= self.__conversion * 0.01
         self.energy_potential[0] *= self.__conversion * 0.001
+
+    def finalize(self) -> None:
+        """
+        Clean up.
+        """
+        super().finalize()
+        self.__nep.dealloc()

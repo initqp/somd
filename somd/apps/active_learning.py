@@ -331,53 +331,55 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         h5_group = self.root['/iteration_data/' + str(self.n_iter)]
         _os.chdir(h5_group.attrs['working_directory'])
         # Set up the potentials and simulation.
+        nep = [self.__neps[active_potential_index]]
         potential_indices = range(0, len(self.potential_generators))
         potential_indices = [i for i in potential_indices if
                              i not in self.__reference_potentials]
-        simulation = self._set_up_simulation(
-            potential_indices, [self.__neps[active_potential_index]])
-        simulation.dump_restart('initial_conditions.h5')
-        # Set up writers
-        data_file_name = h5_group.attrs['system_data']
-        data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
-        data_writer.bind_integrator(simulation.integrator)
-        traj_file_name = h5_group.attrs['visited_structures']
-        traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
-        traj_writer.bind_integrator(simulation.integrator)
-        simulation.post_step_objects.append(data_writer)
-        simulation.post_step_objects.append(traj_writer)
-        # Propagate the trajectory segment.
-        force_msd_limits = [param['msd_lower_limit'], param['msd_upper_limit']]
-        for i in range(0, param['max_md_runs_per_iter']):
-            simulation.restart_from('initial_conditions.h5',
-                                    read_rng_state=False, read_nhc_data=False)
-            for j in range(0, param['max_md_steps_per_iter']):
-                simulation.run(1)
-                msd = _utils.nep.get_potentials_msd(self.__neps,
-                                                    simulation.system)
-                n = h5_group['force_msd'].shape[0]
-                h5_group['force_msd'].resize((n + 1,))
-                h5_group['force_msd'][n] = msd
-                h5_group['n_visited_structures'][0] += 1
-                if (msd < force_msd_limits[0]):
-                    h5_group['n_accurate_structures'][0] += 1
-                elif (msd > force_msd_limits[1]):
-                    h5_group['n_failed_structures'][0] += 1
-                else:
-                    h5_group['n_candidate_structures'][0] += 1
-                    index = param['max_md_steps_per_iter'] * i + j
-                    h5_group['candidate_structure_indices'].resize(
-                        (h5_group['n_candidate_structures'][0],))
-                    h5_group['candidate_structure_indices'][-1] = index
-            # Here we reset every potential calculator to reduce memory
-            # effects, especially for PLUMED.
-            if (i != (param['max_md_runs_per_iter'] - 1)):
-                for potential in simulation.system.potentials:
-                    potential.reset()
+        with self._set_up_simulation(potential_indices, nep) as simulation:
+            simulation.dump_restart('initial_conditions.h5')
+            # Set up writers
+            data_file_name = h5_group.attrs['system_data']
+            data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
+            data_writer.bind_integrator(simulation.integrator)
+            traj_file_name = h5_group.attrs['visited_structures']
+            traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
+            traj_writer.bind_integrator(simulation.integrator)
+            simulation.post_step_objects.append(data_writer)
+            simulation.post_step_objects.append(traj_writer)
+            # Propagate the trajectory segment.
+            force_msd_limits = [param['msd_lower_limit'],
+                                param['msd_upper_limit']]
+            for i in range(0, param['max_md_runs_per_iter']):
+                simulation.restart_from('initial_conditions.h5',
+                                        read_rng_state=False,
+                                        read_nhc_data=False)
+                for j in range(0, param['max_md_steps_per_iter']):
+                    simulation.run(1)
+                    msd = _utils.nep.get_potentials_msd(self.__neps,
+                                                        simulation.system)
+                    n = h5_group['force_msd'].shape[0]
+                    h5_group['force_msd'].resize((n + 1,))
+                    h5_group['force_msd'][n] = msd
+                    h5_group['n_visited_structures'][0] += 1
+                    if (msd < force_msd_limits[0]):
+                        h5_group['n_accurate_structures'][0] += 1
+                    elif (msd > force_msd_limits[1]):
+                        h5_group['n_failed_structures'][0] += 1
+                    else:
+                        h5_group['n_candidate_structures'][0] += 1
+                        index = param['max_md_steps_per_iter'] * i + j
+                        h5_group['candidate_structure_indices'].resize(
+                            (h5_group['n_candidate_structures'][0],))
+                        h5_group['candidate_structure_indices'][-1] = index
+                # Here we reset every potential calculator to reduce memory
+                # effects, especially for PLUMED.
+                if (i != (param['max_md_runs_per_iter'] - 1)):
+                    for potential in simulation.system.potentials:
+                        potential.reset()
+                self.root.flush()
+            h5_group['max_force_msd'][0] = max(h5_group['force_msd'])
+            h5_group['progress'].attrs['propagation_finished'] = True
             self.root.flush()
-        h5_group['max_force_msd'][0] = max(h5_group['force_msd'])
-        h5_group['progress'].attrs['propagation_finished'] = True
-        self.root.flush()
         _os.chdir(cwd)
 
     def __strip_candidate_structures(self) -> None:

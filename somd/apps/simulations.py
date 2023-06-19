@@ -23,6 +23,7 @@ import os as _os
 import h5py as _h5
 import copy as _cp
 import warnings as _w
+from contextlib import contextmanager as _cm
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.constants import SOMDDEFAULTS as _d
@@ -369,6 +370,7 @@ class STAGEDSIMULATION(object):
         if (unit is not None):
             self.__root[path].attrs['units'] = unit
 
+    @_cm
     def _set_up_simulation(self,
                            potential_indices: list,
                            extra_potentials: list = []) -> SIMULATION:
@@ -399,7 +401,12 @@ class STAGEDSIMULATION(object):
         for obj in post_step_objects:
             obj.bind_integrator(integrator)
             simulation.post_step_objects.append(obj)
-        return simulation
+        try:
+            yield simulation
+        finally:
+            for potential in simulation.system.potentials:
+                potential.finalize()
+            del system, integrator, post_step_objects, barostat, simulation
 
     def _set_up_iter_dir(self) -> str:
         """
