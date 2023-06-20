@@ -23,7 +23,7 @@ import os as _os
 import h5py as _h5
 import copy as _cp
 import warnings as _w
-from contextlib import contextmanager as _cm
+import contextlib as _cl
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd.constants import SOMDDEFAULTS as _d
@@ -370,7 +370,7 @@ class STAGEDSIMULATION(object):
         if (unit is not None):
             self.__root[path].attrs['units'] = unit
 
-    @_cm
+    @_cl.contextmanager
     def _set_up_simulation(self,
                            potential_indices: list,
                            extra_potentials: list = []) -> SIMULATION:
