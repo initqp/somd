@@ -41,7 +41,7 @@ class SIMULATION(object):
     system : somd.core.systems.MDSYSTEM
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
-        The integrator that propagate the simulated system.
+        The integrator that propagates the simulated system.
     barostat : somd.apps.barostat.BAROSTAT
         The barostat.
     trajectories : List(somd.apps.trajectories.*WRITER)
@@ -232,7 +232,7 @@ class STAGEDSIMULATION(object):
     system : somd.core.systems.MDSYSTEM
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
-        The integrator that propagate the simulated system.
+        The integrator that propagates the simulated system.
     potential_generators : List(callable)
         Generator functions of potential calculators.
     post_step_objects : List(object):
