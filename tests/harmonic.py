@@ -17,6 +17,7 @@ class HARMONICPOTENTIAL(somd.core.potential_base.POTENTIAL):
 def get_harmonic_system():
     s = somd.core.systems.MDSYSTEM(4, 'TEST')
     s.masses[:] = 1.0
+    s.box[:] = [[10, 0, 0], [0, 10, 0], [0, 0, 10]]
     for i in range(0, 4):
         s.atomic_symbols.append('X')
     s.positions[0, :] = [0, 0, 0]

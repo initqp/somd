@@ -1,4 +1,5 @@
 import somd
+import os as _os
 import numpy as _np
 import harmonic as _h
 import numpy.testing as _nt
@@ -92,3 +93,26 @@ def test_restart_3():
     result = _h.get_harmonic_system()
     _nt.assert_almost_equal(system.positions, result.positions, DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result.velocities, DECIMAL_D)
+
+
+def test_restart_4():
+    system = _h.get_harmonic_system()
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
+         {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
+         {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
+    system.constraints.appends(c)
+    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
+    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    integrator = somd.core.integrators.nhc_integrator(
+        0.001, relaxation_times=[0.01])
+    system.positions[:] = 0.0
+    system.velocities[:] = 0.0
+    simulation = somd.apps.simulations.SIMULATION(system, integrator)
+    simulation.restart_from('data/simulation/restart_1.h5', read_cell=False)
+    simulation.dump_restart('restart.h5')
+    simulation.restart_from('restart.h5')
+    simulation.run(1)
+    result = _np.loadtxt('data/integrators/integrators_nhc.dat')
+    _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
+    _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
+    _os.remove('restart.h5')
