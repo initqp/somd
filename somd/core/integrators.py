@@ -275,6 +275,14 @@ class INTEGRATOR(object):
         exec(s, scope)
         self.propagate = _tp.MethodType(scope['propagate'], self)
 
+    def _randomize_nhchains_states(self) -> None:
+        """
+        Randomize momentums of the Nose-Hoover chains.
+        """
+        for n in self._nhchains:
+            n.momentums = _np.random.randn(n.length) * \
+                _np.sqrt(n.temperature * _c.BOLTZCONST * _np.array(n.masses))
+
     def _operator_V(self, dt_index: int) -> None:
         """
         Advance the velocities and apply the COM motion removers.
