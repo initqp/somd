@@ -691,34 +691,59 @@ class H5READER(object):
                 _w.warn('Can not load RNG state from a non-restart file!')
             if (self.__read_nhc_data):
                 _w.warn('Can not load NHCHAINS data from a non-restart file!')
+        snapshot = self.read_as_snapshot(frame_index)
+        if (self.__read_coordinates):
+            self.__system.positions[:] = snapshot.positions
+        if (self.__read_velocities):
+            self.__system.velocities[:] = snapshot.velocities
+        if (self.__read_forces):
+            self.__system.forces[:] = snapshot.forces
+        if (self.__read_cell):
+            self.__system.box[:] = snapshot.box
+
+    def read_as_snapshot(self, frame_index: int = -1) \
+            -> _mdcore.systems.SNAPSHOT:
+        """
+        Read one frame from the trajectory as the `somd.core.systems.SNAPSHOT`
+        instance. This method do not require an integrator, but can not read
+        NHC data as well.
+
+        Parameters
+        ----------
+        frame_index : int
+            The index of the frame to read data from. If the parameter is
+            negative, last frame of the trajectory will be read.
+        """
+        snapshot = _mdcore.systems.SNAPSHOT(self.__n_atoms)
         if (self.__read_coordinates):
             try:
-                self.__system.positions[:, :] = \
+                snapshot.positions[:, :] = \
                     self.__root['coordinates'][frame_index]
             except:
                 _w.warn('Can not load coordinates form ' + self.file_name)
         if (self.__read_velocities):
             try:
-                self.__system.velocities[:, :] = \
+                snapshot.velocities[:, :] = \
                     self.__root['velocities'][frame_index]
             except:
                 _w.warn('Can not load velocities form ' + self.file_name)
         if (self.__read_forces):
             try:
-                self.__system.forces[:, :] = self.__root['forces'][frame_index]
+                snapshot.forces[:, :] = self.__root['forces'][frame_index]
             except:
                 _w.warn('Can not load forces form ' + self.file_name)
         if (self.__read_cell):
             if (str(self.__root.attrs['program']) == 'SOMD'):
-                self.__system.box[:] = self.__root['box'][frame_index][:]
+                snapshot.box[:] = self.__root['box'][frame_index][:]
             else:
                 try:
                     tmp = _np.zeros(6, dtype=_np.double)
                     tmp[3:6] = self.__root['cell_angles'][frame_index][:]
                     tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
-                    self.__system.lattice = tmp
+                    snapshot.lattice = tmp
                 except:
                     _w.warn('Can not load cell data form ' + self.file_name)
+        return snapshot
 
     @property
     def root(self) -> _h5.File:
