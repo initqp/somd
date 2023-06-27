@@ -152,6 +152,22 @@ def test_nhc_copy_integrator_rev():
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_F)
 
 
+def test_nhc_copy_integrator_rev_1():
+    system = _h.get_harmonic_system()
+    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
+    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    i1 = somd.core.integrators.nhc_integrator(0.001, relaxation_times=[0.01])
+    i1.bind_system(system)
+    i1.propagate()
+    integrator = i1.copy()
+    integrator.bind_system(system)
+    integrator.timestep *= -1.0
+    integrator.propagate()
+    system1 = _h.get_harmonic_system()
+    _nt.assert_almost_equal(system.positions, system1.positions, DECIMAL_D)
+    _nt.assert_almost_equal(system.velocities, system1.velocities, DECIMAL_D)
+
+
 def test_obabo():
     _np.random.seed(1)
     system = _h.get_harmonic_system()
