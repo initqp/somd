@@ -394,8 +394,8 @@ class STAGEDSIMULATION(object):
         for p in extra_potentials:
             system.potentials.append(p)
         barostat = None
-        for index, obj in enumerate(post_step_objects):
-            if (obj.__class.__name__ == 'BAROSTAT'):
+        for index, obj in enumerate(self.__post_step_objects):
+            if (obj.__class__ == _mdapps.barostats.BAROSTAT):
                 barostat = post_step_objects.pop(index)
         simulation = SIMULATION(system, integrator, barostat)
         for obj in post_step_objects:
