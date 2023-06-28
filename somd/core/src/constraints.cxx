@@ -314,8 +314,6 @@ void RATTLE::clear(void)
 /* calculate values of a series of geometry variables */
 void RATTLE::calculate_geometry_variables(double *positions, int t)
 {
-	if (omp_get_num_threads() > n_constraints)
-		omp_set_num_threads(n_constraints);
 	#pragma omp parallel for
 	for (int i = 0; i < n_constraints; i++) {
 		switch (types[i]) {
@@ -335,8 +333,6 @@ void RATTLE::calculate_geometry_variables(double *positions, int t)
 /* calculate derivatives of a series of geometry variables */
 void RATTLE::calculate_geometry_variables_derivatives(double *positions, int t)
 {
-	if (omp_get_num_threads() > n_constraints)
-		omp_set_num_threads(n_constraints);
 	#pragma omp parallel for
 	for (int i = 0; i < n_constraints; i++) {
 		switch (types[i]) {
@@ -363,6 +359,8 @@ void RATTLE::rattle_constrain_q(double *positions, double *velocities, \
 	double gamma = 0.0;
 	double epsilon = 0.0;
 
+	if (omp_get_num_threads() > n_constraints)
+		omp_set_num_threads(n_constraints);
 	// Check position vector size.
 	if (positions_t1.size() != (size_t)(n_atoms * 3))
 		positions_t1.resize(n_atoms * 3);
@@ -374,8 +372,6 @@ void RATTLE::rattle_constrain_q(double *positions, double *velocities, \
 	for (int j = 0; j < max_cycles; j++) {
 		flag = 0;
 		/* update positions by dt */
-		if (omp_get_num_threads() > n_constraints)
-			omp_set_num_threads(n_constraints);
 		#pragma omp parallel for
 		for (int i = 0; i < n_constraints; i++) {
 			for (int l = 0; l < (int)(indices[i].size()); l++) {
@@ -441,6 +437,8 @@ void RATTLE::rattle_constrain_p(double *positions, double *velocities, \
 	int flag = 0;
 	double eta = 0.0;
 
+	if (omp_get_num_threads() > n_constraints)
+		omp_set_num_threads(n_constraints);
 	/* calculate values and derivatives of the geometry variables
 	** at next time step. */
 	calculate_geometry_variables(positions, 1);
