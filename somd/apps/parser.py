@@ -550,7 +550,7 @@ class TOMLPARSER(object):
             if (integrator_type == 'vv'):
                 result = _mdcore.integrators.vv_integrator(timestep)
             elif (integrator_type == 'cs4'):
-                result = _mdcore.integrators.vs4_integrator(timestep)
+                result = _mdcore.integrators.cs4_integrator(timestep)
             elif (integrator_type == 'nhc'):
                 result = _mdcore.integrators.nhc_integrator(
                     timestep, temperatures, relaxation_times, thermo_groups)
