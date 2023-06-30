@@ -36,4 +36,4 @@ __version__ = _version.get_versions()['version']
 
 _w.simplefilter('always', UserWarning)
 _w.formatwarning = lambda *args, **kwargs: \
-    f'[SOMD] [{_dt.datetime.now()}] {args[2].split("somd/")[-1]} ({args[3]}): {args[0]}\n'
+    f'[SOMD] [{_dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] [{args[2].split("somd/")[-1]}|{args[3]}]: {args[0]}\n'
