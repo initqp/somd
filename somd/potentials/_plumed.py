@@ -71,6 +71,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         super().__init__(atom_list)
         self.__args = [atom_list, file_name, timestep, temperature, restart,
                        output_prefix, cv_names]
+        _os.environ['PLUMED_TYPESAFE_IGNORE'] = 'yes'
         # treat PLUMED as a local dependency
         try:
             import plumed
@@ -103,7 +104,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("init")
         self.__set_up_cv(cv_names)
         self.__restart = restart
-        self.__stop_flag = _np.zeros(1, dtype=_np.intc)
+        self.__stop_flag = _np.zeros(1, dtype=_np.int64)
         self.__step = 1
 
     def __set_up_cv(self, cv_names: list) -> None:
@@ -154,10 +155,10 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("setBox", system.box)
         self.__plumed.cmd("setPositions", system.positions)
         self.__plumed.cmd("setMasses", system.masses.reshape(-1))
+        self.__plumed.cmd("setStopFlag", self.__stop_flag)
         self.__plumed.cmd("prepareCalc")
         self.__plumed.cmd("performCalc")
         self.__plumed.cmd("getBias", self.energy_potential)
-        self.__plumed.cmd("setStopFlag", self.__stop_flag)
         self.virial[:] *= -1.0
         self.__step += 1
 
