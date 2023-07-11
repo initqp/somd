@@ -103,7 +103,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("init")
         self.__set_up_cv(cv_names)
         self.__restart = restart
-        self.__stop_flag = 0
+        self.__stop_flag = _np.zeros(1, dtype=_np.intc)
         self.__step = 1
 
     def __set_up_cv(self, cv_names: list) -> None:
@@ -187,7 +187,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         The stop flag set by PLUMED.
         """
-        return self.__stop_flag
+        return bool(self.__stop_flag[0])
 
     @property
     def step(self) -> int:
