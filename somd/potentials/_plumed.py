@@ -212,8 +212,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         return self.__cv_names.copy()
 
     @property
-    def cv_values(self) -> list:
+    def cv_values(self) -> _np.ndarray:
         """
         Saved collective variable values.
         """
-        return self.__cv_values.copy()
+        return _np.concatenate(self.__cv_values)
