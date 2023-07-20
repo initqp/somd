@@ -194,12 +194,13 @@ class INTEGRATOR(object):
             if ('timesteps' not in s):
                 invalid_ops = [o for o in op[i] if (o not in v)]
                 if (len(invalid_ops) != 0):
-                    raise KeyError('Unknown operators: {}'.format(invalid_ops))
+                    message = 'Unknown operators: "{}"'.format(invalid_ops)
+                    raise KeyError(message)
                 s['timesteps'] = [ts[i] / op[i].count(o) for o in op[i]]
             else:
                 if (len(s['timesteps']) != len(s['operators'])):
                     message = 'numbers of timesteps and operators ' + \
-                              'mismatch in splitting scheme {}'
+                              'mismatch in splitting scheme "{}"'
                     raise IndexError(message.format(self.splitting))
 
     def __combine_splitting_dicts(self) -> None:
@@ -227,13 +228,13 @@ class INTEGRATOR(object):
         op = self.__splitting_whole['operators']
         # Check if we have the R operators.
         if ('R' not in op):
-            message = 'splitting scheme {} without a position update ' + \
+            message = 'splitting scheme "{}" without a position update ' + \
                       'is invalid!'
-            raise RuntimeError(message.format(str(self.__splitting)))
+            raise RuntimeError(message.format(self.__splitting))
         if ('V' not in op):
-            message = 'splitting scheme {} without a velocity update' + \
+            message = 'splitting scheme "{}" without a velocity update' + \
                       'is invalid!'
-            raise RuntimeError(message.format(str(self.__splitting)))
+            raise RuntimeError(message.format(self.__splitting))
         # Get the 'core' splitting.
         index_core = [i for i in range(0, len(op)) if op[i] in ['R', 'V']]
         splitting_core = [o for o in op if o in ['R', 'V']]
@@ -361,22 +362,26 @@ class INTEGRATOR(object):
             the simulated system.
         """
         if (self.__system is not None):
-            message = 'Binding integrator from system \'{}\' to system \'{}\''
+            message = 'Binding integrator from system "{}" to system "{}".'
             _w.warn(message.format(self.__system._label, system._label))
         if (not self.__is_nve):
+            if (len(set(self.__thermo_groups)) != len(self.__thermo_groups)):
+                message = 'Duplicate indices in thermalized groups "{}"!'
+                raise IndexError(message.format(self.__thermo_groups))
             if (len(self.__thermo_groups) > len(system.groups)):
-                raise IndexError('Too many thermalized groups!')
+                message = 'Too many thermalized groups!'
+                raise IndexError(message)
             if (max(self.__thermo_groups) >= len(system.groups)):
-                raise IndexError('Invalid thermalized group: ' +
-                                 str(max(self.__thermo_groups)))
+                message = 'Invalid thermalized group: {:d}!'
+                raise IndexError(message.format(max(self.__thermo_groups)))
             # Thermo groups
             for i in range(0, len(self.__thermo_groups)):
                 g_i = self.__thermo_groups[i]
                 for j in range(0, len(self.__thermo_groups)):
                     g_j = self.__thermo_groups[j]
                     if (i != j and g_i.overlap_with(g_j)):
-                        message = 'Thermalized group {} overlaps with ' + \
-                                  'thermalized group {}!'
+                        message = 'Thermalized group {:d} overlaps with ' + \
+                                  'thermalized group {:d}!'
                         raise RuntimeError(message.format(i, j))
         self.__system = system
         if ('N' in self.__splitting_whole['operators']):
@@ -495,8 +500,8 @@ class INTEGRATOR(object):
         if (not self.__is_nve):
             return self.__temperatures
         else:
-            raise \
-                AttributeError('Can not get temperatures of NVE integrators!')
+            message = 'Can not get temperatures of NVE integrators!'
+            raise AttributeError(message)
 
     @temperatures.setter
     def temperatures(self, t: list) -> None:
@@ -508,8 +513,8 @@ class INTEGRATOR(object):
             if ('N' in self.__splitting_whole['operators']):
                 self.__reset_nhchains_parameters()
         else:
-            raise \
-                AttributeError('Can not set temperatures of NVE integrators!')
+            message = 'Can not set temperatures of NVE integrators!'
+            raise AttributeError(message)
 
     @property
     def relaxation_times(self) -> float:
@@ -519,8 +524,9 @@ class INTEGRATOR(object):
         if (not self.__is_nve):
             return self.__relaxation_times
         else:
-            raise AttributeError('Can not get thermostat relaxation times ' +
-                                 'of NVE integrators!')
+            message = 'Can not get thermostat relaxation times of ' + \
+                      'NVE integrators!'
+            raise AttributeError(message)
 
     @relaxation_times.setter
     def relaxation_times(self, t: list) -> None:
@@ -532,8 +538,9 @@ class INTEGRATOR(object):
             if ('N' in self.__splitting_whole['operators']):
                 self.__reset_nhchains_parameters()
         else:
-            raise AttributeError('Can not set thermostat relaxation times ' +
-                                 'of NVE integrators!')
+            message = 'Can not set thermostat relaxation times of ' + \
+                      'NVE integrators!'
+            raise AttributeError(message)
 
     @property
     def energy_effective(self) -> float:
@@ -560,8 +567,9 @@ class INTEGRATOR(object):
             # Do not change thermo groups here.
             return self.__thermo_groups.copy()
         else:
-            raise AttributeError('Can not get thermalized atomic groups of ' +
-                                 'NVE integrators!')
+            message = 'Can not get thermalized atomic groups of ' + \
+                      'NVE integrators!'
+            raise AttributeError(message)
 
 
 def vv_integrator(timestep: float) -> INTEGRATOR:
