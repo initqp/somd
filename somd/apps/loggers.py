@@ -91,7 +91,7 @@ class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
             header += ' group {} kinetic energy (kJ/mol),'.format(i)
             header += ' group {} temperature (K),'.format(i)
         if (self.integrator is not None):
-            header += ' effective energy (kJ/mol),'
+            header += ' effective energy correction (kJ/mol),'
         header += ' volume (nm^3)'
         print(header, file=self.__fp)
 
