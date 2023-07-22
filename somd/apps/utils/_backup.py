@@ -41,7 +41,7 @@ def __find_max_backup_number(base_name: str, file_list: list) -> int:
     for fn in file_list:
         tmp = _re.split(base_name, fn)
         if (len(tmp) > 1 and tmp[0] != '' and tmp[1] == ''):
-            # backuped files.
+            # backup files.
             prefix = _re.split(r'\.', tmp[0])
             if (len(prefix) == 3 and prefix[0] == 'bck' and
                     prefix[1].isdigit()):
