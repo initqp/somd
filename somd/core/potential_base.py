@@ -20,6 +20,7 @@
 Base class of all potentials calculators.
 """
 
+import abc as _ab
 import numpy as _np
 import atexit as _ae
 from .systems import MDSYSTEM as _MDSYSTEM
@@ -27,7 +28,7 @@ from .systems import MDSYSTEM as _MDSYSTEM
 __all__ = ['POTENTIAL']
 
 
-class POTENTIAL(object):
+class POTENTIAL(_ab.ABC):
     """
     Base class of all potentials.
 
@@ -46,6 +47,31 @@ class POTENTIAL(object):
         self.__forces = _np.zeros((self.n_atoms, 3), _np.double)
         self.__energy_potential = _np.zeros((1), _np.double)
         _ae.register(self.finalize)
+
+    @_ab.abstractmethod
+    def update(self, system: _MDSYSTEM) -> None:
+        """
+        Update this potential.
+
+        Parameters
+        ----------
+        system : somd.systems.MDSYSTEM
+            The simulated system.
+        """
+        raise NotADirectoryError()
+
+    def reset(self) -> None:
+        """
+        Reset the potential.
+        """
+        pass
+
+    def finalize(self) -> None:
+        """
+        Clean up.
+        """
+        # If this function has been called once, do not call it again at exit.
+        _ae.unregister(self.finalize)
 
     @property
     def n_atoms(self) -> int:
@@ -81,30 +107,3 @@ class POTENTIAL(object):
         Indices of atoms included by this potential.
         """
         return self.__atom_list
-
-    def update(self, system: _MDSYSTEM) -> None:
-        """
-        Update this potential.
-
-        Parameters
-        ----------
-        system : somd.systems.MDSYSTEM
-            The simulated system.
-        """
-        # Update the potential energy, forces and virial here.
-        self.forces[:] = 0.0
-        self.virial[:] = 0.0
-        self.energy_potential[0] = 0.0
-
-    def reset(self) -> None:
-        """
-        Reset the potential.
-        """
-        pass
-
-    def finalize(self) -> None:
-        """
-        Clean up.
-        """
-        # If this function has been called once, do not call it again at exit.
-        _ae.unregister(self.finalize)

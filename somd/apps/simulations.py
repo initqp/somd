@@ -20,6 +20,7 @@
 The pre-defined simulation protocols.
 """
 import os as _os
+import abc as _ab
 import h5py as _h5
 import copy as _cp
 import warnings as _w
@@ -220,7 +221,7 @@ class SIMULATION(object):
         return self.__post_step_objects
 
 
-class STAGEDSIMULATION(object):
+class STAGEDSIMULATION(_ab.ABC):
     """
     The staged simulation protocol. In this type of simulations, the
     `somd.apps.simulations.SIMULATION` class will be dynamically instantiated

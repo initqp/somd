@@ -20,6 +20,7 @@
 Base class for all post-step objects.
 """
 
+import abc as _ab
 import typing as _tp
 import warnings as _w
 from somd import core as _mdcore
@@ -27,7 +28,7 @@ from somd import core as _mdcore
 __all__ = ['POSTSTEPOBJ', 'POSTSTEPOBJWRAPPER']
 
 
-class POSTSTEPOBJ(object):
+class POSTSTEPOBJ(_ab.ABC):
     """
     The base class for all post-step objects.
 

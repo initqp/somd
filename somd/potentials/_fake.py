@@ -16,13 +16,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-"""
-Potential calculator interfaces.
-"""
+from somd import core as _mdcore
 
-from ._nep import *
-from ._fake import *
-from ._dftd3 import *
-from ._dftd4 import *
-from ._siesta import *
-from ._plumed import *
+__all__ = ['FAKE']
+
+
+class FAKE(_mdcore.potential_base.POTENTIAL):
+    """
+    A fake potential.
+    """
+
+    def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
+        """
+        Do nothing.
+        """
+        pass

@@ -300,8 +300,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         working_dir = h5_group.attrs['working_directory']
         training_state = h5_group['progress'].attrs['training_finished']
         n_potentials = min(param['n_potentials'], len(training_state))
-        potential_files = [working_dir + nep_path.format(i) for
-                           i in range(0, n_potentials)]
+        potential_files = [working_dir + nep_path.format(i)
+                           for i in range(0, n_potentials)]
         for i in range(0, n_potentials):
             p = _NEP(range(0, self.system.n_atoms), potential_files[i],
                      self.system.atomic_symbols, self.__use_tabulating)
