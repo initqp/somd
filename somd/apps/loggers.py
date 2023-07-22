@@ -121,7 +121,7 @@ class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
         else:
-            _utils.backup(self.file_name)
+            _utils.back_up(self.file_name)
             self.__fp = open(self.file_name, 'w')
             self.__write_file_header()
 

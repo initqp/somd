@@ -23,7 +23,7 @@ Helper functions for backing up files.
 import os as _os
 import re as _re
 
-__all__ = ['backup']
+__all__ = ['back_up']
 
 
 def __find_max_backup_number(base_name: str, file_list: list) -> int:
@@ -53,9 +53,9 @@ def __find_max_backup_number(base_name: str, file_list: list) -> int:
     return maximum
 
 
-def backup(file_name: str) -> None:
+def back_up(file_name: str) -> None:
     """
-    Backup a given file according to its backup history.
+    Back up a given file according to its backup history.
 
     Parameters
     ----------

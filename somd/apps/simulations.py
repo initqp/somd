@@ -297,7 +297,7 @@ class STAGEDSIMULATION(_ab.ABC):
                           'from scratch!'
                 _w.warn(message.format(directory, title))
                 self.__is_restart = False
-                _utils.backup(title)
+                _utils.back_up(title)
                 _os.mkdir(directory)
             else:
                 message = 'Found directory {:s}! SOMD will restart the ' + \
@@ -309,7 +309,7 @@ class STAGEDSIMULATION(_ab.ABC):
                           'directory {:s} and run the required simulation ' + \
                           'from scratch!'
                 _w.warn(message.format(title, directory))
-                _utils.backup(directory)
+                _utils.back_up(directory)
             _os.mkdir(directory)
             self.__is_restart = False
         self.__root = _h5.File(title, 'a')
@@ -419,7 +419,7 @@ class STAGEDSIMULATION(_ab.ABC):
         group.attrs['working_directory'] = iter_dir
         group.attrs['initialized'] = False
         self.__root.flush()
-        _utils.backup(iter_dir)
+        _utils.back_up(iter_dir)
         _os.mkdir(iter_dir)
         return iter_dir
 

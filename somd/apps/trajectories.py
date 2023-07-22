@@ -219,7 +219,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         if (self.__append):
             self.__root = _h5.File(self.file_name, 'a')
         else:
-            _utils.backup(self.file_name)
+            _utils.back_up(self.file_name)
             self.__root = _h5.File(self.file_name, 'w')
             self.__dump_attributes()
             self.__dump_datasets()
@@ -464,7 +464,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
         else:
-            _utils.backup(self.file_name)
+            _utils.back_up(self.file_name)
             self.__fp = open(self.file_name, 'w')
 
     def write(self) -> None:

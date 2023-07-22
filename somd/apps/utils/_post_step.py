@@ -48,8 +48,8 @@ class POSTSTEPOBJ(_ab.ABC):
         # If initialized.
         self.__initialized = False
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(self,
+                        integrator: _mdcore.integrators.INTEGRATOR) -> None:
         """
         Bind an integrator.
         """

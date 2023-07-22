@@ -21,6 +21,6 @@ Utils.
 """
 
 from . import nep
-from ._backup import backup
+from ._backup import back_up
 from ._post_step import POSTSTEPOBJ
 from ._post_step import POSTSTEPOBJWRAPPER
