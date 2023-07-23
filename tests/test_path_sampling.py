@@ -4,7 +4,6 @@ import h5py as _h5
 import numpy as _np
 import shutil as _sh
 import numpy.testing as _nt
-import data.path_sampling.model as _model
 
 DECIMAL_F = 7
 DECIMAL_D = 14
@@ -178,6 +177,9 @@ def test_shooting():
 
 def test_tps_run_1():
     _np.random.seed(1)
+    f1 = somd.core.groups.ATOMGROUP.add_velocities_from_temperature
+    f2 = somd.core.groups.ATOMGROUP.n_dof
+    import data.path_sampling.model as _model
     if (_os.path.exists('path_sampling.h5')):
         _os.remove('path_sampling.h5')
     if (_os.path.exists('path_sampling.dir')):
@@ -199,6 +201,8 @@ def test_tps_run_1():
          'remove_dead_iterations': True},
         post_step_objects=[_model.helper])
     sampler.run(2)
+    somd.core.groups.ATOMGROUP.add_velocities_from_temperature = f1
+    somd.core.groups.ATOMGROUP.n_dof = f2
     f1 = _h5.File('./path_sampling.h5', 'r')
     f2 = _h5.File('./data/path_sampling/1.h5', 'r')
     assert f1['/iteration_data/2'].attrs['is_reactive']
@@ -220,6 +224,9 @@ def test_tps_run_1():
 
 def test_tps_run_2():
     _np.random.seed(1)
+    f1 = somd.core.groups.ATOMGROUP.add_velocities_from_temperature
+    f2 = somd.core.groups.ATOMGROUP.n_dof
+    import data.path_sampling.model as _model
     if (_os.path.exists('path_sampling.h5')):
         _os.remove('path_sampling.h5')
     if (_os.path.exists('path_sampling.dir')):
@@ -240,6 +247,8 @@ def test_tps_run_2():
          'remove_dead_iterations': True},
         post_step_objects=[_model.helper])
     sampler.run(2)
+    somd.core.groups.ATOMGROUP.add_velocities_from_temperature = f1
+    somd.core.groups.ATOMGROUP.n_dof = f2
     f1 = _h5.File('./path_sampling.h5', 'r')
     f2 = _h5.File('./data/path_sampling/2.h5', 'r')
     _nt.assert_array_equal(f1['/iteration_data/2/segments/0/cv_values'],
