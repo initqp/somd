@@ -17,7 +17,10 @@
 #
 
 """
-Path sampling methods.
+Path sampling utils.
 """
 
-from somd.apps.path_sampling import tps
+from somd.apps.path_sampling.utils import path
+from somd.apps.path_sampling.utils import state
+from somd.apps.path_sampling.utils import shooting
+from somd.apps.path_sampling.utils import selection
