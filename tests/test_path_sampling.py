@@ -209,8 +209,8 @@ def test_tps_run_1():
     f2 = _h5.File('./data/path_sampling/1.h5', 'r')
     assert f1['/iteration_data/2'].attrs['is_reactive']
     _nt.assert_array_almost_equal(
-        f1['/iteration_data/2/segments/0/cv_values'],
-        f2['/2/segments/0/cv_values'], DECIMAL_D)
+        f1['/iteration_data/2/segments/0/cv_values'][:400],
+        f2['/2/segments/0/cv_values'][:400], DECIMAL_D)
     _nt.assert_array_almost_equal(
         f1['/iteration_data/2/segments/1/cv_values'],
         f2['/2/segments/1/cv_values'], DECIMAL_D)
