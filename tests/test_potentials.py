@@ -70,10 +70,10 @@ def test_plumed():
                                        0.001, 1, cv_names=[{'d1': ''}])
     potential.update(system)
     result = _np.loadtxt('data/potentials/potential_plumed.dat')
-    _nt.assert_almost_equal(potential.forces, result[0:2], 12)
-    _nt.assert_almost_equal(potential.virial, result[2:5], 12)
+    _nt.assert_almost_equal(potential.forces, result[0:2], DECIMAL_D)
+    _nt.assert_almost_equal(potential.virial, result[2:5], DECIMAL_D)
     result = _np.loadtxt('data/potentials/potential_plumed_cv.dat')
-    _nt.assert_almost_equal(potential.cv_values[0], result, 12)
+    _nt.assert_almost_equal(potential.cv_values[0], result, DECIMAL_D)
     _os.remove('plumed.inp.log')
 
 
