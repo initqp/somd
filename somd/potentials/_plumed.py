@@ -71,6 +71,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         super().__init__(atom_list)
         self.__args = [atom_list, file_name, timestep, temperature, restart,
                        output_prefix, cv_names]
+        _os.environ['PLUMED_LOAD_NODEEPBIND'] = 'yes'
         _os.environ['PLUMED_TYPESAFE_IGNORE'] = 'yes'
         # treat PLUMED as a local dependency
         try:
