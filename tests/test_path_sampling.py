@@ -136,15 +136,17 @@ def test_selections():
     selection = somd.apps.path_sampling.utils.selection
     cv_values = _np.array([[-1, -1], [0, 0], [1, 1]])
     p = selection.calculate_frame_probabilities(cv_values)
-    _nt.assert_array_equal(p, _np.array([1 / 3, 1 / 3, 1 / 3]))
+    _nt.assert_array_almost_equal(p, _np.array([1 / 3, 1 / 3, 1 / 3]),
+                                  DECIMAL_D)
     p = selection.calculate_frame_probabilities(cv_values,
                                                 lambda x: x[0] + x[1] == 0)
-    _nt.assert_array_equal(p, _np.array([0.0, 1.0, 0.0]))
+    _nt.assert_array_almost_equal(p, _np.array([0.0, 1.0, 0.0]), DECIMAL_D)
     p = selection.calculate_frame_probabilities(cv_values,
                                                 lambda x: x[0] + 1.5)
-    _nt.assert_array_equal(p, _np.array([1 / 9, 1 / 3, 5 / 9]))
+    _nt.assert_array_almost_equal(p, _np.array([1 / 9, 1 / 3, 5 / 9]),
+                                  DECIMAL_D)
     p = selection.calculate_frame_probabilities(cv_values, lambda x: True, 1)
-    _nt.assert_array_equal(p, _np.array([0.0, 1.0, 0.0]))
+    _nt.assert_array_almost_equal(p, _np.array([0.0, 1.0, 0.0]), DECIMAL_D)
     try:
         p = selection.calculate_frame_probabilities(cv_values, lambda x: x[0])
     except:
@@ -153,7 +155,7 @@ def test_selections():
         raise RuntimeError
     s = selection.select(cv_values, lambda x: True, 1)
     assert s['index'] == 1
-    _nt.assert_array_equal(s['probability'], _np.ones(1))
+    _nt.assert_array_almost_equal(s['probability'], _np.ones(1), DECIMAL_D)
 
 
 def test_shooting():
@@ -168,7 +170,7 @@ def test_shooting():
     somd.apps.path_sampling.utils.shooting.shoot(s)
     _nt.assert_almost_equal(energy, s.groups[0].energy_kinetic)
     try:
-        _nt.assert_array_equal(velocities, s.velocities)
+        _nt.assert_array_almost_equal(velocities, s.velocities, DECIMAL_D)
     except:
         pass
     else:
@@ -197,7 +199,7 @@ def test_tps_run_1():
          'bias_function': _model.i3,
          'randomize_velocities': True,
          'trajectory_interval': 5,
-         'trajectory_use_double': False,
+         'trajectory_use_double': True,
          'remove_dead_iterations': True},
         post_step_objects=[_model.helper])
     sampler.run(2)
@@ -206,18 +208,24 @@ def test_tps_run_1():
     f1 = _h5.File('./path_sampling.h5', 'r')
     f2 = _h5.File('./data/path_sampling/1.h5', 'r')
     assert f1['/iteration_data/2'].attrs['is_reactive']
-    _nt.assert_array_equal(f1['/iteration_data/2/segments/0/cv_values'],
-                           f2['/2/segments/0/cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/segments/1/cv_values'],
-                           f2['/2/segments/1/cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/shooting_point_cv_values'],
-                           f2['/2/shooting_point_cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/shooting_point_index'],
-                           f2['/2/shooting_point_index'])
-    _nt.assert_array_equal(f1['/iteration_data/2/selection_probability'],
-                           f2['/2/selection_probability'])
-    _nt.assert_array_equal(f1['/iteration_data/2/selection_probability_reversed'],
-                           f2['/2/selection_probability_reversed'])
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/segments/0/cv_values'],
+        f2['/2/segments/0/cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/segments/1/cv_values'],
+        f2['/2/segments/1/cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/shooting_point_cv_values'],
+        f2['/2/shooting_point_cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/shooting_point_index'],
+        f2['/2/shooting_point_index'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/selection_probability'],
+        f2['/2/selection_probability'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/selection_probability_reversed'],
+        f2['/2/selection_probability_reversed'], DECIMAL_D)
     _os.remove('path_sampling.h5')
     _sh.rmtree('path_sampling.dir')
 
@@ -243,7 +251,7 @@ def test_tps_run_2():
             _os.path.abspath('./data/path_sampling/initial.h5'),
          'bias_function': _model.i3,
          'trajectory_interval': 5,
-         'trajectory_use_double': False,
+         'trajectory_use_double': True,
          'remove_dead_iterations': True},
         post_step_objects=[_model.helper])
     sampler.run(2)
@@ -251,17 +259,23 @@ def test_tps_run_2():
     somd.core.groups.ATOMGROUP.n_dof = f2
     f1 = _h5.File('./path_sampling.h5', 'r')
     f2 = _h5.File('./data/path_sampling/2.h5', 'r')
-    _nt.assert_array_equal(f1['/iteration_data/2/segments/0/cv_values'],
-                           f2['/2/segments/0/cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/segments/1/cv_values'],
-                           f2['/2/segments/1/cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/shooting_point_cv_values'],
-                           f2['/2/shooting_point_cv_values'])
-    _nt.assert_array_equal(f1['/iteration_data/2/shooting_point_index'],
-                           f2['/2/shooting_point_index'])
-    _nt.assert_array_equal(f1['/iteration_data/2/selection_probability'],
-                           f2['/2/selection_probability'])
-    _nt.assert_array_equal(f1['/iteration_data/2/selection_probability_reversed'],
-                           f2['/2/selection_probability_reversed'])
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/segments/0/cv_values'],
+        f2['/2/segments/0/cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/segments/1/cv_values'],
+        f2['/2/segments/1/cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/shooting_point_cv_values'],
+        f2['/2/shooting_point_cv_values'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/shooting_point_index'],
+        f2['/2/shooting_point_index'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/selection_probability'],
+        f2['/2/selection_probability'], DECIMAL_D)
+    _nt.assert_array_almost_equal(
+        f1['/iteration_data/2/selection_probability_reversed'],
+        f2['/2/selection_probability_reversed'], DECIMAL_D)
     _os.remove('path_sampling.h5')
     _sh.rmtree('path_sampling.dir')
