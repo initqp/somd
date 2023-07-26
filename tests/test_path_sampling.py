@@ -3,6 +3,7 @@ import os as _os
 import h5py as _h5
 import numpy as _np
 import shutil as _sh
+import warnings as _w
 import numpy.testing as _nt
 
 DECIMAL_F = 7
@@ -179,6 +180,13 @@ def test_shooting():
 
 def test_tps_run_1():
     _np.random.seed(1)
+    try:
+        import plumed
+    except Exception as e:
+        message = 'Can not import the PLUMED wrapper! Path sampling has ' + \
+                  'NOT been tested! Reason: {} '.format(e)
+        _w.warn(message)
+        return
     f1 = somd.core.groups.ATOMGROUP.add_velocities_from_temperature
     f2 = somd.core.groups.ATOMGROUP.n_dof
     import data.path_sampling.model as _model
@@ -232,6 +240,13 @@ def test_tps_run_1():
 
 def test_tps_run_2():
     _np.random.seed(1)
+    try:
+        import plumed
+    except Exception as e:
+        message = 'Can not import the PLUMED wrapper! Path sampling has ' + \
+                  'NOT been tested! Reason: {} '.format(e)
+        _w.warn(message)
+        return
     f1 = somd.core.groups.ATOMGROUP.add_velocities_from_temperature
     f2 = somd.core.groups.ATOMGROUP.n_dof
     import data.path_sampling.model as _model
