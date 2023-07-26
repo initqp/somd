@@ -22,11 +22,11 @@ SOMD by the following steps.
 1. Install the required dependencies with:
     ```bash
     conda config --add channels conda-forge
-    conda install cython h5py mdtraj toml -c conda-forge
+    conda install 'cython<3.0.0' h5py mdtraj toml -c conda-forge
     ```
     or
     ```bash
-    pip install cython h5py mdtraj toml
+    pip install 'cython<3.0.0' h5py mdtraj toml
     ```
 2. Clone this repo:
     ```bash
