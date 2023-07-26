@@ -64,7 +64,7 @@ metadata = dict(
     classifiers=CLASSIFIERS.splitlines(),
     packages=find_packages(),
     cmdclass=versioneer.get_cmdclass({'build_ext': build_ext}),
-    install_requires=['Cython', 'h5py', 'mdtraj', 'toml'],
+    install_requires=['Cython~=0.29', 'h5py', 'mdtraj', 'toml'],
     zip_safe=False,
     ext_modules=cythonize(extensions),
     entry_points={'console_scripts': ['somd = somd.apps.cli:main']},
