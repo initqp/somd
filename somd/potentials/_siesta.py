@@ -28,7 +28,7 @@ from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
 
-__all__ = ['SIESTA', 'create_siesta_potential']
+__all__ = ['SIESTA', 'create_siesta_potential', 'create_siesta_generator']
 
 
 class SIESTA(_mdcore.potential_base.POTENTIAL):
@@ -183,6 +183,15 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
             raise RuntimeError('SIESTA FATAL: unexpected tailer:' + tailer)
         fp.close()
 
+    @classmethod
+    def generator(cls, *args, **kwargs) -> callable:
+        """
+        Return a generator of this potential.
+        """
+        message = 'Use the `create_siesta_generator` method to get ' + \
+                  'generators of SIESTA!'
+        raise NotImplementedError(message)
+
     def finalize(self) -> None:
         """
         Clean up.
@@ -261,7 +270,8 @@ def _create_siesta_input(system: _mdcore.systems.MDSYSTEM,
     option_list = [x.lower() for x in option_list]
     for o in __needed_options:
         if (o.lower in option_list):
-            raise RuntimeError('Option {} should not be specified!'.format(o))
+            message = 'SIESTA option "{}" should not be specified!'
+            raise RuntimeError(message.format(o))
     # write the file.
     fp = open(file_dir + '/' + label + '.fdf', 'w')
     atomic_symbol_list = [system.atomic_symbols[i] for i in atom_list]
@@ -295,9 +305,8 @@ def _create_siesta_input(system: _mdcore.systems.MDSYSTEM,
               end=' ', file=fp)
         print('{:20.10f}'.format(system.positions[atom_list[i], 2] * 10),
               end=' ', file=fp)
-        print(
-            atomic_symbol_list.index(system.atomic_symbols[atom_list[i]]) + 1,
-            file=fp)
+        symbol = system.atomic_symbols[atom_list[i]]
+        print(atomic_symbol_list.index(symbol) + 1, file=fp)
     print('%endblock AtomicCoordinatesAndAtomicSpecies', file=fp)
     print('\n### User specified options ###\n', file=fp)
     print(options, file=fp)
@@ -367,7 +376,60 @@ def create_siesta_potential(system: _mdcore.systems.MDSYSTEM,
             _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
         else:
             _os.rmdir(work_dir)
-            raise RuntimeError('Can not find pseudopotential file for ' +
-                               'element ' + e)
+            message = 'Can not find pseudopotential file for element ' + e
+            raise RuntimeError(message)
     _create_siesta_input(system, atom_list, options, file_dir=work_dir)
     return SIESTA(atom_list, work_dir + '/somd_tmp.fdf', siesta_command)
+
+
+def create_siesta_generator(system: _mdcore.systems.MDSYSTEM,
+                            atom_list: list,
+                            options: str,
+                            siesta_command: str = 'siesta',
+                            pseudopotential_dir: str = './') -> callable:
+    """
+    Return a generator of this potential.
+
+    Parameters
+    ----------
+    system: somd.core.system.MDSYSTEM
+        The simulated system.
+    atom_list : List(int)
+        Indices of atoms included by this potential.
+    options: str
+        Auxiliary options to be added into the input file, e.g. the basis
+        size and the functional. There is an example of this parameter:
+        options = r'''
+        xc.functional          GGA
+        xc.authors             revPBE
+
+        PAO.BasisSize          TZ2P
+        Mesh.Cutoff            300 Ry
+        PAO.EnergyShift        10 meV
+        PAO.SoftDefault        T
+
+        DM.MixingWeight        0.1
+        DM.Tolerance           1.d-5
+        DM.UseSaveDM           T
+        DM.History.Depth       5
+
+        Diag.Algorithm         ELPA-1stage
+        SolutionMethod         diagon
+        ElectronicTemperature  5 meV
+        '''
+    siesta_command : str
+        Command of submitting a SIESTA job.
+    pseudopotential_dir : str
+        Directory of the pseudopotential files.
+
+    Notes
+    -----
+    Basenames of the pseudopotential file must be the same as symbols of
+    the elements in the simulated system. E.g. there are three elements:
+    H, O and C in the simulated system, then the pseudopotential files must
+    be named as: H.psf, O.psf and C.psf (or H.vps, O.vps and C.vps).
+    """
+    pseudopotential_dir = _os.path.abspath(pseudopotential_dir)
+    return lambda: create_siesta_potential(system, atom_list, options,
+                                           siesta_command,
+                                           pseudopotential_dir)

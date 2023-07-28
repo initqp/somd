@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import os as _os
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 
@@ -81,6 +82,18 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         self.virial[:] *= self.__conversion * 0.001
         self.forces[:] *= self.__conversion * 0.01
         self.energy_potential[0] *= self.__conversion * 0.001
+
+    @classmethod
+    def generator(cls, *args, **kwargs) -> callable:
+        """
+        Return a generator of this potential.
+        """
+        if 'file_name' in kwargs.keys():
+            kwargs['file_name'] = _os.path.abspath(kwargs['file_name'])
+        else:
+            args = list(args)
+            args[1] = _os.path.abspath(args[1])
+        return lambda x=tuple(args), y=kwargs: cls(*x, **y)
 
     def finalize(self) -> None:
         """

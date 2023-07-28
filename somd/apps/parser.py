@@ -609,7 +609,7 @@ class TOMLPARSER(object):
         self.__integrator = result
 
     def __parse_potential_siesta(self, inp: dict, atom_list: list) \
-            -> _potentials.SIESTA:
+            -> callable:
         """
         Parse the SIESTA potential options.
 
@@ -620,12 +620,13 @@ class TOMLPARSER(object):
         atom_list : list(int)
             The atom list.
         """
-        return _potentials.create_siesta_potential(
-            self.__system, atom_list, inp['siesta_options'],
-            inp['siesta_command'], inp['pseudopotential_dir'])
+        return _potentials.create_siesta_generator(self.__system, atom_list,
+                                                   inp['siesta_options'],
+                                                   inp['siesta_command'],
+                                                   inp['pseudopotential_dir'])
 
     def __parse_potential_dftd3(self, inp: dict, atom_list: list) \
-            -> _potentials.DFTD3:
+            -> callable:
         """
         Parse the DFTD3 potential options.
 
@@ -641,11 +642,12 @@ class TOMLPARSER(object):
         else:
             damping = inp['damping']
         atom_types = self.__system.atomic_types[atom_list]
-        return _potentials.DFTD3(atom_list, atom_types, inp['functional'],
-                                 damping, bool(inp['atm']))
+        return _potentials.DFTD3.generator(atom_list, atom_types,
+                                           inp['functional'], damping,
+                                           bool(inp['atm']))
 
     def __parse_potential_dftd4(self, inp: dict, atom_list: list) \
-            -> _potentials.DFTD4:
+            -> callable:
         """
         Parse the DFTD4 potential options.
 
@@ -661,11 +663,12 @@ class TOMLPARSER(object):
         else:
             total_charge = inp['total_charge']
         atom_types = self.__system.atomic_types[atom_list]
-        return _potentials.DFTD4(atom_list, atom_types, inp['functional'],
-                                 total_charge, bool(inp['atm']))
+        return _potentials.DFTD4.generator(atom_list, atom_types,
+                                           inp['functional'], total_charge,
+                                           bool(inp['atm']))
 
     def __parse_potential_nep(self, inp: dict, atom_list: list) \
-            -> _potentials.NEP:
+            -> callable:
         """
         Parse the NEP potential options.
 
@@ -677,15 +680,16 @@ class TOMLPARSER(object):
             The atom list.
         """
         atom_symbols = [self.__system.atomic_symbols[i] for i in atom_list]
-        return _potentials.NEP(atom_list, inp['file_name'], atom_symbols,
-                               bool(inp['use_tabulating']))
+        return _potentials.NEP.generator(atom_list, inp['file_name'],
+                                         atom_symbols,
+                                         bool(inp['use_tabulating']))
 
     def __parse_potential_plumed(self,
                                  inp: dict,
                                  timestep: float,
                                  temperature: float,
                                  atom_list: list,
-                                 potential_index: int) -> _potentials.PLUMED:
+                                 potential_index: int) -> callable:
         """
         Parse the PLUMED potential options.
 
@@ -707,17 +711,16 @@ class TOMLPARSER(object):
             raise RuntimeError(message)
         prefix = self.__root['run']['label'] + \
             '.plumed.pot_{:d}'.format(potential_index)
-        return _potentials.PLUMED(atom_list, inp['file_name'], timestep,
-                                  temperature,
-                                  bool(self.__root['run']['restart_from']),
-                                  prefix)
+        if_restart = bool(self.__root['run']['restart_from'])
+        return _potentials.PLUMED.generator(atom_list, inp['file_name'],
+                                            timestep, temperature, if_restart,
+                                            prefix)
 
     def __parse_potential(self,
                           inp: dict,
                           index: int,
                           timestep: float,
-                          temperature: float) \
-            -> _mdcore.potential_base.POTENTIAL:
+                          temperature: float) -> callable:
         """
         Parse one potential with given index.
 
@@ -738,20 +741,21 @@ class TOMLPARSER(object):
             atom_list = inp['atom_list']
         potential_type = inp['type'].upper()
         if (potential_type == 'SIESTA'):
-            potential = self.__parse_potential_siesta(inp, atom_list)
+            generator = self.__parse_potential_siesta(inp, atom_list)
         elif (potential_type == 'DFTD3'):
-            potential = self.__parse_potential_dftd3(inp, atom_list)
+            generator = self.__parse_potential_dftd3(inp, atom_list)
         elif (potential_type == 'DFTD4'):
-            potential = self.__parse_potential_dftd4(inp, atom_list)
+            generator = self.__parse_potential_dftd4(inp, atom_list)
         elif (potential_type == 'NEP'):
-            potential = self.__parse_potential_nep(inp, atom_list)
+            generator = self.__parse_potential_nep(inp, atom_list)
         elif (potential_type == 'PLUMED'):
-            potential = self.__parse_potential_plumed(
-                inp, timestep, temperature, atom_list, index)
+            generator = self.__parse_potential_plumed(inp, timestep,
+                                                      temperature, atom_list,
+                                                      index)
         else:
             message = 'Unknown potential type: ' + potential_type
             raise RuntimeError(message)
-        return potential
+        return generator
 
     def __parse_potentials(self,
                            timestep: float,
@@ -797,8 +801,9 @@ class TOMLPARSER(object):
             else:
                 potential['pseudopotential_dir'] = _os.getcwd()
             self.__potential_generators.append((
-                potential['type'].upper(), lambda i=index, p=potential:
-                self.__parse_potential(p, i, timestep, temperature)))
+                potential['type'].upper(),
+                self.__parse_potential(potential, index, timestep,
+                                       temperature)))
 
     def __parse_constraints(self):
         """

@@ -58,7 +58,14 @@ class POTENTIAL(_ab.ABC):
         system : somd.systems.MDSYSTEM
             The simulated system.
         """
-        raise NotADirectoryError()
+        raise NotImplementedError()
+
+    @classmethod
+    def generator(cls, *args, **kwargs) -> callable:
+        """
+        Return a generator of this potential.
+        """
+        return lambda x=args, y=kwargs: cls(*x, **y)
 
     def reset(self) -> None:
         """

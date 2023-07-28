@@ -69,8 +69,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         Create a PLUMED instance.
         """
         super().__init__(atom_list)
-        self.__args = [atom_list, file_name, timestep, temperature, restart,
-                       output_prefix, cv_names]
+        self.__args = [atom_list, _os.path.abspath(file_name), timestep,
+                       temperature, restart, output_prefix, cv_names]
         _os.environ['PLUMED_LOAD_NODEEPBIND'] = 'yes'
         _os.environ['PLUMED_TYPESAFE_IGNORE'] = 'yes'
         # treat PLUMED as a local dependency
@@ -162,6 +162,18 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("getBias", self.energy_potential)
         self.virial[:] *= -1.0
         self.__step += 1
+
+    @classmethod
+    def generator(cls, *args, **kwargs) -> callable:
+        """
+        Return a generator of this potential.
+        """
+        if 'file_name' in kwargs.keys():
+            kwargs['file_name'] = _os.path.abspath(kwargs['file_name'])
+        else:
+            args = list(args)
+            args[1] = _os.path.abspath(args[1])
+        return lambda x=tuple(args), y=kwargs: cls(*x, **y)
 
     def finalize(self) -> None:
         """
