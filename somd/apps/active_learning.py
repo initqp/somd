@@ -92,6 +92,9 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             Paths to the initial potential files (nep.txt files). If this
             option appears, the first iteration of training will not be
             performed.
+        -  energy_shift : float
+            Shift the total energy by this value before recording the total
+            energy to the trajectory. In unit of (kJ/mol).
     nep_parameters : str
         The keywords and corresponding values to be used in a nep.in file.
         Different keywords should be split by newlines, as in the nep.in file.
@@ -101,9 +104,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         If invoke the tabulated version of NEP.
     post_step_objects : List(object):
         The post step objects, including the barostat.
-    energy_shift : float
-        Shift the total energy by this value before recording the total energy
-        to the trajectory. In unit of (kJ/mol).
     output_prefix : str
         Prefix of the output file.
     """
@@ -118,7 +118,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                  nep_command: str = 'nep',
                  use_tabulating: bool = False,
                  post_step_objects: list = [],
-                 energy_shift: float = 0.0,
                  output_prefix: str = '') -> None:
         """
         Create an ACTIVELEARNING instance.
@@ -126,7 +125,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         self.__nep_command = nep_command
         self.__nep_parameters = nep_parameters
         self.__use_tabulating = use_tabulating
-        self.__energy_shift = energy_shift
         self.__learning_parameters = learning_parameters
         self.__reference_potentials = reference_potentials
         self.__write_nep_types = _utils.nep.check_nep_parameters(
@@ -164,6 +162,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             param['max_new_structures_per_iter'] = 250
         if ('initial_testing_set' not in param.keys()):
             param['initial_testing_set'] = param['initial_training_set']
+        if ('energy_shift' not in param.keys()):
+            param['energy_shift'] = 0.0
         # some checks
         if ('initial_potential_files' in param.keys() and self.n_iter == 0):
             if (len(param['initial_potential_files']) !=
@@ -225,7 +225,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         h5_group['n_untrained_structures'][0] = 0
         self._create_dataset(h5_path + '/energy_shift',
                              (1,), (1,), _np.double, 'kJ/mol')
-        h5_group['energy_shift'][0] = self.__energy_shift
+        h5_group['energy_shift'][0] = param['energy_shift']
         self._create_dataset(h5_path + '/min_new_structures_per_iter',
                              (1,), (1,), int)
         h5_group['min_new_structures_per_iter'][0] = \
@@ -420,7 +420,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         traj_file_name = h5_group.attrs['accepted_structures']
         traj_writer = _mdapps.trajectories.EXYZWRITER(
             traj_file_name, write_velocities=False, wrap_positions=True,
-            energy_shift=self.__energy_shift)
+            energy_shift=h5_group['energy_shift'][0])
         traj_writer.bind_integrator(integrator)
         traj_writer.initialize()
         # For each candidate structure, we copy its atomic positions and
@@ -446,7 +446,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 # Only update the exyz file on success.
                 traj_writer.update()
                 h5_group['accepted_structure_energies'][i] = \
-                    system.energy_potential - self.__energy_shift
+                    system.energy_potential - h5_group['energy_shift'][0]
         # Finally we clean the system.
         h5_group['progress'].attrs['ab_initial_finished'] = True
         for potential in system.potentials:

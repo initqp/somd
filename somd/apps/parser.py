@@ -1105,7 +1105,6 @@ class TOMLPARSER(object):
             {k: v for k, v in protocol.items() if v is not None},
             protocol['nep_options'], protocol['nep_command'],
             bool(protocol['use_tabulating']), post_step_objects,
-            protocol['energy_shift'],
             self.__root['run']['label'] + '.active_learning')
 
     def run(self):
