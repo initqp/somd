@@ -197,7 +197,7 @@ def test_tps_run_1():
     STATE = somd.apps.path_sampling.utils.state.STATE
     sampler = somd.apps.path_sampling.tps.FELTWTPS(
         _model.system, _model.integrator,
-        [lambda: _model.PES([0], 3 * _model.kb * 300)],
+        [_model.PES.generator([0], 3 * _model.kb * 300)],
         {'plumed_file': _os.path.abspath('./data/path_sampling/plumed.inp'),
          'cv_names': [{'p': 'x'}, {'p': 'y'}],
          'states': [STATE(_model.i1, 'S1'), STATE(_model.i2, 'S2')],
@@ -257,7 +257,7 @@ def test_tps_run_2():
     STATE = somd.apps.path_sampling.utils.state.STATE
     sampler = somd.apps.path_sampling.tps.FELOWTPS(
         _model.system, _model.integrator,
-        [lambda: _model.PES([0], 3 * _model.kb * 300)],
+        [_model.PES.generator([0], 3 * _model.kb * 300)],
         {'plumed_file': _os.path.abspath('./data/path_sampling/plumed.inp'),
          'cv_names': [{'p': 'x'}, {'p': 'y'}],
          'states': [STATE(_model.i1, 'S1'), STATE(_model.i2, 'S2')],

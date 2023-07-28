@@ -17,11 +17,8 @@ def test_active_learning():
         './data/active_learning/topo.pdb')
     system.groups.create_from_dict({'atom_list': range(0, 8)})
     integrator = somd.core.integrators.nhc_integrator(0.001)
-
-    def get_potential():
-        return somd.potentials.DFTD3(
-            list(range(0, 8)), system.atomic_types, 'pbe')
-
+    get_potential = somd.potentials.DFTD3.generator(list(range(0, 8)),
+                                                    system.atomic_types, 'pbe')
     if (_os.path.exists('active_learning.h5')):
         _os.remove('active_learning.h5')
     if (_os.path.exists('active_learning.dir')):
