@@ -19,6 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from cython cimport double
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from nep cimport NEP3

@@ -22,7 +22,6 @@
 from libcpp cimport bool
 from libcpp.vector cimport vector
 from libcpp.string cimport string
-from cython cimport double
 
 cdef extern from "NEP_CPU/src/nep.cpp" nogil:
     pass
