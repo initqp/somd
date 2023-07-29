@@ -21,6 +21,7 @@
 
 from libcpp cimport bool
 from libcpp.vector cimport vector
+from cython cimport double
 
 cdef extern from "nhc.cxx" nogil:
     pass
