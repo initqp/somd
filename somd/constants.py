@@ -66,8 +66,6 @@ class SOMDDEFAULTS:
 
     Attributes
     ----------
-    POTLIST : list
-        Default potentials to update.
     NHCLENGTH : int
         Length of the Nose-Hoover chains.
     NHCNRESPA : int
@@ -81,7 +79,6 @@ class SOMDDEFAULTS:
     SIESTATIMEOUT : int
         Timeout for any SIESTA operations (second).
     """
-    POTLIST: list = None
     NHCLENGTH: int = 6
     NHCNRESPA: int = 4
     GEODESICKR: int = 5

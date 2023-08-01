@@ -322,7 +322,7 @@ class INTEGRATOR(object):
         """
         Update the atomic forces (not a real operator).
         """
-        self.__system.update_potentials(_d.POTLIST)
+        self.__system.update_potentials()
 
     def _operator_O(self, dt_index: int) -> None:
         """

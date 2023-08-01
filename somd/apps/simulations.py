@@ -104,11 +104,7 @@ class SIMULATION(object):
         # from a HDF5 file, we should not update the potentials.
         # This will ensure a strict restarting when using barostats.
         potential_list = []
-        if (_d.POTLIST is None):
-            tmp = list(range(0, len(self.system.potentials)))
-        else:
-            tmp = _d.POTLIST.copy()
-        for i in tmp:
+        for i in range(0, len(self.system.potentials)):
             p = self.system.potentials[i]
             if (p.__class__.__name__ != 'PLUMED'):
                 potential_list.append(i)
