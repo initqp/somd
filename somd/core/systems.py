@@ -234,7 +234,9 @@ class MDSYSTEM(object):
         system.find_segments()
         return system
 
-    def update_potentials(self, indices: list = None) -> None:
+    def update_potentials(self,
+                          indices: list = None,
+                          perform_calculations: bool = True) -> None:
         """
         Invoke the force calculators.
 
@@ -243,6 +245,9 @@ class MDSYSTEM(object):
         indices : List(int)
             Indices of the force calculators to invoke. The default behavior is
             calling all the calculators.
+        perform_calculations : bool
+            If actually evolve potentials. If false, the potential data will be
+            simply copied from the calculators.
         """
         self.virial[:] = 0.0
         self.forces[:] = 0.0
@@ -251,17 +256,19 @@ class MDSYSTEM(object):
             l = range(0, len(self.potentials))
         else:
             l = indices
-        if (_d.SIMUUPDATE):
-            threads = []
-            for i in l:
-                t = _Thread(target=self.__potentials[i].update, args=(self,))
-                threads.append(t)
-                t.start()
-            for t in threads:
-                t.join()
-        else:
-            for i in l:
-                self.__potentials[i].update(self)
+        if (perform_calculations):
+            if (_d.SIMUUPDATE):
+                threads = []
+                for i in l:
+                    t = _Thread(target=self.__potentials[i].update,
+                                args=(self,))
+                    threads.append(t)
+                    t.start()
+                for t in threads:
+                    t.join()
+            else:
+                for i in l:
+                    self.__potentials[i].update(self)
         for i in l:
             self.virial[:] += self.__potentials[i].virial
             self.forces[self.__potentials[i].atom_list] += \
