@@ -654,7 +654,7 @@ class TOMLPARSER(object):
         Parameters
         ----------
         inp: dict
-            The dictionary that defines the DFTD3 potential.
+            The dictionary that defines the DFTD4 potential.
         atom_list : list(int)
             The atom list.
         """
@@ -675,7 +675,7 @@ class TOMLPARSER(object):
         Parameters
         ----------
         inp: dict
-            The dictionary that defines the DFTD3 potential.
+            The dictionary that defines the NEP potential.
         atom_list : list(int)
             The atom list.
         """
