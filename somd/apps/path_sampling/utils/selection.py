@@ -21,6 +21,7 @@ Select frames from paths according to the CV values.
 """
 
 import numpy as _np
+import warnings as _w
 
 __all__ = ['calculate_frame_probabilities', 'select']
 
@@ -65,7 +66,8 @@ def calculate_frame_probabilities(cv_values: _np.ndarray,
 
 def select(cv_values: _np.ndarray,
            bias_function: callable = None,
-           strip_terminal: bool = False) -> dict:
+           strip_terminal: bool = False,
+           fallback: bool = True) -> dict:
     """
     Rondomly select a frame from the path according to a given bias
     function.
@@ -81,15 +83,22 @@ def select(cv_values: _np.ndarray,
         bias_function = lambda x: (x > 1.0) * (x < 2.0)
     strip_terminal : bool
         If set probabilities of the first and last points to zero.
+    fallback : bool
+        If fall back to uniform selection when the bias function returns zero
+        of every frame.
     """
     cumulation = 0.0
     trial = _np.random.rand()
     probabilities = calculate_frame_probabilities(cv_values, bias_function,
                                                   strip_terminal)
     if (_np.allclose(probabilities.sum(), 0.0, 1E-16)):
-        message = 'The total selection probability is 0! Will select ' + \
-                  'no frame from the path!'
-        raise RuntimeError(message)
+        message = 'The total selection probability is 0!'
+        if (fallback):
+            probabilities = calculate_frame_probabilities(cv_values, None,
+                                                          strip_terminal)
+            _w.warning(message)
+        else:
+            raise RuntimeError(message)
     for i in range(0, len(cv_values)):
         cumulation += probabilities[i]
         if (cumulation > trial):
