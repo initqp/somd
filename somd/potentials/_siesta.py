@@ -293,7 +293,7 @@ def _create_siesta_input(system: _mdcore.systems.MDSYSTEM,
         print(atomic_symbol_list[i], file=fp)
     print('%endblock ChemicalSpeciesLabel', file=fp)
     print('LatticeConstant 1.0 Ang', file=fp)
-    print('%block LatticeVectors ', file=fp)
+    print('%block LatticeVectors', file=fp)
     _np.savetxt(fp, system.box * 10, fmt="%16.10f")
     print('%endblock LatticeVectors', file=fp)
     print('AtomicCoordinatesFormat  NotScaledCartesianAng', file=fp)
