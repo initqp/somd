@@ -27,7 +27,7 @@ import somd.core as _mdcore
 __all__ = ['shoot']
 
 
-def shoot(system: _mdcore.systems.MDSYSTEM) -> None:
+def shoot(system: _mdcore.systems.MDSYSTEM, temperature: float = None) -> None:
     """
     Modify the momentum part of one phase point while keeping the phase density
     unchanged.
@@ -36,7 +36,7 @@ def shoot(system: _mdcore.systems.MDSYSTEM) -> None:
     ----------
     system: somd.core.systems.MDSYSTEM
         The system to shoot.
-    temperatire : float
+    temperature : float
         The temperature of the shooting point. If this parameters is given,
         the kinetic energy of the original trajectory will not be invoked.
     """
@@ -45,7 +45,8 @@ def shoot(system: _mdcore.systems.MDSYSTEM) -> None:
         system.groups.create_from_dict({'atom_list': range(0, system.n_atoms)})
         target_groups = [system.groups[len(system.groups) - 1]]
     target_group = target_groups[0]
-    temperature = target_group.temperature.copy()
+    if (temperature is None):
+        temperature = target_group.temperature.copy()
     target_group.velocities = 0
     target_group.add_velocities_from_temperature(temperature)
     if (len(system.constraints) > 0):
