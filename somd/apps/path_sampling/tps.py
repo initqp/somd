@@ -655,6 +655,16 @@ class TPSBASE(_mdapps.simulations.STAGEDSIMULATION, _ab.ABC):
         """
         raise NotImplementedError()
 
+    def initialize(self) -> None:
+        """
+        Initialize the simulation.
+        """
+        if (self.n_iter == 0):
+            self._initialize_root_data_group()
+            self._initialize_iteration_data_group(0)
+            self.make_initial_path()
+            self._increase_n_iter()
+
     def run(self, n_iterations: int = 1) -> None:
         """
         Run the simulation.
@@ -664,11 +674,7 @@ class TPSBASE(_mdapps.simulations.STAGEDSIMULATION, _ab.ABC):
         n_iterations : int
             Number of iterations to run.
         """
-        if (self.n_iter == 0):
-            self._initialize_root_data_group()
-            self._initialize_iteration_data_group(0)
-            self.make_initial_path()
-            self._increase_n_iter()
+        self.initialize()
         for i in range(0, n_iterations):
             self._initialize_iteration_data_group(self.n_iter)
             self.step()
