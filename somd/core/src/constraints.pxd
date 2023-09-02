@@ -37,11 +37,11 @@ cdef extern from "constraints.h" nogil:
         vector[vector[int]] get_indices()
         void set_max_cycles(int v)
         void set_die_on_fail(bool v)
-        void append(int t, vector[int] &idx, double target, \
-            double tolerance) except +
+        void append(int t, vector[int] &idx, double target,
+                    double tolerance) except +
         void pop(int idx)
         void clear()
-        void rattle_constrain_q(double *positions, double *velocities, \
-            double *mass, double dt, int n_atoms) except +
-        void rattle_constrain_p(double *positions, double *velocities, \
-            double *mass, double dt, int n_atoms) except +
+        void rattle_constrain_q(double *positions, double *velocities,
+                                double *mass, double dt, int n_atoms) except +
+        void rattle_constrain_p(double *positions, double *velocities,
+                                double *mass, double dt, int n_atoms) except +

@@ -38,11 +38,11 @@ cdef class NHCHAINS(object):
     # Pointer to the internal C++ object.
     cdef NHC *__cxx_obj_ptr
 
-    def __cinit__(self, \
-                  temperature: double, \
-                  tau: double, \
-                  n_bead: int, \
-                  n_dof: int, \
+    def __cinit__(self,
+                  temperature: double,
+                  tau: double,
+                  n_bead: int,
+                  n_dof: int,
                   n_respa: int) -> None:
         """
         Initialize the Nose-Hoover chains.

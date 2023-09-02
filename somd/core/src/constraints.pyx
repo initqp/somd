@@ -90,8 +90,9 @@ cdef class CONSTRAINTS(object):
         Set maximum number of the RATTLE iterations.
         """
         if (v < 0):
-            raise RuntimeError('Maximum number of the RATTLE iterations' + \
-                'must be larger than 0!')
+            message = 'Maximum number of the RATTLE iterations' + \
+                      'must be larger than 0!'
+            raise RuntimeError(message)
         self.__cxx_obj_ptr.set_max_cycles(v)
 
     @property
@@ -127,8 +128,8 @@ cdef class CONSTRAINTS(object):
             - 'tolerance' : float
                 Tolerance value of the RATTLE iterations.
         """
-        self.__cxx_obj_ptr.append(c['type'], c['indices'], \
-                                  c['target'], c['tolerance'])
+        self.__cxx_obj_ptr.append(
+            c['type'], c['indices'], c['target'], c['tolerance'])
         self.__system.groups.update_n_dof()
         self.__system.find_segments()
 
@@ -142,8 +143,8 @@ cdef class CONSTRAINTS(object):
             The constraints to append.
         """
         for c in c_list:
-            self.__cxx_obj_ptr.append(c['type'], c['indices'], \
-                                      c['target'], c['tolerance'])
+            self.__cxx_obj_ptr.append(
+                c['type'], c['indices'], c['target'], c['tolerance'])
         self.__system.groups.update_n_dof()
         self.__system.find_segments()
 
@@ -172,10 +173,10 @@ cdef class CONSTRAINTS(object):
         """
         self.__cxx_obj_ptr.clear()
 
-    cdef void rattle_constrain_q_wrapper(self, \
-                                         positions: double[:,:], \
-                                         velocities: double[:,:], \
-                                         mass: double[:,:], \
+    cdef void rattle_constrain_q_wrapper(self,
+                                         positions: double[:, :],
+                                         velocities: double[:, :],
+                                         mass: double[:, :],
                                          dt: double):
         """
         Perform the upper part of RATTLE (wrapper).
@@ -200,10 +201,10 @@ cdef class CONSTRAINTS(object):
             self.__cxx_obj_ptr.rattle_constrain_q(
                 &positions[0,0], &velocities[0,0], &mass[0,0], dt, n_atoms)
 
-    cdef void rattle_constrain_p_wrapper(self, \
-                                         positions: double[:,:], \
-                                         velocities: double[:,:], \
-                                         mass: double[:,:], \
+    cdef void rattle_constrain_p_wrapper(self,
+                                         positions: double[:, :],
+                                         velocities: double[:, :],
+                                         mass: double[:, :],
                                          dt: double):
         """
         Perform the lower part of RATTLE (wrapper).
