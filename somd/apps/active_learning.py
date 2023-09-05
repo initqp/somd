@@ -340,10 +340,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             # Set up writers
             data_file_name = h5_group.attrs['system_data']
             data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
-            data_writer.bind_integrator(simulation.integrator)
             traj_file_name = h5_group.attrs['visited_structures']
             traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
-            traj_writer.bind_integrator(simulation.integrator)
             simulation.post_step_objects.append(data_writer)
             simulation.post_step_objects.append(traj_writer)
             # Propagate the trajectory segment.

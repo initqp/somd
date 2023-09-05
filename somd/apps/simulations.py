@@ -77,15 +77,12 @@ class SIMULATION(object):
         integrator.bind_system(system)
         # Bind the barostat to the system.
         if (barostat is not None):
-            barostat.bind_integrator(integrator)
             self.__post_step_objects.append(barostat)
         # Bind the trajectory writers to the system.
         for t in trajectories:
-            t.bind_integrator(integrator)
             self.__post_step_objects.append(t)
         # Bind the loggers to the system.
         for l in loggers:
-            l.bind_integrator(integrator)
             self.__post_step_objects.append(l)
 
     def _loop(self) -> None:
@@ -112,6 +109,7 @@ class SIMULATION(object):
             self.system.update_potentials(potential_list)
         # Initialize post step objects.
         for obj in self.__post_step_objects:
+            obj.bind_integrator(self.__integrator)
             obj.initialize()
         self.__initialized = True
 
@@ -395,7 +393,6 @@ class STAGEDSIMULATION(_ab.ABC):
                 barostat = post_step_objects.pop(index)
         simulation = SIMULATION(system, integrator, barostat)
         for obj in post_step_objects:
-            obj.bind_integrator(integrator)
             simulation.post_step_objects.append(obj)
         try:
             yield simulation

@@ -1052,7 +1052,6 @@ class TOMLPARSER(object):
             self.__system, self.__integrator, barostat=self.__barostat,
             loggers=self.__loggers, trajectories=self.__trajectories)
         for obj in self.__scripts:
-            obj.bind_integrator(self.__integrator)
             self.__simulation.post_step_objects.append(obj)
 
     def __parse_active_learning(self):
