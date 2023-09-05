@@ -212,9 +212,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         Open the trajectory for writing.
         """
         super().initialize()
-        try:
-            _os.stat(self.file_name)
-        except FileNotFoundError:
+        if (not _os.path.exists(self.file_name)):
             self.__append = False
         if (self.__append):
             self.__root = _h5.File(self.file_name, 'a')
@@ -230,8 +228,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         Write to the trajectory immediately.
         """
         if (not self.initialized):
-            message = 'Must initialize the writer before write!'
-            raise RuntimeError(message)
+            self.initialize()
         n_atoms = self.__system.n_atoms
         if (self.__is_restart):
             # The step stands for the number of trajectory frame.
@@ -457,9 +454,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         Open the trajectory for writing.
         """
         super().initialize()
-        try:
-            _os.stat(self.file_name)
-        except FileNotFoundError:
+        if (not _os.path.exists(self.file_name)):
             self.__append = False
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
@@ -472,8 +467,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         Write to the trajectory immediately.
         """
         if (not self.initialized):
-            message = 'Must initialize the writer before write!'
-            raise RuntimeError(message)
+            self.initialize()
         self.__convert_data()
         print(self.__system.n_atoms, file=self.__fp)
         s = format(self.__energy_potential)[1:-1]

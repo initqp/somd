@@ -422,7 +422,6 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             traj_file_name, write_velocities=False, wrap_positions=True,
             energy_shift=h5_group['energy_shift'][0])
         traj_writer.bind_integrator(integrator)
-        traj_writer.initialize()
         # For each candidate structure, we copy its atomic positions and
         # box to the system object and perform the reference potential
         # calculations.

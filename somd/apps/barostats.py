@@ -141,6 +141,8 @@ class BAROSTAT(_utils.POSTSTEPOBJ):
         """
         Perform the pressure controlling.
         """
+        if (not self.initialized):
+            self.initialize()
         super().update()
         mu = self.__calc_mu_deterministic()
         self.__system.box[:] = mu.dot(self.__system.box.T).T

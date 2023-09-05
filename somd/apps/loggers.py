@@ -114,9 +114,7 @@ class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
         Open the file for writing.
         """
         super().initialize()
-        try:
-            _os.stat(self.file_name)
-        except FileNotFoundError:
+        if (not _os.path.exists(self.file_name)):
             self.__append = False
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
@@ -130,8 +128,7 @@ class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
         Write to the log file immediately.
         """
         if (not self.initialized):
-            message = 'Must initialize the writer before write!'
-            raise RuntimeError(message)
+            self.initialize()
         if (self.__potential_list is None):
             energy_potential = self.__system.energy_potential
         else:

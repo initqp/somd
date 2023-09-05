@@ -142,7 +142,6 @@ class SIMULATION(object):
         """
         t = _mdapps.trajectories.H5WRITER(file_name, restart_file=True)
         t.bind_integrator(self.__integrator)
-        t.initialize()
         t.write()
         del t
 

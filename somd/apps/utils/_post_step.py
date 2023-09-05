@@ -69,13 +69,11 @@ class POSTSTEPOBJ(_ab.ABC):
             raise RuntimeError(message)
         self.__initialized = True
 
+    @_ab.abstractmethod
     def update(self) -> bool:
         """
         Perform the post step task.
         """
-        if (not self.initialized):
-            message = 'Must initialize the object before update!'
-            raise RuntimeError(message)
         if ((self.step % self.__interval) == 0):
             return True
         else:
