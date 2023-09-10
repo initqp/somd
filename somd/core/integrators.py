@@ -409,9 +409,12 @@ class INTEGRATOR(object):
         if ('N' in self.__splitting_whole['operators']):
             _d.NHCLENGTH = self._nhchains[0].length
             _d.NHCNRESPA = self._nhchains[0].n_respa
-        integrator = INTEGRATOR(self.timestep, self.splitting,
-                                self.temperatures, self.relaxation_times,
-                                self.thermo_groups)
+        if (self._is_nve):
+            integrator = INTEGRATOR(self.timestep, self.splitting)
+        else:
+            integrator = INTEGRATOR(self.timestep, self.splitting,
+                                    self.temperatures, self.relaxation_times,
+                                    self.thermo_groups)
         if ('N' in self.__splitting_whole['operators']):
             for i in range(0, len(self.__thermo_groups)):
                 integrator._nhchains[i].temperature = self.__temperatures[i]
