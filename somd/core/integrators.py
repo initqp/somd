@@ -118,6 +118,12 @@ class INTEGRATOR(object):
         self.__splitting = splitting
         self.__compile()
 
+    def __copy__(self) -> 'INTEGRATOR':
+        """
+        Clone this integrator.
+        """
+        return self.copy()
+
     def __compile(self) -> None:
         """
         Compile splitting schemes to codes.

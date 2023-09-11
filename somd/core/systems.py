@@ -61,6 +61,12 @@ class SNAPSHOT(object):
         self.__positions = _np.zeros((self.n_atoms, 3), _np.double)
         self.__velocities = _np.zeros((self.n_atoms, 3), _np.double)
 
+    def __copy__(self) -> 'SNAPSHOT':
+        """
+        Clone this snapshot.
+        """
+        return self.copy()
+
     def copy(self) -> 'SNAPSHOT':
         """
         Clone this snapshot.
@@ -210,6 +216,12 @@ class MDSYSTEM(object):
         self.__segments = []
         self.__potentials = []
         self.__atomic_symbols = []
+
+    def __copy__(self) -> 'MDSYSTEM':
+        """
+        Clone the system without potential calculators.
+        """
+        return self.copy()
 
     def copy(self) -> 'MDSYSTEM':
         """
