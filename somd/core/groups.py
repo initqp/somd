@@ -248,8 +248,8 @@ class ATOMGROUP(object):
             for g in self.__system.groups:
                 if (not g.has_translations) and (self != g) and \
                         (self.overlap_with(g)):
-                    message = 'Atom group \'{}\' is overlapping with ' + \
-                              'atomic group \'{}\' while both are binding ' + \
+                    message = 'Atom group "{}" is overlapping with ' + \
+                              'atomic group "{}" while both are binding ' + \
                               'with COM motion removers!'
                     message = message.format(self._label, g._label)
                     raise RuntimeError(message)
