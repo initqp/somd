@@ -76,6 +76,8 @@ class INTEGRATOR(object):
         thermostat only thermalizes one atomic group. Thus, lengths of the
         'temperature', 'relaxation_times' and 'thermo_groups' parameters
         must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance.
 
     References
     ----------
@@ -99,11 +101,13 @@ class INTEGRATOR(object):
                  splitting: list = [{'operators': ['V', 'R', 'V']}],
                  temperatures: list = [300],
                  relaxation_times: list = [0.1],
-                 thermo_groups: list = [0]) -> None:
+                 thermo_groups: list = [0],
+                 rng: _np.random.Generator = None) -> None:
         """
         Create an integrator based on given splitting method.
         """
         self.__step = 0
+        self.__rng = rng
         self.__system = None
         self.__is_nve = True
         self.__timestep = timestep
@@ -115,6 +119,10 @@ class INTEGRATOR(object):
         for i in range(0, len(splitting)):
             l = splitting[i]['operators']
             splitting[i]['operators'] = [o.strip().upper() for o in l]
+        if (rng is not None):
+            self.__randn = self.__rng.standard_normal
+        else:
+            self.__randn = _np.random.randn
         self.__splitting = splitting
         self.__compile()
 
@@ -287,7 +295,7 @@ class INTEGRATOR(object):
         Randomize momentums of the Nose-Hoover chains.
         """
         for n in self._nhchains:
-            n.momentums = _np.random.randn(n.length) * \
+            n.momentums = self.__randn(n.length) * \
                 _np.sqrt(n.temperature * _c.BOLTZCONST * _np.array(n.masses))
 
     def _operator_V(self, dt_index: int) -> None:
@@ -342,7 +350,7 @@ class INTEGRATOR(object):
             c_2 = _np.sqrt((1.0 - c_1 * c_1) * self.__temperatures[i] *
                            _c.BOLTZCONST)
             g.velocities *= c_1
-            g.velocities += _np.random.randn(g.n_atoms, 3).dot(c_2) / \
+            g.velocities += self.__randn(g.n_atoms, 3).dot(c_2) / \
                 _np.sqrt(g.masses)
             self.__energy_effective -= g.energy_kinetic
 
@@ -416,11 +424,12 @@ class INTEGRATOR(object):
             _d.NHCLENGTH = self._nhchains[0].length
             _d.NHCNRESPA = self._nhchains[0].n_respa
         if (self._is_nve):
-            integrator = INTEGRATOR(self.timestep, self.splitting)
+            integrator = INTEGRATOR(self.timestep, self.splitting,
+                                    rng=self.__rng)
         else:
             integrator = INTEGRATOR(self.timestep, self.splitting,
                                     self.temperatures, self.relaxation_times,
-                                    self.thermo_groups)
+                                    self.thermo_groups, self.__rng)
         if ('N' in self.__splitting_whole['operators']):
             for i in range(0, len(self.__thermo_groups)):
                 integrator._nhchains[i].temperature = self.__temperatures[i]
@@ -637,7 +646,8 @@ def cs4_integrator(timestep: float) -> INTEGRATOR:
 def baoab_integrator(timestep: float,
                      temperatures: list = [300],
                      relaxation_times: list = [0.1],
-                     thermo_groups: list = [0]) -> INTEGRATOR:
+                     thermo_groups: list = [0],
+                     rng: _np.random.Generator = None) -> INTEGRATOR:
     """
     The Langevin integrator with a BAOAB splitting [1].
 
@@ -653,6 +663,8 @@ def baoab_integrator(timestep: float,
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance.
 
     References
     ----------
@@ -661,13 +673,14 @@ def baoab_integrator(timestep: float,
            Mathematics Research eXpress 2013.1 (2013): 34-56.
     """
     return INTEGRATOR(timestep, [{'operators': ['V', 'R', 'O', 'R', 'V']}],
-                      temperatures, relaxation_times, thermo_groups)
+                      temperatures, relaxation_times, thermo_groups, rng)
 
 
 def obabo_integrator(timestep: float,
                      temperatures: list = [300],
                      relaxation_times: list = [0.1],
-                     thermo_groups: list = [0]) -> INTEGRATOR:
+                     thermo_groups: list = [0],
+                     rng: _np.random.Generator = None) -> INTEGRATOR:
     """
     The Langevin integrator with an OBABO splitting [1].
 
@@ -683,6 +696,8 @@ def obabo_integrator(timestep: float,
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance.
 
     References
     ----------
@@ -690,13 +705,14 @@ def obabo_integrator(timestep: float,
            Langevin dynamics." Physical Review E 75.5 (2007): 056707.
     """
     return INTEGRATOR(timestep, [{'operators': ['O', 'V', 'R', 'V', 'O']}],
-                      temperatures, relaxation_times, thermo_groups)
+                      temperatures, relaxation_times, thermo_groups, rng)
 
 
 def gbaoab_integrator(timestep: float,
                       temperatures: list = [300],
                       relaxation_times: list = [0.1],
-                      thermo_groups: list = [0]) -> INTEGRATOR:
+                      thermo_groups: list = [0],
+                      rng: _np.random.Generator = None) -> INTEGRATOR:
     """
     The geodesic Langevin integrator with a BAOAB splitting [1]. Note that this
     integrator should only be used when constraints are applied to the
@@ -714,6 +730,8 @@ def gbaoab_integrator(timestep: float,
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance.
 
     References
     ----------
@@ -728,13 +746,14 @@ def gbaoab_integrator(timestep: float,
         {'operators': ['O', 'Cv']},
         {'operators': ['Cr', 'R', 'Cv'], 'repeating': _d.GEODESICKR},
         {'operators': ['V', 'Cv']}],
-        temperatures, relaxation_times, thermo_groups)
+        temperatures, relaxation_times, thermo_groups, rng)
 
 
 def gobabo_integrator(timestep: float,
                       temperatures: list = [300],
                       relaxation_times: list = [0.1],
-                      thermo_groups: list = [0]) -> INTEGRATOR:
+                      thermo_groups: list = [0],
+                      rng: _np.random.Generator = None) -> INTEGRATOR:
     """
     The geodesic Langevin integrator with an OBABO splitting [1]. Note that
     this integrator should only be used when constraints are applied to the
@@ -752,6 +771,8 @@ def gobabo_integrator(timestep: float,
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance.
 
     References
     ----------
@@ -766,13 +787,14 @@ def gobabo_integrator(timestep: float,
         {'operators': ['Cr', 'R', 'Cv'], 'repeating': _d.GEODESICKR},
         {'operators': ['V', 'Cv']},
         {'operators': ['O', 'Cv']}],
-        temperatures, relaxation_times, thermo_groups)
+        temperatures, relaxation_times, thermo_groups, rng)
 
 
 def nhc_integrator(timestep: float,
                    temperatures: list = [300],
                    relaxation_times: list = [0.1],
-                   thermo_groups: list = [0]) -> INTEGRATOR:
+                   thermo_groups: list = [0],
+                   rng: _np.random.Generator = None) -> INTEGRATOR:
     """
     The Nose-Hoover Chains integrator [1].
 
@@ -788,6 +810,9 @@ def nhc_integrator(timestep: float,
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
+    rng : numpy.random.Generator
+        The pseudorandom number generator instance (used by the
+        `_randomize_nhchains_states` method).
 
     References
     ----------
@@ -797,4 +822,4 @@ def nhc_integrator(timestep: float,
     """
     return INTEGRATOR(timestep,
                       [{'operators': ['N', 'V', 'CR', 'R', 'V', 'CV', 'N']}],
-                      temperatures, relaxation_times, thermo_groups)
+                      temperatures, relaxation_times, thermo_groups, rng)

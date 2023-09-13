@@ -57,14 +57,14 @@ class ATOMGROUP(object):
         self.__atom_list.sort()
         self.__has_translations = True
         if (self.n_atoms > system.n_atoms):
-            message = 'Can not initialize group \'{}\' that contains ' + \
-                      '{:d} atoms from system \'{}\' with {:d} atoms!'
+            message = 'Can not initialize group "{}" that contains ' + \
+                      '{:d} atoms from system "{}" with {:d} atoms!'
             message = message.format(self._label, self.__atom_list.size,
                                      system._label, system.n_atoms)
             raise IndexError(message)
         elif (self.__atom_list.max() >= system.n_atoms):
-            message = 'Can not initialize group \'{}\' that contains ' + \
-                      'a maximum atomic ID of {:d} from system \'{}\' ' + \
+            message = 'Can not initialize group "{}" that contains ' + \
+                      'a maximum atomic ID of {:d} from system "{}" ' + \
                       'with {:d} atoms!'
             message = message.format(self._label, self.__atom_list.max(),
                                      system._label, system.n_atoms)
@@ -173,7 +173,10 @@ class ATOMGROUP(object):
             if (E_k_1 != 0):
                 self.velocities *= _np.sqrt(E_k / E_k_1)
 
-    def add_velocities_from_temperature(self, temperature: float) -> None:
+    def add_velocities_from_temperature(self,
+                                        temperature: float,
+                                        rng: _np.random.Generator = None
+                                        ) -> None:
         """
         Add velocities to atoms in the group according to the given
         temperature.
@@ -182,15 +185,21 @@ class ATOMGROUP(object):
         ----------
         temperature : float
             The initial temperature. In unit of (K).
+        rng : numpy.random.Generator
+            The pseudorandom number generator instance.
         """
         if (self.n_dof == 0):
-            message = 'Number of DOF of group \'{}\' has not been calculated!'
+            message = 'Number of DOF of group "{}" has not been calculated!'
             message = message.format(self._label)
             raise RuntimeError(message)
         if (temperature == 0):
             return
-        v = _np.random.randn(self.n_atoms, 3) * \
-            _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
+        if (rng is None):
+            v = _np.random.randn(self.n_atoms, 3) * \
+                _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
+        else:
+            v = rng.standard_normal((self.n_atoms, 3)) * \
+                _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
         # remove COM translational motions
         v -= (v * self.masses).sum(axis=0) / self.masses.sum()
         # remove COM rotational motions
@@ -413,7 +422,7 @@ class ATOMGROUPS(list):
         """
         for tmp in self:
             if (g == tmp):
-                message = 'Group \'{}\' has already been added to the ' + \
+                message = 'Group "{}" has already been added to the ' + \
                           'to the atomic groups!'
                 raise RuntimeError(message.format(g._label))
 

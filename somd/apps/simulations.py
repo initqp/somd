@@ -27,7 +27,6 @@ import warnings as _w
 import contextlib as _cl
 from somd import apps as _mdapps
 from somd import core as _mdcore
-from somd.constants import SOMDDEFAULTS as _d
 from . import utils as _utils
 
 __all__ = ['SIMULATION', 'STAGEDSIMULATION']
