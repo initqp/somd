@@ -22,7 +22,6 @@ def test_barostat_1():
     barostat = somd.apps.barostats.BAROSTAT([1E-5], [1E-5], 0.1)
     integrator.bind_system(system)
     barostat.bind_integrator(integrator)
-    barostat.initialize()
     integrator.propagate()
     barostat.update()
     result = _np.loadtxt('data/barostat/barostat_1.dat')
