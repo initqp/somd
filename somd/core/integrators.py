@@ -122,7 +122,7 @@ class INTEGRATOR(object):
         if (rng is not None):
             self.__randn = self.__rng.standard_normal
         else:
-            self.__randn = _np.random.randn
+            self.__randn = _np.random.standard_normal
         self.__splitting = splitting
         self.__compile()
 
@@ -350,7 +350,7 @@ class INTEGRATOR(object):
             c_2 = _np.sqrt((1.0 - c_1 * c_1) * self.__temperatures[i] *
                            _c.BOLTZCONST)
             g.velocities *= c_1
-            g.velocities += self.__randn(g.n_atoms, 3).dot(c_2) / \
+            g.velocities += self.__randn((g.n_atoms, 3)).dot(c_2) / \
                 _np.sqrt(g.masses)
             self.__energy_effective -= g.energy_kinetic
 

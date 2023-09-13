@@ -195,7 +195,7 @@ class ATOMGROUP(object):
         if (temperature == 0):
             return
         if (rng is None):
-            v = _np.random.randn(self.n_atoms, 3) * \
+            v = _np.random.standard_normal((self.n_atoms, 3)) * \
                 _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
         else:
             v = rng.standard_normal((self.n_atoms, 3)) * \
