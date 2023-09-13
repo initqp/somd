@@ -106,8 +106,8 @@ class INTEGRATOR(object):
         """
         Create an integrator based on given splitting method.
         """
+        self.rng = rng
         self.__step = 0
-        self.__rng = rng
         self.__system = None
         self.__is_nve = True
         self.__timestep = timestep
@@ -119,10 +119,6 @@ class INTEGRATOR(object):
         for i in range(0, len(splitting)):
             l = splitting[i]['operators']
             splitting[i]['operators'] = [o.strip().upper() for o in l]
-        if (rng is not None):
-            self.__randn = self.__rng.standard_normal
-        else:
-            self.__randn = _np.random.standard_normal
         self.__splitting = splitting
         self.__compile()
 
@@ -588,6 +584,24 @@ class INTEGRATOR(object):
             message = 'Can not get thermalized atomic groups of ' + \
                       'NVE integrators!'
             raise AttributeError(message)
+
+    @property
+    def rng(self) -> _np.random.Generator:
+        """
+        The RNG used by the integrator.
+        """
+        return self.__rng
+
+    @rng.setter
+    def rng(self, v: _np.random.Generator) -> None:
+        """
+        Set the RNG used by the integrator.
+        """
+        self.__rng = v
+        if (v is not None):
+            self.__randn = self.__rng.standard_normal
+        else:
+            self.__randn = _np.random.standard_normal
 
 
 def vv_integrator(timestep: float) -> INTEGRATOR:

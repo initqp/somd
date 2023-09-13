@@ -251,7 +251,8 @@ def test_gbaoab_copy_system():
     system = s1.copy()
     system.potentials.append(s1.potentials[0])
     integrator = somd.core.integrators.gbaoab_integrator(
-        0.0005, relaxation_times=[0.01], rng=rng)
+        0.0005, relaxation_times=[0.01])
+    integrator.rng = rng
     integrator.bind_system(system)
     integrator.propagate()
     result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
