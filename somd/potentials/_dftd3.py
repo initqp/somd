@@ -29,9 +29,9 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
 
     Parameters
     ----------
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
-    atomic_types : List(int)
+    atomic_types : List[int]
         Types of atoms included by this potential.
     method : str
         Name of the claculation method.

@@ -46,10 +46,10 @@ class INTEGRATOR(object):
     ----------
     timestep : float
         The timestep length of the integrator. In unit of ps.
-    splitting : List(dict)
+    splitting : List[dict]
         A list of dict that describe the splitting scheme. Valid keys
         of the dictionary are:
-        - 'operators' : List(string)
+        - 'operators' : List[string]
             Name of the operators. Valid values are:
             - 'V'  : Advance the velocities
             - 'R'  : Advance the positions
@@ -58,7 +58,7 @@ class INTEGRATOR(object):
             - 'O'  : Advance the Ornstein-Uhlenbeck process [3]
             - 'Cr' : Apply the RATTLE method for positions  [4]
             - 'Cv' : Apply the RATTLE method for velocities [4]
-        - 'timesteps' : List(float)
+        - 'timesteps' : List[float]
             Operator-wise scaling factors of the timestep. The length of this
             list must be the same as the length of the 'operators' list. In
             most cases the scaling factor of the timesteps are automatically
@@ -67,11 +67,11 @@ class INTEGRATOR(object):
         - 'repeating' : float
             Repeating times of the operator sequence definded by the key
             'operators'.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats (if present). In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats (if present). In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups (if thermostats present). Note that each
         thermostat only thermalizes one atomic group. Thus, lengths of the
         'temperature', 'relaxation_times' and 'thermo_groups' parameters
@@ -669,11 +669,11 @@ def baoab_integrator(timestep: float,
     ---------
     timestep : float
         Timestep of the integrator. In unit of ps.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats. In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats. In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
@@ -702,11 +702,11 @@ def obabo_integrator(timestep: float,
     ---------
     timestep : float
         Timestep of the integrator. In unit of ps.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats. In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats. In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
@@ -736,11 +736,11 @@ def gbaoab_integrator(timestep: float,
     ---------
     timestep : float
         Timestep of the integrator. In unit of ps.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats. In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats. In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
@@ -777,11 +777,11 @@ def gobabo_integrator(timestep: float,
     ---------
     timestep : float
         Timestep of the integrator. In unit of ps.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats. In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats. In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.
@@ -816,11 +816,11 @@ def nhc_integrator(timestep: float,
     ---------
     timestep : float
         Timestep of the integrator. In unit of ps.
-    temperatures : List(float)
+    temperatures : List[float]
         Temperatures of the thermostats. In unit of K.
-    relaxation_times : List(float)
+    relaxation_times : List[float]
         Relaxation times of the thermostats. In unit of ps.
-    thermo_groups : List(int)
+    thermo_groups : List[int]
         Thermalized atomic groups. Note that each thermostat only thermalizes
         one atomic group. Thus, lengths of the 'temperature',
         'relaxation_times' and 'thermo_groups' parameters must be the same.

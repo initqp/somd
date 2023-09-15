@@ -35,7 +35,7 @@ class ATOMGROUP(object):
     ----------
     system : somd.systems.MDSYSTEM
         The system that contains this group.
-    atom_list : List(int)
+    atom_list : List[int]
         IDs of the atoms in this group.
     label : str
         A descriptive string of this group. If no value is given, the label
@@ -506,7 +506,7 @@ class ATOMGROUPS(list):
         ----------
         group_dict : dict
             The group to create. This dictionary contains four fields:
-            - 'atom_list' : List(int)
+            - 'atom_list' : List[int]
                 IDs of the atoms in this group.
             - 'label' : str
                 A descriptive string of this group. If no value is given, the

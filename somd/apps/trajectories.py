@@ -60,7 +60,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         Use 64-bit floating point data in the trajectory instead of the
         original 32-bit convention. Note that this option will lead to
         non-standard trajectories and may cause some readers to fail.
-    potential_list : List(int)
+    potential_list : List[int]
         Index of the potentials whose forces and virial should be write to
         the force and virial array in the trajectory. Note that the included
         potentials must act on the whole simulated system.
@@ -341,7 +341,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         If write virial to the trajectory.
     wrap_positions : bool
         If write the wrapped positions to the box when writing the trajectory.
-    potential_list : List(int)
+    potential_list : List[int]
         Index of the potentials whose forces and virial should be write to
         the force and virial array in the trajectory. Note that the included
         potentials must act on the whole simulated system.

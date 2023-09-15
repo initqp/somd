@@ -35,7 +35,7 @@ class DEFAULTCSVLOGGER(_utils.POSTSTEPOBJ):
     ---------
     file_name : str
         Name of the log file.
-    groups : List(int)
+    groups : List[int]
         Indices of the groups to write out the information. If no groups are
         specified, information about all groups will be written.
     interval : int

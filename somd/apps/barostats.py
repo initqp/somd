@@ -33,13 +33,13 @@ class BAROSTAT(_utils.POSTSTEPOBJ):
 
     Parameters
     ----------
-    pressures : List(float)
+    pressures : List[float]
         The target pressures. In unit of (kJ/mol/nm^3). When using isotropic
         pressure controlling, this list contains one element, which stands for
         the hydrostatic pressure. When using anisotropic pressure controlling,
         this list contains six elements, which stand for the target pressures
         in the following directions: xx yy zz xy xz yz.
-    beta : List(float)
+    beta : List[float]
         The isothermal compressibilities. In unit of (nm^3/(kJ/mol)). When
         using isotropic pressure controlling, this list contains one element,
         which stands for isotropic compressibility. When using anisotropic

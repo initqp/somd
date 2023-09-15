@@ -38,7 +38,7 @@ def cat_exyz(set_in: list, set_out: str) -> None:
 
     Parameters
     ----------
-    set_in : List(str)
+    set_in : List[str]
         Names of input training sets.
     set_out : str
         Name of output training set.
@@ -61,7 +61,7 @@ def get_potentials_msd(potentials: list,
 
     Parameters
     ----------
-    potentials: List(somd.core.potential_base.POTENTIAL)
+    potentials: List[somd.core.potential_base.POTENTIAL]
         The potentials.
     system: somd.core.systems.MDSYSTEM
         The simulated system.
@@ -110,7 +110,7 @@ def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
     nep_parameters : str
         The keywords and corresponding values to be used in a nep.in file.
         Different keywords should be split by newlines, as in the nep.in file.
-    symbols : List(str)
+    symbols : List[str]
         Symbols of each atom in the system.
 
     Returns
@@ -147,7 +147,7 @@ def make_nep_in(nep_parameters: str, symbols: list = None) -> None:
     nep_parameters : str
         The keywords and corresponding values to be used in a nep.in file.
         Different keywords should be split by newlines, as in the nep.in file.
-    symbols : List(str)
+    symbols : List[str]
         Symbols of each atom in the system. If this option is None, the symbols
         will not be written.
     """

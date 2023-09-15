@@ -34,7 +34,7 @@ class POTENTIAL(_ab.ABC):
 
     Parameters
     ----------
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     """
 

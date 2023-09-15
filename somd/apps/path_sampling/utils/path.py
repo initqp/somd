@@ -42,15 +42,15 @@ class PATH(object):
     ----------
     reference_system : somd.core.systems.MDSYSTEM
         The simulated system.
-    trajectories : List(str)
+    trajectories : List[str]
         Name of the trajectory files.
     timestep : float
         Timestep between two frames. In unit of (ps).
-    frame_mapping : List(List(int))
+    frame_mapping : List[List[int]]
         The mapping array that records the index of one trajectory frame
         in the path. If an empty list was given, all frames in the
         trajectory will be used.
-    reverse_velocities : List(bool)
+    reverse_velocities : List[bool]
         If directions of velocities should be reversed when visited.
     cacheable : bool
         If cache the visited frames to avoid reading. Note that for large
@@ -162,7 +162,7 @@ class PATH(object):
 
         Parameters
         ----------
-        frame_mapping : List(List(int))
+        frame_mapping : List[List[int]]
             The mapping array that records the index of one trajectory frame
             in the path. If an empty list was given, all frames in the
             trajectory will be used.
@@ -203,7 +203,7 @@ class PATH(object):
 
         Parameters
         ----------
-        frame_mapping : List(List(int))
+        frame_mapping : List[List[int]]
             The mapping array that records the index of one trajectory frame
             in the path. If an empty list was given, all frames in the
             trajectory will be used.
@@ -264,7 +264,7 @@ class PATH(object):
         ----------
         plumed_file : str
             Name of the plumed input file.
-        cv_names : List(dict)
+        cv_names : List[dict]
             Names and components of the collective variables. For example:
             cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
         """
@@ -348,7 +348,7 @@ def concatenate(paths: list):
 
     Parameters
     ----------
-    paths : List(somd.apps.path_sampling.utils.path.PATH)
+    paths : List[somd.apps.path_sampling.utils.path.PATH]
         The paths to concatenate.
     """
     result = paths[0]

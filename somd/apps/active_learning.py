@@ -43,9 +43,9 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
         The integrator that propagates the simulated system.
-    potential_generators : List(Callable)
+    potential_generators : List[Callable]
         Generator functions of potential calculators.
-    reference_potentials : List(int)
+    reference_potentials : List[int]
         Indices of the reference potentials.
     learning_parameters : dict
         The parameters that define a learning process. Valid keys of this
@@ -88,7 +88,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         - initial_testing_set : str
             Default value : initial_training_set
             Path to the initial testing set (exyz file).
-        - initial_potential_files : List(str)
+        - initial_potential_files : List[str]
             Paths to the initial potential files (nep.txt files). If this
             option appears, the first iteration of training will not be
             performed.
@@ -102,7 +102,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         Command to submit a NEP training job.
     use_tabulating : bool
         If invoke the tabulated version of NEP.
-    post_step_objects : List(object):
+    post_step_objects : List[object]:
         The post step objects, including the barostat.
     output_prefix : str
         Prefix of the output file.
@@ -462,7 +462,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         ----------
         n_iter : int
             Number of the training iteration.
-        restart_files : List(str)
+        restart_files : List[str]
             Paths of the restart files.
         """
         cwd = _os.getcwd()

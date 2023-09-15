@@ -152,7 +152,7 @@ class SNAPSHOT(object):
 
         Parameters
         ----------
-        l : List(float)
+        l : List[float]
             The lattice parameters: [a, b, c, alpha, beta, gamma]. In units of
             nm (a, b, c) and degree (alpha, beta, gamma).
         """
@@ -254,7 +254,7 @@ class MDSYSTEM(object):
 
         Parameters
         ----------
-        indices : List(int)
+        indices : List[int]
             Indices of the force calculators to invoke. The default behavior is
             calling all the calculators.
         perform_calculations : bool
@@ -399,7 +399,7 @@ class MDSYSTEM(object):
 
         Parameters
         ----------
-        l : List(float)
+        l : List[float]
             The lattice parameters: [a, b, c, alpha, beta, gamma]. In units of
             nm (a, b, c) and degree (alpha, beta, gamma).
         """

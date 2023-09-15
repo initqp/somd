@@ -44,9 +44,9 @@ class SIMULATION(object):
         The integrator that propagates the simulated system.
     barostat : somd.apps.barostat.BAROSTAT
         The barostat.
-    trajectories : List(somd.apps.trajectories.*WRITER)
+    trajectories : List[somd.apps.trajectories.*WRITER]
         A list of trajectory writers.
-    loggers : List(somd.apps.loggers.*LOGGER)
+    loggers : List[somd.apps.loggers.*LOGGER]
         A list of simulation data loggers.
     """
 
@@ -226,9 +226,9 @@ class STAGEDSIMULATION(_ab.ABC):
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
         The integrator that propagates the simulated system.
-    potential_generators : List(Callable)
+    potential_generators : List[Callable]
         Generator functions of potential calculators.
-    post_step_objects : List(object):
+    post_step_objects : List[object]:
         The post step objects, including the barostat and any trajectory
         writers.
     output_prefix : str
@@ -372,9 +372,9 @@ class STAGEDSIMULATION(_ab.ABC):
 
         Parameters
         ----------
-        potential_indices : List(int)
+        potential_indices : List[int]
             Indices of the potentials that drive the simulation.
-        extra_potentials : List(somd.core.potential_base.POTENTIAL)
+        extra_potentials : List[somd.core.potential_base.POTENTIAL]
             Extra potentials that drive the simulation.
         """
         self.__check_system()

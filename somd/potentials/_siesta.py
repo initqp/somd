@@ -38,7 +38,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
 
     Parameters
     ----------
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     label : str
         Basename name of the SIESTA input file.
@@ -247,7 +247,7 @@ def _create_siesta_input(system: _mdcore.systems.MDSYSTEM,
     ----------
     system: somd.core.system.MDSYSTEM
         The simulated system.
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     options: str
         Auxiliary options to be added into the input file.
@@ -326,7 +326,7 @@ def create_siesta_potential(system: _mdcore.systems.MDSYSTEM,
     ----------
     system: somd.core.system.MDSYSTEM
         The simulated system.
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     options: str
         Auxiliary options to be added into the input file, e.g. the basis size
@@ -395,7 +395,7 @@ def create_siesta_generator(system: _mdcore.systems.MDSYSTEM,
     ----------
     system: somd.core.system.MDSYSTEM
         The simulated system.
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     options: str
         Auxiliary options to be added into the input file, e.g. the basis

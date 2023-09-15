@@ -33,7 +33,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
 
     Parameters
     ----------
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     file_name : str
         Name of the PLUMED input file.
@@ -45,7 +45,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         If restart the calculation.
     output_prefix : str
         Prefix of the output file.
-    cv_names : List(dict)
+    cv_names : List[dict]
         Names and components of the collective variables to save. For example:
         cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
 
@@ -115,7 +115,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
 
         Parameters
         ----------
-        cv_names : List(dict)
+        cv_names : List[dict]
             Names and components of the collective variables to save. For
             example:
             cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]

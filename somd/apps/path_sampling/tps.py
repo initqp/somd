@@ -44,19 +44,19 @@ class TPSBASE(_mdapps.simulations.STAGEDSIMULATION, _ab.ABC):
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
         The integrator that propagates the simulated system.
-    potential_generators : List(callable)
+    potential_generators : List[callable]
         Generator functions of potential calculators.
     sampling_parameters : dict
         The parameters that define a sampling process. Valid keys of this
         dictionary are:
         - plumed_file : str
             Name of the plumed input file.
-        - cv_names : List(dict)
+        - cv_names : List[dict]
             Names and components of the collective variables to save. For
             example: cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
-        - states : List(somd.apps.path_sampling.utils.state.STATE)
+        - states : List[somd.apps.path_sampling.utils.state.STATE]
             The CV space states.
-        - sampled_paths : List(List(int))
+        - sampled_paths : List[List[int]]
             The paths to sample. For example: [[0, 1], [1, 2]].
         - initial_trajectory : str
             The initial trajectory.
@@ -81,7 +81,7 @@ class TPSBASE(_mdapps.simulations.STAGEDSIMULATION, _ab.ABC):
         - remove_dead_iterations : bool
             Default value : False
             If remove the non-reactive iterations to save disk spaces.
-    post_step_objects : List(object):
+    post_step_objects : List[object]:
         The post step objects, including the barostat.
     output_prefix : str
         Prefix of the output file.
@@ -263,11 +263,11 @@ class TPSBASE(_mdapps.simulations.STAGEDSIMULATION, _ab.ABC):
         ----------
         timestep: float
             Timestep of the path.
-        trajectories : List(str)
+        trajectories : List[str]
             Name of the trajectory files.
-        path_directions : List(int)
+        path_directions : List[int]
             Directions of the trajectories.
-        reverse_velocities : List(bool)
+        reverse_velocities : List[bool]
             If reverse the velocities of the trajectories when reading.
         """
         paths = []

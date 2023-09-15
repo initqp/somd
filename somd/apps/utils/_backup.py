@@ -34,7 +34,7 @@ def __find_max_backup_number(base_name: str, file_list: list) -> int:
     ----------
     base_name: str
         The base name of the files.
-    file_list: List(str)
+    file_list: List[str]
         Names of the files under the directory.
     """
     maximum = -2

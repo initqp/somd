@@ -38,7 +38,7 @@ class STATE(object):
 
     Parameters
     ----------
-    indicators: callable or List(callable)
+    indicators: callable or List[callable]
         The indicator function. This function should return 1 when the given
         CV space point belongs to the state and returns 0 otherwise. The `List`
         type is for internal usages only.
@@ -209,7 +209,7 @@ def in_sequence(states: list,
 
     Parameters
     ----------
-    states : List(somd.apps.path_sampling.utils.state.STATE)
+    states : List[somd.apps.path_sampling.utils.state.STATE]
         The states.
     cv_values : numpy.ndarray
         The CV values.

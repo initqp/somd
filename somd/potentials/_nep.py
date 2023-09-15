@@ -30,11 +30,11 @@ class NEP(_mdcore.potential_base.POTENTIAL):
 
     Parameters
     ----------
-    atom_list : List(int)
+    atom_list : List[int]
         Indices of atoms included by this potential.
     file_name : str
         Name of the potential data file.
-    atomic_symbols : List(str)
+    atomic_symbols : List[str]
         Symbols of each element in the simulated system.
     use_tabulating : bool
         If invoke the tabulated version of NEP.
