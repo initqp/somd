@@ -609,7 +609,7 @@ class TOMLPARSER(object):
         self.__integrator = result
 
     def __parse_potential_siesta(self, inp: dict, atom_list: list) \
-            -> callable:
+            -> _tp.Callable:
         """
         Parse the SIESTA potential options.
 
@@ -626,7 +626,7 @@ class TOMLPARSER(object):
                                                    inp['pseudopotential_dir'])
 
     def __parse_potential_dftd3(self, inp: dict, atom_list: list) \
-            -> callable:
+            -> _tp.Callable:
         """
         Parse the DFTD3 potential options.
 
@@ -647,7 +647,7 @@ class TOMLPARSER(object):
                                            bool(inp['atm']))
 
     def __parse_potential_dftd4(self, inp: dict, atom_list: list) \
-            -> callable:
+            -> _tp.Callable:
         """
         Parse the DFTD4 potential options.
 
@@ -668,7 +668,7 @@ class TOMLPARSER(object):
                                            bool(inp['atm']))
 
     def __parse_potential_nep(self, inp: dict, atom_list: list) \
-            -> callable:
+            -> _tp.Callable:
         """
         Parse the NEP potential options.
 
@@ -689,7 +689,7 @@ class TOMLPARSER(object):
                                  timestep: float,
                                  temperature: float,
                                  atom_list: list,
-                                 potential_index: int) -> callable:
+                                 potential_index: int) -> _tp.Callable:
         """
         Parse the PLUMED potential options.
 
@@ -720,7 +720,7 @@ class TOMLPARSER(object):
                           inp: dict,
                           index: int,
                           timestep: float,
-                          temperature: float) -> callable:
+                          temperature: float) -> _tp.Callable:
         """
         Parse one potential with given index.
 

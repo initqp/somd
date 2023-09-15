@@ -43,7 +43,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         The simulated system.
     integrator : somd.core.integrator.INTEGRATOR
         The integrator that propagates the simulated system.
-    potential_generators : List(callable)
+    potential_generators : List(Callable)
         Generator functions of potential calculators.
     reference_potentials : List(int)
         Indices of the reference potentials.

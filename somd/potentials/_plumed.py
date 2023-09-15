@@ -18,6 +18,7 @@
 
 import os as _os
 import numpy as _np
+import typing as _tp
 import warnings as _w
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
@@ -164,7 +165,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__step += 1
 
     @classmethod
-    def generator(cls, *args, **kwargs) -> callable:
+    def generator(cls, *args, **kwargs) -> _tp.Callable:
         """
         Return a generator of this potential.
         """

@@ -20,6 +20,7 @@ import os as _os
 import re as _re
 import uuid as _id
 import numpy as _np
+import typing as _tp
 import mdtraj as _md
 import shutil as _sh
 import signal as _sg
@@ -184,7 +185,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         fp.close()
 
     @classmethod
-    def generator(cls, *args, **kwargs) -> callable:
+    def generator(cls, *args, **kwargs) -> _tp.Callable:
         """
         Return a generator of this potential.
         """
@@ -386,7 +387,7 @@ def create_siesta_generator(system: _mdcore.systems.MDSYSTEM,
                             atom_list: list,
                             options: str,
                             siesta_command: str = 'siesta',
-                            pseudopotential_dir: str = './') -> callable:
+                            pseudopotential_dir: str = './') -> _tp.Callable:
     """
     Return a generator of this potential.
 

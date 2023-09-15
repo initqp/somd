@@ -17,6 +17,7 @@
 #
 
 import os as _os
+import typing as _tp
 from somd import core as _mdcore
 from somd.constants import CONSTANTS as _c
 
@@ -84,7 +85,7 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         self.energy_potential[0] *= self.__conversion * 0.001
 
     @classmethod
-    def generator(cls, *args, **kwargs) -> callable:
+    def generator(cls, *args, **kwargs) -> _tp.Callable:
         """
         Return a generator of this potential.
         """
