@@ -87,10 +87,7 @@ class ATOMGROUP(object):
         This function only compares atom lists of the two groups, but ignores
         other information.
         """
-        if (self.atom_list.tolist() == g.atom_list.tolist()):
-            return True
-        else:
-            return False
+        return self.atom_list.tolist() == g.atom_list.tolist()
 
     def __contains__(self, g) -> bool:
         """
@@ -130,29 +127,14 @@ class ATOMGROUP(object):
         methods. So only call this method when constraints/groups are
         added/deleted, and use the cached self.__n_dof variable otherwise.
         """
-        self.__n_dof = self.n_atoms * 3
-        # calculate number of constraints belonging to this group
-        atom_list = self.__atom_list.tolist()
-        for c in self.__system.constraints:
-            flag = 0
-            for i in c['indices']:
-                flag += atom_list.count(i)
-            if (flag == len(c['indices'])):
-                # The constraint belongs to this group.
-                self.__n_dof -= 1
-            elif (flag != 0) and (flag < len(c['indices'])):
-                # The constraint is between two groups.
-                message = 'The constraint contains atom indices ' + \
-                          '{} is between two groups!'.format(c['indices'])
-                raise RuntimeError(message)
-        # check if there are subgroups (including this group) binding to COM
+        self.__n_dof = self.n_atoms * 3 - self.n_constraints
+        # Check if there are subgroups (including this group) binding to COM
         # motion removers, whatever this group itself is in the system's atomic
         # group list.
-        for tmp in self.__system.groups:
-            if (not tmp.has_translations) and (tmp in self):
-                self.__n_dof -= 3
-        # in case this group is not in the system's atomic group list
-        if (not self.has_translations) and (self not in self.__system.groups):
+        t = [g.has_translations for g in self.__system.groups if g in self]
+        self.__n_dof -= 3 * t.count(False)
+        # In case this group is not in the system's atomic group list.
+        if (self not in self.__system.groups) and (not self.has_translations):
             self.__n_dof -= 3
         return self.__n_dof
 
@@ -253,22 +235,26 @@ class ATOMGROUP(object):
         """
         Check inter-group overlapping and set has_translations.
         """
-        if (not v):
-            for g in self.__system.groups:
-                if (not g.has_translations) and (self != g) and \
-                        (self.overlap_with(g)):
-                    message = 'Atom group "{}" is overlapping with ' + \
-                              'atomic group "{}" while both are binding ' + \
-                              'with COM motion removers!'
-                    message = message.format(self._label, g._label)
-                    raise RuntimeError(message)
+        if (self in self.__system.groups):
+            # Binding group, do not check self.
+            t = [g.has_translations for g in self.__system.groups if
+                 self.overlap_with(g) and (self != g)]
+        else:
+            # Unbinding group, check self.
+            t = [g.has_translations for g in self.__system.groups if
+                 self.overlap_with(g)]
+        if (not v) and (False in t):
+            message = 'Atom group "{}" is overlapping with other atomic ' + \
+                      'group(s) while all of them are binding with COM ' + \
+                      'motion removers!'
+            raise RuntimeError(message.format(self._label))
         self.__has_translations = bool(v)
-        self.calculate_n_dof()
-        # check if this is a subgroup and update parents' n_dof.
+        # Calculate n_dof.
         if (self in self.__system.groups):
             for g in self.__system.groups:
-                if (self in g):
-                    g.calculate_n_dof()
+                g.calculate_n_dof()
+        else:
+            self.calculate_n_dof()
 
     @property
     def n_atoms(self) -> int:
@@ -276,6 +262,25 @@ class ATOMGROUP(object):
         Number of atoms in this group.
         """
         return len(self.__atom_list)
+
+    @property
+    def n_constraints(self) -> int:
+        """
+        Number of constraints that belongs to this group.
+        """
+        result = 0
+        atom_set_group = set(self.__atom_list.tolist())
+        for constraint in self.__system.constraints:
+            atom_set_constraint = set(constraint['indices'])
+            if (atom_set_constraint.issubset(atom_set_group)):
+                result += 1
+            elif (atom_set_constraint.intersection(atom_set_group)):
+                message = 'Can not compute number of constraints that ' + \
+                          'belongs to group "{:s}"! Because atoms in ' + \
+                          'constraint "{}" are only included partly by ' + \
+                          'this group!'
+                raise RuntimeError(message.format(self._label, constraint))
+        return result
 
     @property
     def _system_label(self) -> str:

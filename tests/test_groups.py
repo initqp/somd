@@ -17,6 +17,27 @@ def test_operators():
     assert (system.groups[0] == g3)
 
 
+def test_n_constraints():
+    system = _h.get_harmonic_system()
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
+         {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
+         {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
+    system.constraints.appends(c)
+    assert (system.groups[0].n_constraints == 3)
+    system.constraints.pop(0)
+    assert (system.groups[0].n_constraints == 2)
+    system.constraints.pop(0)
+    assert (system.groups[0].n_constraints == 1)
+    c = {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}
+    assert (system.constraints[0] == c)
+    try:
+        system.groups.create_from_dict({"atom_list": [0, 1, 2]})
+    except:
+        pass
+    else:
+        raise AssertionError
+
+
 def test_dof_1():
     system = _h.get_harmonic_system()
     assert (system.groups[0].n_dof == 12)
