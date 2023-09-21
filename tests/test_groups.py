@@ -64,14 +64,21 @@ def test_dof_2():
 
 def test_dof_3():
     system = _h.get_harmonic_system()
-    system.groups.create_from_dict({"atom_list": [0, 1, 2]})
-    c = {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14}
+    system.groups.create_from_dict({"atom_list": [0, 1]})
+    system.groups.create_from_dict({"atom_list": [2, 3]})
+    c = {'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14}
     system.constraints.append(c)
     assert (system.groups[0].n_dof == 11)
-    assert (system.groups[1].n_dof == 8)
+    assert (system.groups[1].n_dof == 5)
+    assert (system.groups[2].n_dof == 6)
     system.groups[1].has_translations = False
     assert (system.groups[0].n_dof == 8)
-    assert (system.groups[1].n_dof == 5)
+    assert (system.groups[1].n_dof == 2)
+    assert (system.groups[2].n_dof == 6)
+    system.groups[2].has_translations = False
+    assert (system.groups[0].n_dof == 5)
+    assert (system.groups[1].n_dof == 2)
+    assert (system.groups[2].n_dof == 3)
 
 
 def test_velocities():
