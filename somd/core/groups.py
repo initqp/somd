@@ -98,10 +98,9 @@ class ATOMGROUP(object):
         g : somd.groups.ATOMGROUP
             The group to check.
         """
-        for i in g.atom_list:
-            if (i not in self.atom_list):
-                return False
-        return True
+        atom_set_self = set(self.__atom_list.tolist())
+        atom_set_group = set(g.atom_list.tolist())
+        return atom_set_group.issubset(atom_set_self)
 
     def overlap_with(self, g) -> bool:
         """
@@ -112,10 +111,9 @@ class ATOMGROUP(object):
         g : somd.groups.ATOMGROUP
             The group to check.
         """
-        for i in g.atom_list:
-            if (i in self.atom_list):
-                return True
-        return False
+        atom_set_self = set(self.__atom_list.tolist())
+        atom_set_group = set(g.atom_list.tolist())
+        return atom_set_group.intersection(atom_set_self)
 
     def calculate_n_dof(self) -> int:
         """
@@ -425,11 +423,10 @@ class ATOMGROUPS(list):
         g : somd.core.groups.ATOMGROUP
             The group to check.
         """
-        for tmp in self:
-            if (g == tmp):
-                message = 'Group "{}" has already been added to the ' + \
-                          'to the atomic groups!'
-                raise RuntimeError(message.format(g._label))
+        if (g in self):
+            message = 'Group "{}" has already been added to the ' + \
+                      'to the atomic groups!'
+            raise RuntimeError(message.format(g._label))
 
     def __dict_to_instance(self, d: dict) -> ATOMGROUP:
         """

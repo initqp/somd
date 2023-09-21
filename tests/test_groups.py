@@ -15,6 +15,12 @@ def test_operators():
     assert (g1.overlap_with(g2))
     assert (g1 in system.groups[0])
     assert (system.groups[0] == g3)
+    try:
+        system.groups.create_from_dict({'atom_list': [0, 1, 2, 3]})
+    except:
+        pass
+    else:
+        raise AssertionError
 
 
 def test_n_constraints():
