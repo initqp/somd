@@ -56,8 +56,9 @@ class INTEGRATOR(object):
             - 'N'  : Advance both the velocities and positions of a
                      Nose-Hoover Chain [2]
             - 'O'  : Advance the Ornstein-Uhlenbeck process [3]
-            - 'Cr' : Apply the RATTLE method for positions  [4]
-            - 'Cv' : Apply the RATTLE method for velocities [4]
+            - 'B'  : Advance the Bussi-Donadio-Parrinello process [4]
+            - 'Cr' : Apply the RATTLE method for positions  [5]
+            - 'Cv' : Apply the RATTLE method for velocities [5]
         - 'timesteps' : List[float]
             Operator-wise scaling factors of the timestep. The length of this
             list must be the same as the length of the 'operators' list. In
@@ -87,14 +88,17 @@ class INTEGRATOR(object):
         extended systems dynamics." Molecular Physics 87.5 (1996): 1117-1157.
     .. [3] Leimkuhler, Benedict, and Charles Matthews. "Rational construction
         of stochastic numerical methods for molecular sampling." Applied
-        Mathematics Research eXpress 2013.1 (2013):34-56.
-    .. [4] Andersen, Hans C. "Rattle: A velocity version of the shake algorithm
+        Mathematics Research eXpress 2013.1 (2013): 34-56.
+    .. [4] Bussi, Giovanni, Davide Donadio, and Michele Parrinello.
+        "Canonical sampling through velocity rescaling." The Journal of
+        chemical physics 126.1 (2007).
+    .. [5] Andersen, Hans C. "Rattle: A velocity version of the shake algorithm
         for molecular dynamics calculations." Journal of computational Physics
         52.1 (1983): 24-34.
     """
 
     # Uppercase valid operator names.
-    _valid_operators = ['V', 'R', 'O', 'N', 'CR', 'CV']
+    _valid_operators = ['V', 'R', 'B', 'O', 'N', 'CR', 'CV']
 
     def __init__(self,
                  timestep: float,
@@ -111,6 +115,7 @@ class INTEGRATOR(object):
         self.__system = None
         self.__is_nve = True
         self.__timestep = timestep
+        self.__is_stochastic = False
         self.__energy_effective = 0.0
         self.__temperatures = temperatures
         self.__thermo_groups = thermo_groups
@@ -142,8 +147,12 @@ class INTEGRATOR(object):
         """
         Determine if the integrator is thermalized.
         """
+        if ('B' in self.__splitting_whole['operators']):
+            self.__is_nve = False
+            self.__is_stochastic = True
         if ('O' in self.__splitting_whole['operators']):
             self.__is_nve = False
+            self.__is_stochastic = True
         if ('N' in self.__splitting_whole['operators']):
             self.__init_nhchains()
             self.__is_nve = False
@@ -362,6 +371,32 @@ class INTEGRATOR(object):
                 self.__nhchains[i].propagate(E_k, self.__timesteps[dt_index])
             self.__energy_effective -= g.energy_kinetic
 
+    def _operator_B(self, dt_index: int) -> None:
+        """
+        Propagate the Bussi-Donadio-Parrinello process.
+        """
+        for i in range(0, len(self.__thermo_groups)):
+            g = self.__system.groups[self.__thermo_groups[i]]
+            energy_kinetic = g.energy_kinetic
+            self.__energy_effective += energy_kinetic
+            energy_kinetic_target = \
+                self.__temperatures[i] * _c.BOLTZCONST * g.n_dof * 0.5
+            r_1 = self.__randn()
+            if ((g.n_dof - 1) % 2 == 0):
+                r_2 = 2.0 * self.__gamma((g.n_dof - 1) / 2)
+            else:
+                r_2 = 2.0 * self.__gamma((g.n_dof - 2) / 2)
+                r_2 += self.__randn() ** 2
+            c_1 = _np.exp(-1.0 * self.__timesteps[dt_index] /
+                          self.__relaxation_times[i])
+            term_1 = (energy_kinetic_target * (r_1 ** 2 + r_2) / g.n_dof -
+                      energy_kinetic) * (1.0 - c_1)
+            term_2 = _np.sqrt(energy_kinetic * energy_kinetic_target /
+                              g.n_dof * (1.0 - c_1) * c_1) * 2.0 * r_1
+            factor = _np.sqrt(1 + (term_1 + term_2) / energy_kinetic)
+            g.velocities *= factor
+            self.__energy_effective -= g.energy_kinetic
+
     def bind_system(self, system: _MDSYSTEM) -> None:
         """
         Bind this integrator to a simulated system.
@@ -438,6 +473,13 @@ class INTEGRATOR(object):
         Is this a NVE integrator?
         """
         return self.__is_nve
+
+    @property
+    def _is_stochastic(self) -> bool:
+        """
+        Is this a stochastic integrator?
+        """
+        return self.__is_stochastic
 
     @property
     def _nhchains(self) -> list:
@@ -587,8 +629,10 @@ class INTEGRATOR(object):
         """
         self.__rng = v
         if (v is not None):
+            self.__gamma = self.__rng.standard_gamma
             self.__randn = self.__rng.standard_normal
         else:
+            self.__gamma = _np.random.standard_gamma
             self.__randn = _np.random.standard_normal
 
 

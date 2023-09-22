@@ -258,3 +258,16 @@ def test_gbaoab_copy_system():
     result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
     _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
+
+
+def test_bdp():
+    rng = _np.random.RandomState(1)
+    system = _h.get_harmonic_system()
+    integrator = somd.core.integrators.INTEGRATOR(
+        0.0005, [{'operators': ['B', 'V', 'R', 'V', 'B']}],
+        relaxation_times=[0.01], rng=rng)
+    integrator.bind_system(system)
+    integrator.propagate()
+    result = _np.loadtxt('data/integrators/integrators_bdp.dat')
+    _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
+    _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
