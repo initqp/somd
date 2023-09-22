@@ -385,22 +385,17 @@ class INTEGRATOR(object):
                 message = 'Invalid thermalized group: {:d}!'
                 raise IndexError(message.format(max(self.__thermo_groups)))
             # Thermo groups
-            for i in range(0, len(self.__thermo_groups)):
-                g_i = self.__thermo_groups[i]
-                for j in range(0, len(self.__thermo_groups)):
-                    g_j = self.__thermo_groups[j]
-                    if (i != j and g_i.overlap_with(g_j)):
-                        message = 'Thermalized group {:d} overlaps with ' + \
-                                  'thermalized group {:d}!'
-                        raise RuntimeError(message.format(i, j))
+            overlaps = [g_i.overlap_with(g_j) for g_i in self.__thermo_groups
+                        for g_j in self.__thermo_groups if g_i != g_j]
+            if (True in overlaps):
+                message = 'Overlaps found between thermalized groups!'
+                raise RuntimeError(message)
         self.__system = system
         if ('N' in self.__splitting_whole['operators']):
             self.__reset_nhchains_parameters()
         # Setup COM motion removers.
-        self.__cmm_remover_groups = []
-        for i in range(0, len(system.groups)):
-            if (not system.groups[i].has_translations):
-                self.__cmm_remover_groups.append(i)
+        self.__cmm_remover_groups = [i for i, g in enumerate(system.groups)
+                                     if not g.has_translations]
 
     def drop_system(self) -> None:
         """
@@ -415,10 +410,6 @@ class INTEGRATOR(object):
         """
         Copy the integrator.
         """
-        defaults = [_d.NHCLENGTH, _d.NHCNRESPA]
-        if ('N' in self.__splitting_whole['operators']):
-            _d.NHCLENGTH = self._nhchains[0].length
-            _d.NHCNRESPA = self._nhchains[0].n_respa
         if (self._is_nve):
             integrator = INTEGRATOR(self.timestep, self.splitting,
                                     rng=self.__rng)
@@ -427,14 +418,11 @@ class INTEGRATOR(object):
                                     self.temperatures, self.relaxation_times,
                                     self.thermo_groups, self.__rng)
         if ('N' in self.__splitting_whole['operators']):
-            for i in range(0, len(self.__thermo_groups)):
-                integrator._nhchains[i].temperature = self.__temperatures[i]
-                integrator._nhchains[i].n_dof = self._nhchains[i].n_dof
-                integrator._nhchains[i].tau = self._nhchains[i].tau
-                integrator._nhchains[i].positions = self._nhchains[i].positions
-                integrator._nhchains[i].momentums = self._nhchains[i].momentums
-            _d.NHCLENGTH = defaults[0]
-            _d.NHCNRESPA = defaults[1]
+            # We do not know the length of the old chains. Thus we copy them
+            # directly.
+            integrator._nhchains.clear()
+            for nhc in self._nhchains:
+                integrator._nhchains.append(nhc.copy())
         return integrator
 
     @property

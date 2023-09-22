@@ -63,83 +63,26 @@ cdef class NHCHAINS(object):
         self.__cxx_obj_ptr = new NHC(temperature, tau, n_bead, n_dof, n_respa)
 
     def __dealloc__(self) -> None:
-        """ Finalize the internal data. """
+        """
+        Finalize the internal data.
+        """
         del self.__cxx_obj_ptr
 
-    @property
-    def length(self) -> int:
-        """ Length of the chains. """
-        return self.__cxx_obj_ptr.get_length()
-
-    @property
-    def masses(self) -> list:
-        """ Masses of the chains """
-        return self.__cxx_obj_ptr.get_Q()
-
-    @property
-    def positions(self) -> list:
-        """ Positions of the chains. In unit of (1). """
-        return self.__cxx_obj_ptr.get_q()
-
-    @positions.setter
-    def positions(self, v: vector[double]) -> None:
+    def __copy__(self) -> 'NHCHAINS':
         """
-        Set positions of the chains.
+        Clone the chains.
         """
-        self.__cxx_obj_ptr.set_q(v)
+        return self.copy()
 
-    @property
-    def momentums(self) -> list:
-        """ Momentums of the chains. In unit of (kJ/mol*ps). """
-        return self.__cxx_obj_ptr.get_p()
-
-    @momentums.setter
-    def momentums(self, v: vector[double]) -> None:
+    def copy(self) -> 'NHCHAINS':
         """
-        Set momentums of the chains.
+        Clone the chains.
         """
-        self.__cxx_obj_ptr.set_p(v)
-
-    @property
-    def n_respa(self) -> int:
-        """ Number of RESPA loops. """
-        return self.__cxx_obj_ptr.get_n_respa()
-
-    @property
-    def n_dof(self) -> int:
-        """ Number of DOFs of the simulated system. """
-        return self.__cxx_obj_ptr.get_n_dof()
-
-    @n_dof.setter
-    def n_dof(self, n_d : int) -> None:
-        """
-        Set number of DOFs of the simulated system.
-        """
-        self.__cxx_obj_ptr.set_n_dof(n_d)
-
-    @property
-    def tau(self) -> double:
-        """ Relaxation timescale of the chains. In unit of (ps). """
-        return self.__cxx_obj_ptr.get_tau()
-
-    @tau.setter
-    def tau(self, t : double) -> None:
-        """
-        Set the relaxation timescale of the chains.
-        """
-        self.__cxx_obj_ptr.set_tau(t)
-
-    @property
-    def temperature(self) -> double:
-        """ Target temperature of the chains. In unit of (K). """
-        return self.__cxx_obj_ptr.get_temperature()
-
-    @temperature.setter
-    def temperature(self, T: double) -> None:
-        """
-        Set target temperature of the chains.
-        """
-        self.__cxx_obj_ptr.set_temperature(T)
+        result = NHCHAINS(self.temperature, self.tau, self.length, self.n_dof,
+                          self.n_respa)
+        result.positions = self.positions
+        result.momentums = self.momentums
+        return result
 
     def propagate(self, E_k: double, dt: double) -> double:
         """
@@ -153,3 +96,94 @@ cdef class NHCHAINS(object):
             The timestep. In unit of (ps).
         """
         return self.__cxx_obj_ptr.propagate(E_k, dt)
+
+    @property
+    def length(self) -> int:
+        """
+        Length of the chains.
+        """
+        return self.__cxx_obj_ptr.get_length()
+
+    @property
+    def masses(self) -> list:
+        """
+        Masses of the chains.
+        """
+        return self.__cxx_obj_ptr.get_Q()
+
+    @property
+    def positions(self) -> list:
+        """
+        Positions of the chains. In unit of (1).
+        """
+        return self.__cxx_obj_ptr.get_q()
+
+    @positions.setter
+    def positions(self, v: vector[double]) -> None:
+        """
+        Set positions of the chains.
+        """
+        self.__cxx_obj_ptr.set_q(v)
+
+    @property
+    def momentums(self) -> list:
+        """
+        Momentums of the chains. In unit of (kJ/mol*ps).
+        """
+        return self.__cxx_obj_ptr.get_p()
+
+    @momentums.setter
+    def momentums(self, v: vector[double]) -> None:
+        """
+        Set momentums of the chains.
+        """
+        self.__cxx_obj_ptr.set_p(v)
+
+    @property
+    def n_respa(self) -> int:
+        """
+        Number of RESPA loops.
+        """
+        return self.__cxx_obj_ptr.get_n_respa()
+
+    @property
+    def n_dof(self) -> int:
+        """
+        Number of DOFs of the simulated system.
+        """
+        return self.__cxx_obj_ptr.get_n_dof()
+
+    @n_dof.setter
+    def n_dof(self, n_d : int) -> None:
+        """
+        Set number of DOFs of the simulated system.
+        """
+        self.__cxx_obj_ptr.set_n_dof(n_d)
+
+    @property
+    def tau(self) -> double:
+        """
+        Relaxation timescale of the chains. In unit of (ps).
+        """
+        return self.__cxx_obj_ptr.get_tau()
+
+    @tau.setter
+    def tau(self, t : double) -> None:
+        """
+        Set the relaxation timescale of the chains.
+        """
+        self.__cxx_obj_ptr.set_tau(t)
+
+    @property
+    def temperature(self) -> double:
+        """
+        Target temperature of the chains. In unit of (K).
+        """
+        return self.__cxx_obj_ptr.get_temperature()
+
+    @temperature.setter
+    def temperature(self, T: double) -> None:
+        """
+        Set target temperature of the chains.
+        """
+        self.__cxx_obj_ptr.set_temperature(T)

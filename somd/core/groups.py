@@ -234,11 +234,11 @@ class ATOMGROUP(object):
         Check inter-group overlapping and set has_translations.
         """
         if (self in self.__system.groups):
-            # Binding group, do not check self.
+            # Bound group, do not check self.
             t = [g.has_translations for g in self.__system.groups if
                  self.overlap_with(g) and (self != g)]
         else:
-            # Unbinding group, check self.
+            # Unbound group, check self.
             t = [g.has_translations for g in self.__system.groups if
                  self.overlap_with(g)]
         if (not v) and (False in t):
