@@ -20,8 +20,7 @@ import os as _os
 import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
-from somd.warning import warn as _warn
-from somd.constants import CONSTANTS as _c
+from somd import utils as _mdutils
 
 __all__ = ['PLUMED']
 
@@ -77,9 +76,9 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         # treat PLUMED as a local dependency
         try:
             import plumed
-            _warn('PLUMED kernel outputs begin:')
+            _mdutils.warning.warn('PLUMED kernel outputs begin:')
             self.__plumed = plumed.Plumed()
-            _warn('PLUMED kernel outputs end.')
+            _mdutils.warning.warn('PLUMED kernel outputs end.')
         except:
             raise ImportError('you need to have both the PLUMED python ' +
                               'wrapper and PLUMED_KERNEL installed to use ' +
@@ -102,7 +101,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd("setNatoms", len(atom_list))
         self.__plumed.cmd("setLogFile", log_file)
         if (temperature is not None):
-            self.__plumed.cmd("setKbT", temperature * _c.BOLTZCONST)
+            kb_T = temperature * _mdutils.constants.BOLTZCONST
+            self.__plumed.cmd("setKbT", kb_T)
         self.__plumed.cmd("init")
         self.__set_up_cv(cv_names)
         self.__restart = restart

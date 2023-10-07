@@ -15,8 +15,8 @@ def test_barostat_1():
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     barostat = somd.apps.barostats.BAROSTAT([1E-5], [1E-5], 0.1)
@@ -35,8 +35,8 @@ def test_barostat_2():
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     barostat = somd.apps.barostats.BAROSTAT(

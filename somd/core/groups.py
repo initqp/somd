@@ -21,8 +21,7 @@ Classes for setting up atom groups.
 """
 
 import numpy as _np
-from somd.warning import warn as _warn
-from somd.constants import CONSTANTS as _c
+from somd import utils as _mdutils
 
 __all__ = ['ATOMGROUP', 'ATOMGROUPS']
 
@@ -174,12 +173,12 @@ class ATOMGROUP(object):
             raise RuntimeError(message)
         if (temperature == 0):
             return
+        factors = _np.sqrt(temperature * _mdutils.constants.BOLTZCONST /
+                           self.masses)
         if (rng is None):
-            v = _np.random.standard_normal((self.n_atoms, 3)) * \
-                _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
+            v = _np.random.standard_normal((self.n_atoms, 3)) * factors
         else:
-            v = rng.standard_normal((self.n_atoms, 3)) * \
-                _np.sqrt(temperature * _c.BOLTZCONST / self.masses)
+            v = rng.standard_normal((self.n_atoms, 3)) * factors
         # remove COM translational motions
         v -= (v * self.masses).sum(axis=0) / self.masses.sum()
         # remove COM rotational motions
@@ -200,9 +199,10 @@ class ATOMGROUP(object):
             w = _np.linalg.pinv(I).dot(L)
             v -= _np.cross(w, d)
         except:
-            _warn('Can not remove COM rotational motions!')
+            _mdutils.warning.warn('Can not remove COM rotational motions!')
         # restore kinetic energies
-        t = (_np.square(v) * self.masses).sum() / _c.BOLTZCONST / self.n_dof
+        t = (_np.square(v) * self.masses).sum() / \
+            _mdutils.constants.BOLTZCONST / self.n_dof
         v *= _np.sqrt(temperature / t)
         self.velocities += v
 
@@ -355,7 +355,8 @@ class ATOMGROUP(object):
         """
         Temperature of this group. In unit of (K).
         """
-        return self.energy_kinetic / _c.BOLTZCONST / self.n_dof * 2
+        return (self.energy_kinetic / _mdutils.constants.BOLTZCONST /
+                self.n_dof * 2)
 
     @property
     def com_positions(self) -> _np.ndarray:

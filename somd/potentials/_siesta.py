@@ -26,8 +26,7 @@ import shutil as _sh
 import signal as _sg
 import subprocess as _sp
 from somd import core as _mdcore
-from somd.constants import CONSTANTS as _c
-from somd.constants import SOMDDEFAULTS as _d
+from somd import utils as _mdutils
 
 __all__ = ['SIESTA', 'create_siesta_potential', 'create_siesta_generator']
 
@@ -66,7 +65,8 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         label = self.__strip_label(label)
         self.__pipe_c = self.__work_dir + '/' + label + '.coords'
         self.__pipe_f = self.__work_dir + '/' + label + '.forces'
-        self.__conversion = _c.AVOGACONST * _c.ELECTCONST
+        self.__conversion = \
+            _mdutils.constants.AVOGACONST * _mdutils.constants.ELECTCONST
         try:
             _os.remove(self.__pipe_c)
             _os.remove(self.__pipe_f)
@@ -82,7 +82,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         _os.chdir(self.__work_dir)
         proc = _sp.Popen(command, shell=True, stdout=_sp.PIPE)
         _os.chdir(cwd)
-        if (proc.wait(_d.SIESTATIMEOUT) != 0):
+        if (proc.wait(_mdutils.defaults.SIESTATIMEOUT) != 0):
             message = 'Error in setup SIESTA using command: ' + siesta_command
             raise RuntimeError(message)
         fp = self.__timeout_open(self.__pipe_c, 'w')
@@ -119,11 +119,11 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         Open a file with a given timeout.
         """
         message = 'The SIESTA subprocess has been silent for more than ' + \
-                  '{} seconds!'.format(_d.SIESTATIMEOUT)
+                  '{} seconds!'.format(_mdutils.defaults.SIESTATIMEOUT)
         command = 'raise TimeoutError("{}")'.format(message)
         _sg.signal(_sg.SIGALRM,
                    lambda signum, frame: exec(command))
-        _sg.alarm(_d.SIESTATIMEOUT)
+        _sg.alarm(_mdutils.defaults.SIESTATIMEOUT)
         try:
             result = open(file_name, mode, **kwargs)
         except TimeoutError as e:

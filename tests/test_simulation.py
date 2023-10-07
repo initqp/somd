@@ -15,8 +15,8 @@ def test_run_1():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
@@ -48,8 +48,8 @@ def test_restart_1():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     system.positions[:] = 0.0
@@ -83,8 +83,8 @@ def test_restart_2():
 
 def test_restart_3():
     system = _h.get_harmonic_system()
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         -0.001, relaxation_times=[0.01])
     simulation = somd.apps.simulations.SIMULATION(system, integrator)
@@ -101,8 +101,8 @@ def test_restart_4():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     system.positions[:] = 0.0

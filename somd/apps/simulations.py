@@ -26,8 +26,8 @@ import copy as _cp
 import contextlib as _cl
 from somd import apps as _mdapps
 from somd import core as _mdcore
-from somd.warning import warn as _warn
-from . import utils as _utils
+from somd import utils as _mdutils
+from . import utils as _apputils
 
 __all__ = ['SIMULATION', 'STAGEDSIMULATION']
 
@@ -287,21 +287,21 @@ class STAGEDSIMULATION(_ab.ABC):
                 message = 'Can not find directory {:s}! SOMD will back up ' + \
                           'the file {:s} and run the required simulation ' + \
                           'from scratch!'
-                _warn(message.format(directory, title))
+                _mdutils.warning.warn(message.format(directory, title))
                 self.__is_restart = False
-                _utils.back_up(title)
+                _apputils.backup.back_up(title)
                 _os.mkdir(directory)
             else:
                 message = 'Found directory {:s}! SOMD will restart the ' + \
                           'required simulation from the break point!'
-                _warn(message.format(directory))
+                _mdutils.warning.warn(message.format(directory))
         else:
             if (_os.path.isdir(directory)):
                 message = 'Can not find file {:s}! SOMD will back up the ' + \
                           'directory {:s} and run the required simulation ' + \
                           'from scratch!'
-                _warn(message.format(title, directory))
-                _utils.back_up(directory)
+                _mdutils.warning.warn(message.format(title, directory))
+                _apputils.backup.back_up(directory)
             _os.mkdir(directory)
             self.__is_restart = False
         self.__root = _h5.File(title, 'a')
@@ -410,7 +410,7 @@ class STAGEDSIMULATION(_ab.ABC):
         group.attrs['working_directory'] = iter_dir
         group.attrs['initialized'] = False
         self.__root.flush()
-        _utils.back_up(iter_dir)
+        _apputils.backup.back_up(iter_dir)
         _os.mkdir(iter_dir)
         return iter_dir
 

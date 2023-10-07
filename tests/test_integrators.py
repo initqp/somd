@@ -83,8 +83,8 @@ def test_nhc():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
@@ -102,8 +102,8 @@ def test_nhc_copy_system():
     s1.constraints.appends(c)
     system = s1.copy()
     system.potentials.append(s1.potentials[0])
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     integrator = somd.core.integrators.nhc_integrator(
         0.001, relaxation_times=[0.01])
     integrator.bind_system(system)
@@ -119,8 +119,8 @@ def test_nhc_copy_integrator():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     i1 = somd.core.integrators.nhc_integrator(0.001, relaxation_times=[0.01])
     integrator = i1.copy()
     integrator.bind_system(system)
@@ -136,8 +136,8 @@ def test_nhc_copy_integrator_rev():
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     i1 = somd.core.integrators.nhc_integrator(0.001, relaxation_times=[0.01])
     i1.bind_system(system)
     i1.propagate()
@@ -154,8 +154,8 @@ def test_nhc_copy_integrator_rev():
 
 def test_nhc_copy_integrator_rev_1():
     system = _h.get_harmonic_system()
-    somd.constants.SOMDDEFAULTS.NHCLENGTH = 6
-    somd.constants.SOMDDEFAULTS.NHCNRESPA = 4
+    somd.utils.defaults.NHCLENGTH = 6
+    somd.utils.defaults.NHCNRESPA = 4
     i1 = somd.core.integrators.nhc_integrator(0.001, relaxation_times=[0.01])
     i1.bind_system(system)
     i1.propagate()

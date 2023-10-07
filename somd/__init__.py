@@ -24,8 +24,7 @@ so-called active-learning methodology.
 """
 
 
-from somd import warning
-from somd import constants
+from somd import utils
 from somd import core
 from somd import potentials
 from somd import apps

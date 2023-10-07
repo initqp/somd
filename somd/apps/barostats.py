@@ -22,12 +22,12 @@ The barostats.
 
 import numpy as _np
 from somd import core as _mdcore
-from . import utils as _utils
+from . import utils as _apputils
 
 __all__ = ['BAROSTAT']
 
 
-class BAROSTAT(_utils.POSTSTEPOBJ):
+class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
     """
     The Berendsen-type barostat [1].
 

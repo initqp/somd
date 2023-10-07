@@ -23,7 +23,7 @@ Base class for all post-step objects.
 import abc as _ab
 import typing as _tp
 from somd import core as _mdcore
-from somd.warning import warn as _warn
+from somd import utils as _mdutils
 
 __all__ = ['POSTSTEPOBJ', 'POSTSTEPOBJWRAPPER']
 
@@ -54,7 +54,8 @@ class POSTSTEPOBJ(_ab.ABC):
         Bind an integrator.
         """
         if (self.__integrator is not None):
-            _warn('Rebinding an integrators to a post step object.')
+            message = 'Rebinding an integrators to a post step object.'
+            _mdutils.warning.warn(message)
         if (integrator.system is None):
             raise RuntimeError('Integrator has not bind a system!')
         self.__integrator = integrator

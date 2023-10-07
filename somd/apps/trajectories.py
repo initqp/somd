@@ -26,15 +26,13 @@ import numpy as _np
 import pickle as _pl
 import base64 as _bs
 from somd import core as _mdcore
-from somd.warning import warn as _warn
-from somd.constants import CONSTANTS as _c
-from somd.constants import SOMDDEFAULTS as _d
-from . import utils as _utils
+from somd import utils as _mdutils
+from . import utils as _apputils
 
 __all__ = ['H5READER', 'H5WRITER', 'EXYZWRITER']
 
 
-class H5WRITER(_utils.POSTSTEPOBJ):
+class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
     """
     Write the MDTraj HDF5 trajectory file [1].
 
@@ -190,7 +188,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
                                   'kilojoule/mole')
         if (self.__is_restart):
             if (len(self.__nhchains) != 0):
-                l_nhc = _d.NHCLENGTH
+                l_nhc = _mdutils.defaults.NHCLENGTH
                 n_nhc = len(self.__nhchains)
                 self.__create_dataset('nhc_positions', (1, n_nhc, l_nhc),
                                       (1, n_nhc, l_nhc), type_str, '1')
@@ -217,7 +215,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
         if (self.__append):
             self.__root = _h5.File(self.file_name, 'a')
         else:
-            _utils.back_up(self.file_name)
+            _apputils.backup.back_up(self.file_name)
             self.__root = _h5.File(self.file_name, 'w')
             self.__dump_attributes()
             self.__dump_datasets()
@@ -323,7 +321,7 @@ class H5WRITER(_utils.POSTSTEPOBJ):
             return _np.float
 
 
-class EXYZWRITER(_utils.POSTSTEPOBJ):
+class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
     """
     Write the extended XYZ trajectory file [1].
 
@@ -385,7 +383,8 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         self.__write_velocities = write_velocities
         self.__wrap_positions = wrap_positions
         self.__potential_list = potential_list
-        self.__conversion = _c.AVOGACONST * _c.ELECTCONST
+        self.__conversion = \
+            _mdutils.constants.AVOGACONST * _mdutils.constants.ELECTCONST
         if (energy_shift is None):
             energy_shift = 0.0
         else:
@@ -459,7 +458,7 @@ class EXYZWRITER(_utils.POSTSTEPOBJ):
         if (self.__append):
             self.__fp = open(self.file_name, 'a')
         else:
-            _utils.back_up(self.file_name)
+            _apputils.backup.back_up(self.file_name)
             self.__fp = open(self.file_name, 'w')
 
     def write(self) -> None:
@@ -601,7 +600,7 @@ class H5READER(object):
             if (die_on_fail):
                 raise AttributeError(message)
             else:
-                _warn(message)
+                _mdutils.warning.warn(message)
         if (value is not None and value not in str(attr)):
             message = ('Values of attribute {} in file {} do not contain ' +
                        'the expected value {}')
@@ -609,7 +608,7 @@ class H5READER(object):
             if (die_on_fail):
                 raise AttributeError(message)
             else:
-                _warn(message)
+                _mdutils.warning.warn(message)
 
     def __check_attributes(self) -> None:
         """
@@ -667,11 +666,13 @@ class H5READER(object):
                 _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
             if (self.__read_nhc_data):
                 if (len(self.__nhchains) == 0):
-                    _warn('NHCHAINS have not been bound to the ' +
-                          'reader! NHCHAINS data will not be load!')
+                    message = 'NHCHAINS have not been bound to the ' + \
+                              'reader! NHCHAINS data will not be load!'
+                    _mdutils.warning.warn(message)
                 elif ('nhc_positions' not in self.__root.keys()):
-                    _warn('Can not load NHCHAINS data from a restart ' +
-                          'file without NHCHAINS data!')
+                    message = 'Can not load NHCHAINS data from a restart ' + \
+                              'file without NHCHAINS data!'
+                    _mdutils.warning.warn(message)
                 else:
                     n_nhc = min(len(self.__nhchains),
                                 self.__root['nhc_positions'].shape[1])
@@ -682,9 +683,11 @@ class H5READER(object):
                             self.__root['nhc_momentums'][0, i, :]
         else:
             if (self.__read_rng_state):
-                _warn('Can not load RNG state from a non-restart file!')
+                message = 'Can not load RNG state from a non-restart file!'
+                _mdutils.warning.warn(message)
             if (self.__read_nhc_data):
-                _warn('Can not load NHCHAINS data from a non-restart file!')
+                message = 'Can not load NHCHAINS data from a non-restart file!'
+                _mdutils.warning.warn(message)
         snapshot = self.read_as_snapshot(frame_index)
         if (self.__read_coordinates):
             self.__system.positions[:] = snapshot.positions
@@ -714,18 +717,21 @@ class H5READER(object):
                 snapshot.positions[:, :] = \
                     self.__root['coordinates'][frame_index]
             except:
-                _warn('Can not load coordinates form ' + self.file_name)
+                message = 'Can not load coordinates form file "{:s}"'
+                _mdutils.warning.warn(message.format(self.file_name))
         if (self.__read_velocities):
             try:
                 snapshot.velocities[:, :] = \
                     self.__root['velocities'][frame_index]
             except:
-                _warn('Can not load velocities form ' + self.file_name)
+                message = 'Can not load velocities form file "{:s}"'
+                _mdutils.warning.warn(message.format(self.file_name))
         if (self.__read_forces):
             try:
                 snapshot.forces[:, :] = self.__root['forces'][frame_index]
             except:
-                _warn('Can not load forces form ' + self.file_name)
+                message = 'Can not load forces form file "{:s}"'
+                _mdutils.warning.warn(message.format(self.file_name))
         if (self.__read_cell):
             if (str(self.__root.attrs['program']) == 'SOMD'):
                 snapshot.box[:] = self.__root['box'][frame_index][:]
@@ -736,7 +742,8 @@ class H5READER(object):
                     tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
                     snapshot.lattice = tmp
                 except:
-                    _warn('Can not load cell data form ' + self.file_name)
+                    message = 'Can not load cell data form file "{:s}"'
+                    _mdutils.warning.warn(message.format(self.file_name))
         return snapshot
 
     @property

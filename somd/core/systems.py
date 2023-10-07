@@ -23,11 +23,10 @@ The simulated system.
 import numpy as _np
 import mdtraj as _md
 from threading import Thread as _Thread
+from somd import utils as _mdutils
 from .groups import ATOMGROUP as _ATOMGROUP
 from .groups import ATOMGROUPS as _ATOMGROUPS
 from ._lib import CONSTRAINTS as _CONSTRAINTS
-from somd.warning import warn as _warn
-from somd.constants import SOMDDEFAULTS as _d
 
 __all__ = ['SNAPSHOT',
            'MDSYSTEM',
@@ -158,7 +157,7 @@ class SNAPSHOT(object):
         """
         parameter_names = ['a', 'b', 'c', 'alpha', 'beta', 'gamma']
         for i in range(0, 6):
-            if (l[i] < _d.LATTICETOL):
+            if (l[i] < _mdutils.defaults.LATTICETOL):
                 message = 'Very small lattice parameter {}: {:d}'
                 raise RuntimeError(message.format(parameter_names[i], l[i]))
         self.box[0, 0] = l[0]
@@ -269,7 +268,7 @@ class MDSYSTEM(object):
         else:
             l = indices
         if (perform_calculations):
-            if (_d.SIMUUPDATE):
+            if (_mdutils.defaults.SIMUUPDATE):
                 threads = []
                 for i in l:
                     t = _Thread(target=self.__potentials[i].update,
@@ -499,7 +498,7 @@ def create_system_from_pdb(file_name: str) -> MDSYSTEM:
             s.box[:, :] = pdb.unitcell_vectors
         except:
             message = 'Can not read unit cell data from file ' + file_name
-            _warn(message)
+            _mdutils.warning.warn(message)
     for i in range(0, pdb.n_atoms):
         s.atomic_types[i] = pdb.top.atom(i).element.number
         s.atomic_symbols.append(pdb.top.atom(i).element.symbol)
@@ -542,7 +541,7 @@ def create_system_from_poscar(file_name: str) -> MDSYSTEM:
             count += 1
     s.box[:] = box * scale_factor * 0.1
     for i in range(0, 3):
-        if (s.lattice[i] < _d.LATTICETOL):
+        if (s.lattice[i] < _mdutils.defaults.LATTICETOL):
             raise RuntimeError('Very small cell length in dim {:d}'.format(i))
     # read the positions
     position_type = fp.readline().strip().lower()

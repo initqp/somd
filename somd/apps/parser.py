@@ -27,10 +27,8 @@ from typing import get_args as _get_args
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
 from somd import apps as _mdapps
+from somd import utils as _mdutils
 from somd import potentials as _potentials
-from somd.warning import warn as _warn
-from somd.constants import CONSTANTS as _c
-from somd.constants import SOMDDEFAULTS as _d
 
 __all__ = ['TOMLPARSER']
 
@@ -359,7 +357,7 @@ class TOMLPARSER(object):
             message = 'An atom group that corresponding to the whole ' + \
                       'system has been append the group list.'
             self.__root['group'].append(d)
-            _warn(message)
+            _mdutils.warning.warn(message)
         # The user has not defined the group without translations.
         # Check if there is any group that is corresponding to the whole group.
         if (no_translations_flag is False):
@@ -370,7 +368,7 @@ class TOMLPARSER(object):
                     self.__root['group'][index]['has_translations'] = False
                     message = 'Translational degrees of freedom of group ' + \
                               '"{}" has been automatically removed.'
-                    _warn(message.format(group._label))
+                    _mdutils.warning.warn(message.format(group._label))
                     break
 
     def __parse_run(self) -> None:
@@ -432,7 +430,7 @@ class TOMLPARSER(object):
                 self.__system.box[:] = system['box'][:]
         parameter_names = ['a', 'b', 'c', 'alpha', 'beta', 'gamma']
         for i in range(0, 6):
-            if (self.__system.lattice[i] < _d.LATTICETOL):
+            if (self.__system.lattice[i] < _mdutils.defaults.LATTICETOL):
                 message = 'Very small lattice parameter: {} !' + \
                           'If your structure file does not contain cell ' + \
                           'data, you could set the simulation box with ' + \
@@ -568,7 +566,7 @@ class TOMLPARSER(object):
                     message = 'You are using constraints. Thus the baoab ' + \
                               'integrator has been changed to the gbaoab ' + \
                               'integrator.'
-                    _warn(message)
+                    _mdutils.warning.warn(message)
                 else:
                     result = _mdcore.integrators.baoab_integrator(
                         timestep, temperatures, relaxation_times,
@@ -581,7 +579,7 @@ class TOMLPARSER(object):
                     message = 'You are using constraints. Thus the obabo ' + \
                               'integrator has been changed to the gobabo ' + \
                               'integrator.'
-                    _warn(message)
+                    _mdutils.warning.warn(message)
                 else:
                     result = _mdcore.integrators.obabo_integrator(
                         timestep, temperatures, relaxation_times,
@@ -867,13 +865,15 @@ class TOMLPARSER(object):
         else:
             barostat = self.__normalize_table(barostat, 'barostat')
         if (type(barostat['beta']) == float):
-            beta = [barostat['beta'] / _c.MEGAPASCAL]
+            beta = [barostat['beta'] / _mdutils.constants.MEGAPASCAL]
         else:
-            beta = [b / _c.MEGAPASCAL for b in barostat['beta']]
+            beta = [b / _mdutils.constants.MEGAPASCAL
+                    for b in barostat['beta']]
         if (type(barostat['pressures']) == float):
-            pressures = [barostat['pressures'] * _c.MEGAPASCAL]
+            pressures = [barostat['pressures'] * _mdutils.constants.MEGAPASCAL]
         else:
-            pressures = [p * _c.MEGAPASCAL for p in barostat['pressures']]
+            pressures = [p * _mdutils.constants.MEGAPASCAL
+                         for p in barostat['pressures']]
         self.__barostat = _mdapps.barostats.BAROSTAT(
             pressures, beta, barostat['relaxation_time'])
 
@@ -920,7 +920,7 @@ class TOMLPARSER(object):
             self.__loggers = []
             message = 'You are performing active learning, system data ' + \
                       'loggers will be removed.'
-            _warn(message)
+            _mdutils.warning.warn(message)
 
     def __check_trajectories(self) -> None:
         """
@@ -940,7 +940,7 @@ class TOMLPARSER(object):
             self.__trajectories = []
             message = 'You are performing active learning, trajectory ' + \
                       'writers will be removed.'
-            _warn(message)
+            _mdutils.warning.warn(message)
 
     def __parse_trajectories(self) -> None:
         """
@@ -1011,7 +1011,7 @@ class TOMLPARSER(object):
                                   'contributions of PLUMED bias ' + \
                                   'potentials! MAKE SURE THAT THIS IS ' + \
                                   'WHAT YOU WANT!!'
-                        _warn(message.format(file_name))
+                        _mdutils.warning.warn(message.format(file_name))
         self.__check_trajectories()
 
     def __parse_scripts(self):
@@ -1038,7 +1038,7 @@ class TOMLPARSER(object):
                 message = 'The function name defined in the "update" key ' + \
                           'of the [[script]] table(s) must be "update"!'
                 raise RuntimeError(message)
-            obj = _mdapps.utils.POSTSTEPOBJWRAPPER(
+            obj = _mdapps.utils.post_step.POSTSTEPOBJWRAPPER(
                 scope['update'], scope['initialize'], interval)
             self.__scripts.append(obj)
 
@@ -1079,12 +1079,12 @@ class TOMLPARSER(object):
                 message = 'You are using PLUMED as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
-                _warn(message)
+                _mdutils.warning.warn(message)
             if (self.__potential_generators[i][0] == 'NEP'):
                 message = 'You are using NEP as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
-                _warn(message)
+                _mdutils.warning.warn(message)
         if (protocol['initial_training_set'] is not None):
             protocol['initial_training_set'] = \
                 _os.path.abspath(protocol['initial_training_set'])

@@ -18,7 +18,7 @@
 
 import numpy as _np
 from somd import core as _mdcore
-from somd.constants import CONSTANTS as _c
+from somd.utils import constants as _c
 
 __all__ = ['DFTD3']
 

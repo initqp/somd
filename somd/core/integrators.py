@@ -22,11 +22,9 @@ The integrators.
 
 import numpy as _np
 import types as _tp
+from somd import utils as _mdutils
 from ._lib import NHCHAINS as _NHCHAINS
 from .systems import MDSYSTEM as _MDSYSTEM
-from somd.warning import warn as _warn
-from somd.constants import CONSTANTS as _c
-from somd.constants import SOMDDEFAULTS as _d
 
 __all__ = ['INTEGRATOR',
            'vv_integrator',
@@ -187,7 +185,8 @@ class INTEGRATOR(object):
         for i in range(0, len(self.__thermo_groups)):
             self.__nhchains.append(_NHCHAINS(self.__temperatures[i],
                                              self.__relaxation_times[i],
-                                             _d.NHCLENGTH, 1, _d.NHCNRESPA))
+                                             _mdutils.defaults.NHCLENGTH, 1,
+                                             _mdutils.defaults.NHCNRESPA))
 
     def __reset_nhchains_parameters(self) -> None:
         """
@@ -300,8 +299,9 @@ class INTEGRATOR(object):
         Randomize momentums of the Nose-Hoover chains.
         """
         for n in self._nhchains:
-            n.momentums = self.__randn(n.length) * \
-                _np.sqrt(n.temperature * _c.BOLTZCONST * _np.array(n.masses))
+            factors = _np.sqrt(n.temperature * _mdutils.constants.BOLTZCONST *
+                               _np.array(n.masses))
+            n.momentums = self.__randn(n.length) * factors
 
     def _operator_V(self, dt_index: int) -> None:
         """
@@ -353,7 +353,7 @@ class INTEGRATOR(object):
             c_1 = _np.exp(-1.0 * self.__timesteps[dt_index] /
                           self.__relaxation_times[i])
             c_2 = _np.sqrt((1.0 - c_1 * c_1) * self.__temperatures[i] *
-                           _c.BOLTZCONST)
+                           _mdutils.constants.BOLTZCONST)
             g.velocities *= c_1
             g.velocities += self.__randn((g.n_atoms, 3)).dot(c_2) / \
                 _np.sqrt(g.masses)
@@ -379,8 +379,8 @@ class INTEGRATOR(object):
             g = self.__system.groups[self.__thermo_groups[i]]
             energy_kinetic = g.energy_kinetic
             self.__energy_effective += energy_kinetic
-            energy_kinetic_target = \
-                self.__temperatures[i] * _c.BOLTZCONST * g.n_dof * 0.5
+            energy_kinetic_target = self.__temperatures[i] * \
+                _mdutils.constants.BOLTZCONST * g.n_dof * 0.5
             r_1 = self.__randn()
             if ((g.n_dof - 1) % 2 == 0):
                 r_2 = 2.0 * self.__gamma((g.n_dof - 1) / 2)
@@ -407,7 +407,8 @@ class INTEGRATOR(object):
         """
         if (self.__system is not None):
             message = 'Binding integrator from system "{}" to system "{}".'
-            _warn(message.format(self.__system._label, system._label))
+            _mdutils.warning.warn(message.format(self.__system._label,
+                                                 system._label))
         if (not self.__is_nve):
             if (len(set(self.__thermo_groups)) != len(self.__thermo_groups)):
                 message = 'Duplicate indices in thermalized groups "{}"!'
@@ -787,9 +788,11 @@ def gbaoab_integrator(timestep: float,
     """
     return INTEGRATOR(timestep, [
         {'operators': ['V', 'Cv']},
-        {'operators': ['Cr', 'R', 'Cv'], 'repeating': _d.GEODESICKR},
+        {'operators': ['Cr', 'R', 'Cv'],
+         'repeating': _mdutils.defaults.GEODESICKR},
         {'operators': ['O', 'Cv']},
-        {'operators': ['Cr', 'R', 'Cv'], 'repeating': _d.GEODESICKR},
+        {'operators': ['Cr', 'R', 'Cv'],
+         'repeating': _mdutils.defaults.GEODESICKR},
         {'operators': ['V', 'Cv']}],
         temperatures, relaxation_times, thermo_groups, rng)
 
@@ -829,7 +832,8 @@ def gobabo_integrator(timestep: float,
     return INTEGRATOR(timestep, [
         {'operators': ['O', 'Cv']},
         {'operators': ['V', 'Cv']},
-        {'operators': ['Cr', 'R', 'Cv'], 'repeating': _d.GEODESICKR},
+        {'operators': ['Cr', 'R', 'Cv'],
+         'repeating': _mdutils.defaults.GEODESICKR},
         {'operators': ['V', 'Cv']},
         {'operators': ['O', 'Cv']}],
         temperatures, relaxation_times, thermo_groups, rng)

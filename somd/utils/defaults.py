@@ -17,9 +17,24 @@
 #
 
 """
-Application utils.
+Default values in SOMD
 """
 
-from . import nep
-from . import backup
-from . import post_step
+
+# Length of the Nose-Hoover chains.
+NHCLENGTH: int = 6
+
+# Number of the RESPA loops of the Nose-Hoover chains.
+NHCNRESPA: int = 4
+
+# The K_r value of the geodesic Langevin integrators.
+GEODESICKR: int = 5
+
+# Tolerance for determining lattice parameters.
+LATTICETOL: float = 1E-7
+
+# If simultaneously update potentials.
+SIMUUPDATE: bool = False
+
+# Timeout for any SIESTA operations (second).
+SIESTATIMEOUT: int = 120

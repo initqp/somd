@@ -26,9 +26,9 @@ import shutil as _sh
 import random as _rn
 from somd import apps as _mdapps
 from somd import core as _mdcore
-from somd.warning import warn as _warn
+from somd import utils as _mdutils
 from somd.potentials import NEP as _NEP
-from . import utils as _utils
+from . import utils as _apputils
 
 __all__ = ['ACTIVELEARNING']
 
@@ -127,7 +127,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         self.__use_tabulating = use_tabulating
         self.__learning_parameters = learning_parameters
         self.__reference_potentials = reference_potentials
-        self.__write_nep_types = _utils.nep.check_nep_parameters(
+        self.__write_nep_types = _apputils.nep.check_nep_parameters(
             nep_parameters, system.atomic_symbols)
         if (output_prefix == ''):
             output_prefix = 'active_learning'
@@ -181,11 +181,11 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 self.root['/iteration_data/0'].attrs['training_sets'][0]
             message = 'The key "initial_training_set" will be ignored ' + \
                       'since the simulation is being restarted.'
-            _warn(message)
+            _mdutils.warning.warn(message)
         if ('initial_potential_files' in param.keys() and self.n_iter != 0):
             message = 'The key "initial_potential_files" will be ignored ' + \
                       'since the simulation is being restarted.'
-            _warn(message)
+            _mdutils.warning.warn(message)
 
     def __initialize_iteration_data_group(self, h5_path: str) -> None:
         """
@@ -310,7 +310,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         try:
             files = [working_dir + '/potential_{:d}/loss.out'.format(i)
                      for i in range(0, n_potentials)]
-            losses = [_utils.nep.get_loss(f)[5] for f in files]
+            losses = [_apputils.nep.get_loss(f)[5] for f in files]
             active_potential_index = _np.argmin(losses)
         except:
             active_potential_index = 0
@@ -353,8 +353,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                                         read_nhc_data=False)
                 for j in range(0, param['max_md_steps_per_iter']):
                     simulation.run(1)
-                    msd = _utils.nep.get_potentials_msd(self.__neps,
-                                                        simulation.system)
+                    msd = _apputils.nep.get_potentials_msd(
+                        self.__neps, simulation.system)
                     n = h5_group['force_msd'].shape[0]
                     h5_group['force_msd'].resize((n + 1,))
                     h5_group['force_msd'][n] = msd
@@ -472,7 +472,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         training_sets = h5_group.attrs['training_sets']
         training_state = h5_group['progress'].attrs['training_finished']
         # Setup the training and testing set.
-        _utils.nep.cat_exyz(training_sets, working_dir + '/train.xyz')
+        _apputils.nep.cat_exyz(training_sets, working_dir + '/train.xyz')
         _sh.copy(param['initial_testing_set'], working_dir + '/test.xyz')
         # Train.
         # Note that there we use len(training_state) instead of
@@ -490,10 +490,10 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 if (restart_files is not None):
                     _sh.copy(restart_files[i], 'nep.restart')
                 if (self.__write_nep_types):
-                    _utils.nep.make_nep_in(self.__nep_parameters,
+                    _apputils.nep.make_nep_in(self.__nep_parameters,
                                            self.system.atomic_symbols)
                 else:
-                    _utils.nep.make_nep_in(self.__nep_parameters)
+                    _apputils.nep.make_nep_in(self.__nep_parameters)
                 errno = _os.system(self.__nep_command + '> nep.log 2> nep.err')
                 if (errno != 0):
                     message = 'NEP command {:s} returns a non-zero exit code!'
@@ -524,10 +524,10 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     with open(param['initial_potential_files'][i], 'rb') as fp:
                         potentials_data.append(fp.read())
                 # Write the sets.
-                _utils.nep.cat_exyz([param['initial_training_set']],
-                                    working_dir + '/train.xyz')
-                _utils.nep.cat_exyz([param['initial_testing_set']],
-                                    working_dir + '/test.xyz')
+                _apputils.nep.cat_exyz([param['initial_training_set']],
+                                       working_dir + '/train.xyz')
+                _apputils.nep.cat_exyz([param['initial_testing_set']],
+                                       working_dir + '/test.xyz')
                 # Write the potentials.
                 for i in range(0, param['n_potentials']):
                     potential_dir = working_dir + '/potential_{:d}'.format(i)
@@ -646,5 +646,5 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         Set the keywords and corresponding values to be used in a nep.in file.
         """
         self.__nep_parameters = v
-        self.__write_nep_types = _utils.nep.check_nep_parameters(
+        self.__write_nep_types = _apputils.nep.check_nep_parameters(
             self.__nep_parameters, self.system.atomic_symbols)
