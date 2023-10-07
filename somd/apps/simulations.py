@@ -23,10 +23,10 @@ import os as _os
 import abc as _ab
 import h5py as _h5
 import copy as _cp
-import warnings as _w
 import contextlib as _cl
 from somd import apps as _mdapps
 from somd import core as _mdcore
+from somd.warning import warn as _warn
 from . import utils as _utils
 
 __all__ = ['SIMULATION', 'STAGEDSIMULATION']
@@ -287,20 +287,20 @@ class STAGEDSIMULATION(_ab.ABC):
                 message = 'Can not find directory {:s}! SOMD will back up ' + \
                           'the file {:s} and run the required simulation ' + \
                           'from scratch!'
-                _w.warn(message.format(directory, title))
+                _warn(message.format(directory, title))
                 self.__is_restart = False
                 _utils.back_up(title)
                 _os.mkdir(directory)
             else:
                 message = 'Found directory {:s}! SOMD will restart the ' + \
                           'required simulation from the break point!'
-                _w.warn(message.format(directory))
+                _warn(message.format(directory))
         else:
             if (_os.path.isdir(directory)):
                 message = 'Can not find file {:s}! SOMD will back up the ' + \
                           'directory {:s} and run the required simulation ' + \
                           'from scratch!'
-                _w.warn(message.format(title, directory))
+                _warn(message.format(title, directory))
                 _utils.back_up(directory)
             _os.mkdir(directory)
             self.__is_restart = False

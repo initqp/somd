@@ -21,7 +21,7 @@ Classes for setting up atom groups.
 """
 
 import numpy as _np
-import warnings as _w
+from somd.warning import warn as _warn
 from somd.constants import CONSTANTS as _c
 
 __all__ = ['ATOMGROUP', 'ATOMGROUPS']
@@ -200,7 +200,7 @@ class ATOMGROUP(object):
             w = _np.linalg.pinv(I).dot(L)
             v -= _np.cross(w, d)
         except:
-            _w.warn('Can not remove COM rotational motions!')
+            _warn('Can not remove COM rotational motions!')
         # restore kinetic energies
         t = (_np.square(v) * self.masses).sum() / _c.BOLTZCONST / self.n_dof
         v *= _np.sqrt(temperature / t)

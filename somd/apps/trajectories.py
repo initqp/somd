@@ -25,8 +25,8 @@ import h5py as _h5
 import numpy as _np
 import pickle as _pl
 import base64 as _bs
-import warnings as _w
 from somd import core as _mdcore
+from somd.warning import warn as _warn
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
 from . import utils as _utils
@@ -601,7 +601,7 @@ class H5READER(object):
             if (die_on_fail):
                 raise AttributeError(message)
             else:
-                _w.warn(message)
+                _warn(message)
         if (value is not None and value not in str(attr)):
             message = ('Values of attribute {} in file {} do not contain ' +
                        'the expected value {}')
@@ -609,7 +609,7 @@ class H5READER(object):
             if (die_on_fail):
                 raise AttributeError(message)
             else:
-                _w.warn(message)
+                _warn(message)
 
     def __check_attributes(self) -> None:
         """
@@ -667,11 +667,11 @@ class H5READER(object):
                 _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
             if (self.__read_nhc_data):
                 if (len(self.__nhchains) == 0):
-                    _w.warn('NHCHAINS have not been bound to the ' +
-                            'reader! NHCHAINS data will not be load!')
+                    _warn('NHCHAINS have not been bound to the ' +
+                          'reader! NHCHAINS data will not be load!')
                 elif ('nhc_positions' not in self.__root.keys()):
-                    _w.warn('Can not load NHCHAINS data from a restart ' +
-                            'file without NHCHAINS data!')
+                    _warn('Can not load NHCHAINS data from a restart ' +
+                          'file without NHCHAINS data!')
                 else:
                     n_nhc = min(len(self.__nhchains),
                                 self.__root['nhc_positions'].shape[1])
@@ -682,9 +682,9 @@ class H5READER(object):
                             self.__root['nhc_momentums'][0, i, :]
         else:
             if (self.__read_rng_state):
-                _w.warn('Can not load RNG state from a non-restart file!')
+                _warn('Can not load RNG state from a non-restart file!')
             if (self.__read_nhc_data):
-                _w.warn('Can not load NHCHAINS data from a non-restart file!')
+                _warn('Can not load NHCHAINS data from a non-restart file!')
         snapshot = self.read_as_snapshot(frame_index)
         if (self.__read_coordinates):
             self.__system.positions[:] = snapshot.positions
@@ -714,18 +714,18 @@ class H5READER(object):
                 snapshot.positions[:, :] = \
                     self.__root['coordinates'][frame_index]
             except:
-                _w.warn('Can not load coordinates form ' + self.file_name)
+                _warn('Can not load coordinates form ' + self.file_name)
         if (self.__read_velocities):
             try:
                 snapshot.velocities[:, :] = \
                     self.__root['velocities'][frame_index]
             except:
-                _w.warn('Can not load velocities form ' + self.file_name)
+                _warn('Can not load velocities form ' + self.file_name)
         if (self.__read_forces):
             try:
                 snapshot.forces[:, :] = self.__root['forces'][frame_index]
             except:
-                _w.warn('Can not load forces form ' + self.file_name)
+                _warn('Can not load forces form ' + self.file_name)
         if (self.__read_cell):
             if (str(self.__root.attrs['program']) == 'SOMD'):
                 snapshot.box[:] = self.__root['box'][frame_index][:]
@@ -736,7 +736,7 @@ class H5READER(object):
                     tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
                     snapshot.lattice = tmp
                 except:
-                    _w.warn('Can not load cell data form ' + self.file_name)
+                    _warn('Can not load cell data form ' + self.file_name)
         return snapshot
 
     @property

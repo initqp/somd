@@ -22,9 +22,9 @@ The integrators.
 
 import numpy as _np
 import types as _tp
-import warnings as _w
 from ._lib import NHCHAINS as _NHCHAINS
 from .systems import MDSYSTEM as _MDSYSTEM
+from somd.warning import warn as _warn
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
 
@@ -393,8 +393,7 @@ class INTEGRATOR(object):
                       energy_kinetic) * (1.0 - c_1)
             term_2 = _np.sqrt(energy_kinetic * energy_kinetic_target /
                               g.n_dof * (1.0 - c_1) * c_1) * 2.0 * r_1
-            factor = _np.sqrt(1 + (term_1 + term_2) / energy_kinetic)
-            g.velocities *= factor
+            g.velocities *= _np.sqrt(1 + (term_1 + term_2) / energy_kinetic)
             self.__energy_effective -= g.energy_kinetic
 
     def bind_system(self, system: _MDSYSTEM) -> None:
@@ -408,7 +407,7 @@ class INTEGRATOR(object):
         """
         if (self.__system is not None):
             message = 'Binding integrator from system "{}" to system "{}".'
-            _w.warn(message.format(self.__system._label, system._label))
+            _warn(message.format(self.__system._label, system._label))
         if (not self.__is_nve):
             if (len(set(self.__thermo_groups)) != len(self.__thermo_groups)):
                 message = 'Duplicate indices in thermalized groups "{}"!'

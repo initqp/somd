@@ -24,9 +24,9 @@ import os as _os
 import numpy as _np
 import shutil as _sh
 import random as _rn
-import warnings as _w
 from somd import apps as _mdapps
 from somd import core as _mdcore
+from somd.warning import warn as _warn
 from somd.potentials import NEP as _NEP
 from . import utils as _utils
 
@@ -181,11 +181,11 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 self.root['/iteration_data/0'].attrs['training_sets'][0]
             message = 'The key "initial_training_set" will be ignored ' + \
                       'since the simulation is being restarted.'
-            _w.warn(message)
+            _warn(message)
         if ('initial_potential_files' in param.keys() and self.n_iter != 0):
             message = 'The key "initial_potential_files" will be ignored ' + \
                       'since the simulation is being restarted.'
-            _w.warn(message)
+            _warn(message)
 
     def __initialize_iteration_data_group(self, h5_path: str) -> None:
         """

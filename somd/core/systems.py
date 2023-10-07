@@ -22,11 +22,11 @@ The simulated system.
 
 import numpy as _np
 import mdtraj as _md
-import warnings as _w
 from threading import Thread as _Thread
 from .groups import ATOMGROUP as _ATOMGROUP
 from .groups import ATOMGROUPS as _ATOMGROUPS
 from ._lib import CONSTRAINTS as _CONSTRAINTS
+from somd.warning import warn as _warn
 from somd.constants import SOMDDEFAULTS as _d
 
 __all__ = ['SNAPSHOT',
@@ -499,7 +499,7 @@ def create_system_from_pdb(file_name: str) -> MDSYSTEM:
             s.box[:, :] = pdb.unitcell_vectors
         except:
             message = 'Can not read unit cell data from file ' + file_name
-            _w.warn(message)
+            _warn(message)
     for i in range(0, pdb.n_atoms):
         s.atomic_types[i] = pdb.top.atom(i).element.number
         s.atomic_symbols.append(pdb.top.atom(i).element.symbol)

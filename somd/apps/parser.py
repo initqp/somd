@@ -23,12 +23,12 @@ A simple TOML input paser.
 import os as _os
 import numpy as _np
 import typing as _tp
-import warnings as _w
 from typing import get_args as _get_args
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
 from somd import apps as _mdapps
 from somd import potentials as _potentials
+from somd.warning import warn as _warn
 from somd.constants import CONSTANTS as _c
 from somd.constants import SOMDDEFAULTS as _d
 
@@ -359,7 +359,7 @@ class TOMLPARSER(object):
             message = 'An atom group that corresponding to the whole ' + \
                       'system has been append the group list.'
             self.__root['group'].append(d)
-            _w.warn(message)
+            _warn(message)
         # The user has not defined the group without translations.
         # Check if there is any group that is corresponding to the whole group.
         if (no_translations_flag is False):
@@ -370,7 +370,7 @@ class TOMLPARSER(object):
                     self.__root['group'][index]['has_translations'] = False
                     message = 'Translational degrees of freedom of group ' + \
                               '"{}" has been automatically removed.'
-                    _w.warn(message.format(group._label))
+                    _warn(message.format(group._label))
                     break
 
     def __parse_run(self) -> None:
@@ -568,7 +568,7 @@ class TOMLPARSER(object):
                     message = 'You are using constraints. Thus the baoab ' + \
                               'integrator has been changed to the gbaoab ' + \
                               'integrator.'
-                    _w.warn(message)
+                    _warn(message)
                 else:
                     result = _mdcore.integrators.baoab_integrator(
                         timestep, temperatures, relaxation_times,
@@ -581,7 +581,7 @@ class TOMLPARSER(object):
                     message = 'You are using constraints. Thus the obabo ' + \
                               'integrator has been changed to the gobabo ' + \
                               'integrator.'
-                    _w.warn(message)
+                    _warn(message)
                 else:
                     result = _mdcore.integrators.obabo_integrator(
                         timestep, temperatures, relaxation_times,
@@ -920,7 +920,7 @@ class TOMLPARSER(object):
             self.__loggers = []
             message = 'You are performing active learning, system data ' + \
                       'loggers will be removed.'
-            _w.warn(message)
+            _warn(message)
 
     def __check_trajectories(self) -> None:
         """
@@ -940,7 +940,7 @@ class TOMLPARSER(object):
             self.__trajectories = []
             message = 'You are performing active learning, trajectory ' + \
                       'writers will be removed.'
-            _w.warn(message)
+            _warn(message)
 
     def __parse_trajectories(self) -> None:
         """
@@ -1011,7 +1011,7 @@ class TOMLPARSER(object):
                                   'contributions of PLUMED bias ' + \
                                   'potentials! MAKE SURE THAT THIS IS ' + \
                                   'WHAT YOU WANT!!'
-                        _w.warn(message.format(file_name))
+                        _warn(message.format(file_name))
         self.__check_trajectories()
 
     def __parse_scripts(self):
@@ -1079,12 +1079,12 @@ class TOMLPARSER(object):
                 message = 'You are using PLUMED as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
-                _w.warn(message)
+                _warn(message)
             if (self.__potential_generators[i][0] == 'NEP'):
                 message = 'You are using NEP as one of the reference ' + \
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
-                _w.warn(message)
+                _warn(message)
         if (protocol['initial_training_set'] is not None):
             protocol['initial_training_set'] = \
                 _os.path.abspath(protocol['initial_training_set'])

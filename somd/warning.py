@@ -17,19 +17,28 @@
 #
 
 """
-SOMD is an ab-initio molecular dynamics (AIMD) package designed for the SIESTA
-(https://departments.icmab.es/leem/siesta/) code. SOMD also contains
-subroutines to automatically train the neuroevolution potential (NEP) using the
-so-called active-learning methodology.
+The warning method.
 """
 
+import warnings as _w
+import datetime as _dt
 
-from somd import warning
-from somd import constants
-from somd import core
-from somd import potentials
-from somd import apps
-from . import _version
 
-__version__ = _version.get_versions()['version']
-__import__('warnings').simplefilter('always', UserWarning)
+def _formatwarning(*args, **kwargs) -> str:
+    """
+    Function to format a warning the standard way.
+    """
+    result = '[SOMD] [{:s}] [{:s}|{:d}]: {}\n'
+    file_path = args[2].split('somd/')[-1]
+    time_string = _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return result.format(time_string, file_path, args[3], args[0])
+
+
+def warn(*args, **kwargs):
+    """
+    Override of the `warnings.warn` function.
+    """
+    formatwarning_tmp = _w.formatwarning
+    _w.formatwarning = _formatwarning
+    _w.warn(*args, stacklevel=2, **kwargs)
+    _w.formatwarning = formatwarning_tmp
