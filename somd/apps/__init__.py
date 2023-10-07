@@ -26,5 +26,4 @@ from somd.apps import loggers
 from somd.apps import barostats
 from somd.apps import simulations
 from somd.apps import trajectories
-from somd.apps import path_sampling
 from somd.apps import active_learning
