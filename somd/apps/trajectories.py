@@ -803,9 +803,9 @@ class H5READER(object):
             raise RuntimeError(message)
         self._read_snapshot(frame_index)
         if (self.__read_rng_state):
-            self._set_rng_state()
+            self._read_rng_state()
         if (self.__read_nhc_data):
-            self._set_nhc_data()
+            self._read_nhc_data()
 
     @property
     def root(self) -> _h5.File:
