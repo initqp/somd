@@ -108,8 +108,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Close the file on exit.
         """
-        if (self.__root is not None):
-            self.__root.close()
+        self.finalize()
 
     def __dump_attributes(self) -> None:
         """
@@ -196,6 +195,87 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
                                       (1, n_nhc, l_nhc), type_str,
                                       'kilojoule/mole*picosecond')
 
+    def __collect_data(self):
+        """
+        Collect system snapshot data.
+        """
+        if (self.__wrap_positions):
+            self.__positions = self.__system.positions_wrapped
+        else:
+            self.__positions = self.__system.positions
+        if (self.__potential_list is None):
+            self.__energy_potential[0] = self.__system.energy_potential
+        else:
+            for i in self.__potential_list:
+                self.__energy_potential[0] += \
+                    self.__system.potentials[i].energy_potential
+        if (self.__write_forces and (self.__potential_list is None)):
+            self.__forces = self.__system.forces
+        elif (self.__potential_list is not None):
+            for i in self.__potential_list:
+                atom_list = self.__system.potentials[i].atom_list
+                self.__forces[atom_list, :] += \
+                    self.__system.potentials[i].forces
+        if (self.__write_virial and (self.__potential_list is None)):
+            self.__virial = self.__system.virial
+        elif (self.__potential_list is not None):
+            for i in self.__potential_list:
+                self.__virial[:] += self.__system.potentials[i].virial
+
+    def _write_snapshot(self):
+        """
+        Write system snapshot data to the trajectory.
+        """
+        self.__collect_data()
+        n_atoms = self.__system.n_atoms
+        # The step stands for the number of trajectory frame.
+        step = self.__root['coordinates'].shape[0]
+        if (self.__is_restart and (step != 0)):
+            step = 0
+        else:
+            self.__root['steps'].resize((step + 1,))
+            self.__root['cell_angles'].resize((step + 1, 3))
+            self.__root['cell_lengths'].resize((step + 1, 3))
+            self.__root['box'].resize((step + 1, 3, 3))
+            self.__root['potentialEnergy'].resize((step + 1,))
+            self.__root['coordinates'].resize((step + 1, n_atoms, 3))
+            if (self.__write_velocities):
+                self.__root['velocities'].resize((step + 1, n_atoms, 3))
+            if (self.__write_forces):
+                self.__root['forces'].resize((step + 1, n_atoms, 3))
+            if (self.__write_virial):
+                self.__root['virial'].resize((step + 1, 3, 3))
+        self.__root['steps'][step] = self.step
+        l = self.__system.lattice
+        self.__root['cell_angles'][step, :] = l[3:6]
+        self.__root['cell_lengths'][step, :] = l[0:3]
+        self.__root['box'][step, :, :] = self.__system.box
+        self.__root['coordinates'][step, :, :] = self.__positions
+        self.__root['potentialEnergy'][step] = self.__energy_potential[0]
+        if (self.__write_velocities):
+            self.__root['velocities'][step, :, :] = self.__system.velocities
+        if (self.__write_forces):
+            self.__root['forces'][step, :, :] = self.__forces
+        if (self.__write_virial):
+            self.__root['virial'][step, :, :] = self.__virial
+
+    def _write_nhc_data(self):
+        """
+        Write Nose-Hoover Chains data to the trajectory.
+        """
+        for i in range(0, len(self.__nhchains)):
+            n = self.__nhchains[i]
+            self.__root['nhc_positions'][0, i, :] = n.positions
+            self.__root['nhc_momentums'][0, i, :] = n.momentums
+
+    def _write_rng_state(self):
+        """
+        Write RNG data to the trajectory.
+        """
+        st = _np.random.get_state()
+        st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
+        self.__root.attrs['randomState'] = st_str
+
     def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
             -> None:
         """
@@ -204,6 +284,12 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         super().bind_integrator(integrator)
         self.__system = integrator.system
         self.__nhchains = integrator._nhchains
+        self.__energy_potential = _np.zeros((1,), dtype=_np.double)
+        self.__positions = None
+        if (self.__write_forces):
+            self.__forces = _np.zeros((self.__system.n_atoms, 3), _np.double)
+        if (self.__write_virial):
+            self.__virial = _np.zeros((3, 3), _np.double)
 
     def initialize(self) -> None:
         """
@@ -227,66 +313,11 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         if (not self.initialized):
             self.initialize()
-        n_atoms = self.__system.n_atoms
         if (self.__is_restart):
-            # The step stands for the number of trajectory frame.
-            step = 0
-            st = _np.random.get_state()
-            st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
-            self.__root.attrs['randomState'] = st_str
-            if (len(self.__nhchains) != 0):
-                for i in range(0, len(self.__nhchains)):
-                    n = self.__nhchains[i]
-                    self.__root['nhc_positions'][0, i, :] = n.positions
-                    self.__root['nhc_momentums'][0, i, :] = n.momentums
-        else:
-            step = self.__root['coordinates'].shape[0]
-
+            self._write_nhc_data()
+            self._write_rng_state()
+        self._write_snapshot()
         # This `steps` stands for simulation timesteps.
-        self.__root['steps'].resize((step + 1,))
-        self.__root['steps'][step] = self.step
-        l = self.__system.lattice
-        self.__root['cell_angles'].resize((step + 1, 3))
-        self.__root['cell_angles'][step, :] = l[3:6]
-        self.__root['cell_lengths'].resize((step + 1, 3))
-        self.__root['cell_lengths'][step, :] = l[0:3]
-        self.__root['box'].resize((step + 1, 3, 3))
-        self.__root['box'][step, :, :] = self.__system.box
-        if (self.__wrap_positions):
-            p = self.__system.positions_wrapped
-        else:
-            p = self.__system.positions
-        self.__root['coordinates'].resize((step + 1, n_atoms, 3))
-        self.__root['coordinates'][step, :, :] = p
-        self.__root['potentialEnergy'].resize((step + 1,))
-        if (self.__potential_list is None):
-            self.__root['potentialEnergy'][step] = \
-                self.__system.energy_potential
-        else:
-            self.__root['potentialEnergy'][step] = 0
-            for i in self.__potential_list:
-                self.__root['potentialEnergy'][step] += \
-                    self.__system.potentials[i].energy_potential
-        if (self.__write_velocities):
-            self.__root['velocities'].resize((step + 1, n_atoms, 3))
-            self.__root['velocities'][step, :, :] = self.__system.velocities
-        if (self.__write_forces):
-            self.__root['forces'].resize((step + 1, n_atoms, 3))
-            if (self.__potential_list is None):
-                self.__root['forces'][step, :, :] = self.__system.forces
-            else:
-                for i in self.__potential_list:
-                    atom_list = self.__system.potentials[i].atom_list
-                    self.__root['forces'][step, atom_list, :] += \
-                        self.__system.potentials[i].forces
-        if (self.__write_virial):
-            self.__root['virial'].resize((step + 1, 3, 3))
-            if (self.__potential_list is None):
-                self.__root['virial'][step, :, :] = self.__system.virial
-            else:
-                for i in self.__potential_list:
-                    self.__root['virial'][step, :, :] += \
-                        self.__system.potentials[i].virial
         self.__root.flush()
 
     def update(self) -> None:
@@ -295,6 +326,13 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         if (super().update()):
             self.write()
+
+    def finalize(self) -> None:
+        """
+        Close this trajectory.
+        """
+        if (self.__root is not None):
+            self.__root.close()
 
     @property
     def file_name(self) -> str:
@@ -398,8 +436,7 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Close the file on exit.
         """
-        if (self.__fp is not None):
-            self.__fp.close()
+        self.finalize()
 
     def __convert_data(self):
         """
@@ -507,6 +544,13 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         if (super().update()):
             self.write()
 
+    def finalize(self) -> None:
+        """
+        Close this trajectory.
+        """
+        if (self.__fp is not None):
+            self.__fp.close()
+
     @property
     def file_name(self) -> str:
         """
@@ -566,6 +610,8 @@ class H5READER(object):
             self.__is_restart = True
         else:
             self.__is_restart = False
+        self.__integrator = None
+        self.__system = None
 
     def __del__(self) -> None:
         """
@@ -621,6 +667,113 @@ class H5READER(object):
         self.__check_attribute('title', die_on_fail=False)
         self.__check_attribute('application', die_on_fail=False)
 
+    def _read_snapshot(self,
+                       frame_index: int = -1) -> _mdcore.systems.SNAPSHOT:
+        """
+        Read one frame from the trajectory as the `somd.core.systems.SNAPSHOT`
+        instance. This method do not require an integrator, but can not read
+        NHC data as well.
+
+        Parameters
+        ----------
+        frame_index : int
+            The index of the frame to read data from. If the parameter is
+            negative, last frame of the trajectory will be read.
+        """
+        n_frames = self.__root['coordinates'].shape[0]
+        if (frame_index < 0):
+            frame_index = n_frames - 1
+        elif (self.__is_restart and frame_index > 0):
+            raise RuntimeError('Could not load data from a non-zero frame ' +
+                               'of a restart file!')
+        elif (not self.__is_restart) and (n_frames <= frame_index):
+            message = 'Could not load data from frame {:d} of a ' + \
+                      'trajectory with only {:d} frmaes!'
+            message = message.format(frame_index,
+                                     self.__root['coordinates'].shape[0])
+            raise RuntimeError(message)
+        snapshot = _mdcore.systems.SNAPSHOT(self.__n_atoms)
+        if (self.__read_coordinates):
+            if ('coordinates' in self.__root.keys()):
+                snapshot.positions[:, :] = \
+                    self.__root['coordinates'][frame_index]
+                if (self.__system is not None):
+                    self.__system.positions[:] = snapshot.positions
+            else:
+                message = 'Can not load coordinates from file "{:s}".'
+                _mdutils.warning.warn(message.format(self.file_name))
+        if (self.__read_velocities):
+            if ('velocities' in self.__root.keys()):
+                snapshot.velocities[:, :] = \
+                    self.__root['velocities'][frame_index]
+                if (self.__system is not None):
+                    self.__system.velocities[:] = snapshot.velocities
+            else:
+                message = 'Can not load velocities from file "{:s}".'
+                _mdutils.warning.warn(message.format(self.file_name))
+        if (self.__read_forces):
+            if ('forces' in self.__root.keys()):
+                snapshot.forces[:, :] = self.__root['forces'][frame_index]
+                if (self.__system is not None):
+                    self.__system.forces[:] = snapshot.forces
+            else:
+                message = 'Can not load forces from file "{:s}".'
+                _mdutils.warning.warn(message.format(self.file_name))
+        if (self.__read_cell):
+            if (str(self.__root.attrs['program']) == 'SOMD'):
+                snapshot.box[:] = self.__root['box'][frame_index][:]
+                if (self.__system is not None):
+                    self.__system.box[:] = snapshot.box
+            else:
+                try:
+                    tmp = _np.zeros(6, dtype=_np.double)
+                    tmp[3:6] = self.__root['cell_angles'][frame_index][:]
+                    tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
+                    snapshot.lattice = tmp
+                    if (self.__system is not None):
+                        self.__system.lattice = tmp
+                except:
+                    message = 'Can not load cell data from file "{:s}".'
+                    _mdutils.warning.warn(message.format(self.file_name))
+        return snapshot
+
+    def _read_nhc_data(self) -> None:
+        """
+        Read and set Nose-Hoover Chains data.
+        """
+        if (not self.__is_restart):
+            message = 'Can not load NHCHAINS data from a non-restart file!'
+            _mdutils.warning.warn(message)
+            return
+        if (len(self.__nhchains) == 0):
+            message = 'NHCHAINS have not been bound to the reader! ' + \
+                      'NHCHAINS data will not be load!'
+            _mdutils.warning.warn(message)
+            return
+        elif ('nhc_positions' not in self.__root.keys()):
+            message = 'Can not load NHCHAINS data from a restart ' + \
+                      'file without NHCHAINS data!'
+            _mdutils.warning.warn(message)
+            return
+        n_nhc = self.__root['nhc_positions'].shape[1]
+        n_nhc = min(len(self.__nhchains), n_nhc)
+        for i in range(0, n_nhc):
+            self.__nhchains[i].positions = \
+                self.__root['nhc_positions'][0, i, :]
+            self.__nhchains[i].momentums = \
+                self.__root['nhc_momentums'][0, i, :]
+
+    def _read_rng_state(self) -> None:
+        """
+        Read and set RNG data.
+        """
+        if (not self.__is_restart):
+            message = 'Can not load RNG state from a non-restart file!'
+            _mdutils.warning.warn(message)
+            return
+        st_str = self.__root.attrs['randomState']
+        _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
+
     def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
             -> None:
         """
@@ -648,103 +801,11 @@ class H5READER(object):
         if (self.__integrator is None):
             message = 'Must bind to an integrator before read!'
             raise RuntimeError(message)
-        n_frames = self.__root['coordinates'].shape[0]
-        if (frame_index < 0):
-            frame_index = n_frames - 1
-        elif (self.__is_restart and frame_index > 0):
-            raise RuntimeError('Could not load data from a non-zero frame ' +
-                               'of a restart file!')
-        elif (not self.__is_restart) and (n_frames <= frame_index):
-            message = 'Could not load data from frame {:d} of a ' + \
-                      'trajectory with only {:d} frmaes!'
-            message = message.format(frame_index,
-                                     self.__root['coordinates'].shape[0])
-            raise RuntimeError(message)
-        if (self.__is_restart):
-            if (self.__read_rng_state):
-                st_str = self.__root.attrs['randomState']
-                _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
-            if (self.__read_nhc_data):
-                if (len(self.__nhchains) == 0):
-                    message = 'NHCHAINS have not been bound to the ' + \
-                              'reader! NHCHAINS data will not be load!'
-                    _mdutils.warning.warn(message)
-                elif ('nhc_positions' not in self.__root.keys()):
-                    message = 'Can not load NHCHAINS data from a restart ' + \
-                              'file without NHCHAINS data!'
-                    _mdutils.warning.warn(message)
-                else:
-                    n_nhc = min(len(self.__nhchains),
-                                self.__root['nhc_positions'].shape[1])
-                    for i in range(0, n_nhc):
-                        self.__nhchains[i].positions = \
-                            self.__root['nhc_positions'][0, i, :]
-                        self.__nhchains[i].momentums = \
-                            self.__root['nhc_momentums'][0, i, :]
-        else:
-            if (self.__read_rng_state):
-                message = 'Can not load RNG state from a non-restart file!'
-                _mdutils.warning.warn(message)
-            if (self.__read_nhc_data):
-                message = 'Can not load NHCHAINS data from a non-restart file!'
-                _mdutils.warning.warn(message)
-        snapshot = self.read_as_snapshot(frame_index)
-        if (self.__read_coordinates):
-            self.__system.positions[:] = snapshot.positions
-        if (self.__read_velocities):
-            self.__system.velocities[:] = snapshot.velocities
-        if (self.__read_forces):
-            self.__system.forces[:] = snapshot.forces
-        if (self.__read_cell):
-            self.__system.box[:] = snapshot.box
-
-    def read_as_snapshot(self, frame_index: int = -1) \
-            -> _mdcore.systems.SNAPSHOT:
-        """
-        Read one frame from the trajectory as the `somd.core.systems.SNAPSHOT`
-        instance. This method do not require an integrator, but can not read
-        NHC data as well.
-
-        Parameters
-        ----------
-        frame_index : int
-            The index of the frame to read data from. If the parameter is
-            negative, last frame of the trajectory will be read.
-        """
-        snapshot = _mdcore.systems.SNAPSHOT(self.__n_atoms)
-        if (self.__read_coordinates):
-            try:
-                snapshot.positions[:, :] = \
-                    self.__root['coordinates'][frame_index]
-            except:
-                message = 'Can not load coordinates form file "{:s}"'
-                _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_velocities):
-            try:
-                snapshot.velocities[:, :] = \
-                    self.__root['velocities'][frame_index]
-            except:
-                message = 'Can not load velocities form file "{:s}"'
-                _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_forces):
-            try:
-                snapshot.forces[:, :] = self.__root['forces'][frame_index]
-            except:
-                message = 'Can not load forces form file "{:s}"'
-                _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_cell):
-            if (str(self.__root.attrs['program']) == 'SOMD'):
-                snapshot.box[:] = self.__root['box'][frame_index][:]
-            else:
-                try:
-                    tmp = _np.zeros(6, dtype=_np.double)
-                    tmp[3:6] = self.__root['cell_angles'][frame_index][:]
-                    tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
-                    snapshot.lattice = tmp
-                except:
-                    message = 'Can not load cell data form file "{:s}"'
-                    _mdutils.warning.warn(message.format(self.file_name))
-        return snapshot
+        self._read_snapshot(frame_index)
+        if (self.__read_rng_state):
+            self._set_rng_state()
+        if (self.__read_nhc_data):
+            self._set_nhc_data()
 
     @property
     def root(self) -> _h5.File:

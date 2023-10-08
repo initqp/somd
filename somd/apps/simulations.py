@@ -84,6 +84,15 @@ class SIMULATION(object):
         for l in loggers:
             self.__post_step_objects.append(l)
 
+    def __del__(self) -> None:
+        """
+        Finalize the simulation.
+        """
+        for potential in self.__system.potentials:
+            potential.finalize()
+        for post_step_object in self.__post_step_objects:
+            post_step_object.finalize()
+
     def _loop(self) -> None:
         """
         The simulation loop.
@@ -396,9 +405,7 @@ class STAGEDSIMULATION(_ab.ABC):
         try:
             yield simulation
         finally:
-            for potential in simulation.system.potentials:
-                potential.finalize()
-            del system, integrator, post_step_objects, barostat, simulation
+            del simulation
 
     def _set_up_iter_dir(self) -> str:
         """

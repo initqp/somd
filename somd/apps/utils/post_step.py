@@ -69,6 +69,12 @@ class POSTSTEPOBJ(_ab.ABC):
             raise RuntimeError(message)
         self.__initialized = True
 
+    def finalize(self) -> None:
+        """
+        Finalize the object.
+        """
+        pass
+
     @_ab.abstractmethod
     def update(self) -> bool:
         """
