@@ -401,7 +401,7 @@ class ATOMGROUPS(list):
         The simulated system.
     """
 
-    def __init__(self, system):
+    def __init__(self, system) -> None:
         """
         Create an ATOMGROUPS instance.
         """

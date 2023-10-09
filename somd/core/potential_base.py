@@ -38,7 +38,7 @@ class POTENTIAL(_ab.ABC):
         Indices of atoms included by this potential.
     """
 
-    def __init__(self, atom_list: list):
+    def __init__(self, atom_list: list) -> None:
         """
         Create a POTENTIAL instance.
         """

@@ -146,7 +146,7 @@ class POSTSTEPOBJWRAPPER(POSTSTEPOBJ):
         self.__initialize_function = initialize_function
         super().__init__(interval)
 
-    def initialize(self):
+    def initialize(self) -> None:
         """
         Initialize the object.
         """

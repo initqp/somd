@@ -218,7 +218,7 @@ class TOMLPARSER(object):
                 raise KeyError('Table [{}] is required!'.format(key))
         self.__root = definitions
 
-    def __check_task(self):
+    def __check_task(self) -> None:
         """
         Check the simulation task.
         """
@@ -803,7 +803,7 @@ class TOMLPARSER(object):
                 self.__parse_potential(potential, index, timestep,
                                        temperature)))
 
-    def __parse_constraints(self):
+    def __parse_constraints(self) -> None:
         """
         Parse the constraint information.
         """
@@ -1014,7 +1014,7 @@ class TOMLPARSER(object):
                         _mdutils.warning.warn(message.format(file_name))
         self.__check_trajectories()
 
-    def __parse_scripts(self):
+    def __parse_scripts(self) -> None:
         """
         Set up the post-step scripts.
         """
@@ -1042,7 +1042,7 @@ class TOMLPARSER(object):
                 scope['update'], scope['initialize'], interval)
             self.__scripts.append(obj)
 
-    def __set_up_simulation(self):
+    def __set_up_simulation(self) -> None:
         """
         Set up the simulation protocol.
         """
@@ -1054,7 +1054,7 @@ class TOMLPARSER(object):
         for obj in self.__scripts:
             self.__simulation.post_step_objects.append(obj)
 
-    def __parse_active_learning(self):
+    def __parse_active_learning(self) -> None:
         """
         Parse the active learning information.
         """
@@ -1106,7 +1106,7 @@ class TOMLPARSER(object):
             bool(protocol['use_tabulating']), post_step_objects,
             self.__root['run']['label'] + '.active_learning')
 
-    def run(self):
+    def run(self) -> None:
         """
         Run the simulation.
         """
@@ -1119,7 +1119,7 @@ class TOMLPARSER(object):
             self.__simulation.run(self.__root['run']['n_steps'])
 
     @property
-    def file_name(self):
+    def file_name(self) -> str:
         """
         Name of the configure file.
         """

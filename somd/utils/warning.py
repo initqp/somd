@@ -34,7 +34,7 @@ def _formatwarning(*args, **kwargs) -> str:
     return result.format(time_string, file_path, args[3], args[0])
 
 
-def warn(*args, **kwargs):
+def warn(*args, **kwargs) -> None:
     """
     Override of the `warnings.warn` function.
     """

@@ -195,7 +195,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
                                       (1, n_nhc, l_nhc), type_str,
                                       'kilojoule/mole*picosecond')
 
-    def __collect_data(self):
+    def __collect_data(self) -> None:
         """
         Collect system snapshot data.
         """
@@ -222,7 +222,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             for i in self.__potential_list:
                 self.__virial[:] += self.__system.potentials[i].virial
 
-    def _write_snapshot(self):
+    def _write_snapshot(self) -> None:
         """
         Write system snapshot data to the trajectory.
         """
@@ -259,7 +259,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         if (self.__write_virial):
             self.__root['virial'][step, :, :] = self.__virial
 
-    def _write_nhc_data(self):
+    def _write_nhc_data(self) -> None:
         """
         Write Nose-Hoover Chains data to the trajectory.
         """
@@ -268,7 +268,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             self.__root['nhc_positions'][0, i, :] = n.positions
             self.__root['nhc_momentums'][0, i, :] = n.momentums
 
-    def _write_rng_state(self):
+    def _write_rng_state(self) -> None:
         """
         Write RNG data to the trajectory.
         """
@@ -438,7 +438,7 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         self.finalize()
 
-    def __convert_data(self):
+    def __convert_data(self) -> None:
         """
         Convert units of system data.
         """

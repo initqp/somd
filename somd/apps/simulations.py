@@ -193,7 +193,7 @@ class SIMULATION(object):
         del t
 
     @property
-    def current_step(self):
+    def current_step(self) -> int:
         """
         Current simulation step.
         """

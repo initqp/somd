@@ -76,7 +76,7 @@ cdef class NEPWRAPPER(object):
         del self.__cxx_obj_ptr
         self.__cxx_obj_ptr = NULL
 
-    cdef __init_type_vec(self, atomic_symbols: list(str)):
+    cdef void __init_type_vec(self, atomic_symbols: list(str)):
         """
         Initialize the atomic type vector.
 
@@ -98,7 +98,9 @@ cdef class NEPWRAPPER(object):
             if (not is_valid):
                 raise RuntimeError('Unknown element: ' + atomic_symbols[i])
 
-    cdef __copy_input_data(self, positions: double[:, :], box: double[:, :]):
+    cdef void __copy_input_data(self,
+                                positions: double[:, :],
+                                box: double[:, :]):
        """ Copy and transpose the position and box data. """
        cdef int i = 0
        for i in range(0, self.__n_atoms):
@@ -115,7 +117,9 @@ cdef class NEPWRAPPER(object):
        self.__cxx_box_vec[7] = box[1, 2]
        self.__cxx_box_vec[8] = box[2, 2]
 
-    cdef __copy_output_data(self, forces: double[:, :], virial: double[:, :]):
+    cdef double __copy_output_data(self,
+                                   forces: double[:, :],
+                                   virial: double[:, :]):
        """ Calculate and return the total energy, force and virial data. """
        cdef int i = 0
        cdef double energy = 0

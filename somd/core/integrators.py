@@ -279,7 +279,7 @@ class INTEGRATOR(object):
         t = []
         count = 0
         scope = {}
-        s = 'def propagate(self):\n'
+        s = 'def propagate(self) -> None:\n'
         s += '    """\n    Propagate the system by one timestep.\n    """\n'
         for i, j in zip(self.__splitting_whole['operators'],
                         self.__splitting_whole['timesteps']):

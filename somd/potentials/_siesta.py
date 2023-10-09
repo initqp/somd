@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import io as _io
 import os as _os
 import re as _re
 import uuid as _id
@@ -114,7 +115,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         return tmp[0]
 
     @staticmethod
-    def __timeout_open(file_name, mode: str, **kwargs):
+    def __timeout_open(file_name, mode: str, **kwargs) -> _io.TextIOWrapper:
         """
         Open a file with a given timeout.
         """
@@ -226,7 +227,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
             return True
 
     @property
-    def working_directory(self):
+    def working_directory(self) -> str:
         """
         The working working directory of the SIESTA calculations.
         """
