@@ -640,6 +640,8 @@ class H5READER(object):
         attr = ''
         try:
             attr = self.__root.attrs[name]
+            if _np.issubdtype(type(attr), _np.bytes_):
+                attr = attr.decode('UTF-8')
         except:
             message = 'Attribute {} does not exist in file {}'
             message = message.format(name, self.__file_name)
