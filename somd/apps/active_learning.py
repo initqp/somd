@@ -92,7 +92,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             Paths to the initial potential files (nep.txt files). If this
             option appears, the first iteration of training will not be
             performed.
-        -  energy_shift : float
+        - energy_shift : float
             Shift the total energy by this value before recording the total
             energy to the trajectory. In unit of (kJ/mol).
     nep_parameters : str
@@ -491,7 +491,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     _sh.copy(restart_files[i], 'nep.restart')
                 if (self.__write_nep_types):
                     _apputils.nep.make_nep_in(self.__nep_parameters,
-                                           self.system.atomic_symbols)
+                                              self.system.atomic_symbols)
                 else:
                     _apputils.nep.make_nep_in(self.__nep_parameters)
                 errno = _os.system(self.__nep_command + '> nep.log 2> nep.err')
