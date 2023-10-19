@@ -1,4 +1,7 @@
 # SOMD (A ~~SIESTA Oriented~~ Shitty Opinionated Molecular Dynamics Package)
+
+![logo](doc/logo.png "logo")
+
 SOMD is an ab-initio molecular dynamics (AIMD) package designed for the
 [SIESTA](https://departments.icmab.es/leem/siesta/) DFT code. The SOMD code
 provides some common functionalities to perform standard Born-Oppenheimer
