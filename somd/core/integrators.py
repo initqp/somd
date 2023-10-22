@@ -213,7 +213,7 @@ class INTEGRATOR(object):
                 invalid_ops = [o for o in op[i] if (o not in v)]
                 if (len(invalid_ops) != 0):
                     message = 'Unknown operators: "{}"'.format(invalid_ops)
-                    raise KeyError(message)
+                    raise RuntimeError(message)
                 s['timesteps'] = [ts[i] / op[i].count(o) for o in op[i]]
             else:
                 if (len(s['timesteps']) != len(s['operators'])):
@@ -231,10 +231,7 @@ class INTEGRATOR(object):
         self.__splitting_whole['repeating'] = 1
         for i in range(0, len(self.__splitting)):
             s = self.__splitting[i]
-            if ('repeating' in s.keys()):
-                r = s['repeating']
-            else:
-                r = 1
+            r = s.get('repeating', 1)
             self.__splitting_whole['operators'] += s['operators'] * r
             ts = [t / r for t in s['timesteps']]
             self.__splitting_whole['timesteps'] += ts * r
