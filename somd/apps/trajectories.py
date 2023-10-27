@@ -573,6 +573,8 @@ class H5READER(object):
         If read velocities from the file.
     read_forces : bool
         If read forces from the file.
+    read_virial : bool
+        If read virial from the file.
     read_cell : bool
         If read cell data from the file.
     read_nhc_data : bool
@@ -590,6 +592,7 @@ class H5READER(object):
                  read_coordinates: bool = True,
                  read_velocities: bool = True,
                  read_forces: bool = True,
+                 read_virial: bool = True,
                  read_cell: bool = True,
                  read_nhc_data: bool = True,
                  read_rng_state: bool = True) -> None:
@@ -599,6 +602,7 @@ class H5READER(object):
         self.__file_name = file_name
         self.__read_cell = read_cell
         self.__read_forces = read_forces
+        self.__read_virial = read_virial
         self.__read_nhc_data = read_nhc_data
         self.__read_rng_state = read_rng_state
         self.__read_velocities = read_velocities
@@ -720,6 +724,14 @@ class H5READER(object):
                     self.__system.forces[:] = snapshot.forces
             else:
                 message = 'Can not load forces from file "{:s}".'
+                _mdutils.warning.warn(message.format(self.file_name))
+        if (self.__read_virial):
+            if ('virial' in self.__root.keys()):
+                snapshot.virial[:, :] = self.__root['virial'][frame_index]
+                if (self.__system is not None):
+                    self.__system.virial[:] = snapshot.virial
+            else:
+                message = 'Can not load virial from file "{:s}".'
                 _mdutils.warning.warn(message.format(self.file_name))
         if (self.__read_cell):
             if (str(self.__root.attrs['program']) == 'SOMD'):

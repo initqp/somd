@@ -43,8 +43,8 @@ def test_active_learning():
     integrator.bind_system(system)
     reader = somd.apps.trajectories.H5READER(
         'active_learning.dir/iteration_1/visited_structures.h5',
-        read_forces=False, read_nhc_data=False, read_rng_state=False,
-        read_velocities=False)
+        read_velocities=False, read_forces=False, read_virial=False,
+        read_nhc_data=False, read_rng_state=False,)
     reader.bind_integrator(integrator)
     for i in indices:
         reader.read(i)
@@ -56,8 +56,8 @@ def test_active_learning():
     energies = []
     reader = somd.apps.trajectories.H5READER(
         'data/active_learning/traj.h5',
-        read_forces=False, read_nhc_data=False, read_rng_state=False,
-        read_velocities=False)
+        read_velocities=False, read_forces=False, read_virial=False,
+        read_nhc_data=False, read_rng_state=False,)
     reader.bind_integrator(integrator)
     for i in range(0, 5):
         reader.read(i)

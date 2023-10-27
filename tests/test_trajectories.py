@@ -112,7 +112,8 @@ def test_trajectory_4():
     simulation = somd.apps.simulations.SIMULATION(system, integrator,
                                                   trajectories=[traj_writer])
     simulation.run(1)
-    reader = somd.apps.trajectories.H5READER('traj.h5', 'r')
+    reader = somd.apps.trajectories.H5READER('traj.h5', read_forces=False,
+                                             read_virial=False)
     snapshot = reader._read_snapshot()
     _nt.assert_almost_equal(snapshot.box, system.box, DECIMAL_D)
     _nt.assert_almost_equal(snapshot.positions, system.positions, DECIMAL_D)
@@ -135,7 +136,8 @@ def test_trajectory_5():
     simulation = somd.apps.simulations.SIMULATION(system, integrator_1,
                                                   trajectories=[traj_writer])
     simulation.run(1)
-    reader = somd.apps.trajectories.H5READER('traj.h5', 'r')
+    reader = somd.apps.trajectories.H5READER('traj.h5', read_forces=False,
+                                             read_virial=False)
     integrator_2 = integrator_1.copy()
     reader.bind_integrator(integrator_1)
     reader._read_nhc_data()

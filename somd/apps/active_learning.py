@@ -425,7 +425,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         # calculations.
         traj_reader = _mdapps.trajectories.H5READER(
             h5_group.attrs['visited_structures'], read_cell=True,
-            read_velocities=False, read_forces=False,
+            read_velocities=False, read_forces=False, read_virial=False,
             read_nhc_data=False, read_rng_state=False)
         traj_reader.bind_integrator(integrator)
         for i, j in enumerate(h5_group['accepted_structure_indices']):
