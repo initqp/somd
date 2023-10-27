@@ -145,12 +145,12 @@ class ATOMGROUP(object):
             if scale velocities to keep the total kinetic energy unchanged.
         """
         if (scale_after_removal):
-            E_k = self.energy_kinetic
+            energy_old = self.energy_kinetic
         self.com_velocities = 0.0
         if (scale_after_removal):
-            E_k_1 = self.energy_kinetic
-            if (E_k_1 != 0):
-                self.velocities *= _np.sqrt(E_k / E_k_1)
+            energy_new = self.energy_kinetic
+            if (energy_new != 0):
+                self.velocities *= _np.sqrt(energy_old / energy_new)
 
     def add_velocities_from_temperature(self,
                                         temperature: float,
@@ -415,46 +415,6 @@ class ATOMGROUPS(list):
         super().__setitem__(index, item)
         self.update_n_dof()
 
-    def __check_duplication(self, g: ATOMGROUP) -> None:
-        """
-        Check if the same group has been added to the groups.
-
-        Parameters
-        ----------
-        g : somd.core.groups.ATOMGROUP
-            The group to check.
-        """
-        if (g in self):
-            message = 'Group "{}" has already been added to the ' + \
-                      'to the atomic groups!'
-            raise RuntimeError(message.format(g._label))
-
-    def __dict_to_instance(self, d: dict) -> ATOMGROUP:
-        """
-        Convert a dict that describing an atomic group to an ATOMGROUP
-        instance.
-
-        Parameters
-        ----------
-        d : dict
-            The dictionary to convert.
-        """
-        try:
-            a = d['atom_list']
-        except:
-            raise KeyError('Key atom_list must appear!')
-        try:
-            l = d['label']
-        except:
-            l = None
-        try:
-            t = d['has_translations']
-        except:
-            t = True
-        g = ATOMGROUP(self.__system, a, l)
-        g.has_translations = t
-        return g
-
     def sort(self) -> None:
         """
         Disable the sort functionality.
@@ -466,6 +426,12 @@ class ATOMGROUPS(list):
         Disable the extend functionality.
         """
         raise NotImplementedError('Groups can not be extended!')
+
+    def insert(self, index: int, group: ATOMGROUP) -> None:
+        """
+        Disable the insert functionality.
+        """
+        raise NotImplementedError('Groups can not be inserted!')
 
     def count(self, group: ATOMGROUP) -> None:
         """
@@ -482,24 +448,13 @@ class ATOMGROUPS(list):
         group : somd.core.groups.ATOMGROUP
              The group to append.
         """
-        self.__check_duplication(group)
-        super().append(group)
-        self.update_n_dof()
-
-    def insert(self, index: int, group: ATOMGROUP) -> None:
-        """
-        Insert a new atomic group to the groups.
-
-        Parameters
-        ----------
-        index : int
-            The position to insert.
-        group : somd.core.groups.ATOMGROUP
-             The group to append.
-        """
-        self.__check_duplication(group)
-        super().insert(index, group)
-        self.update_n_dof()
+        if (group in self):
+            message = 'Group "{}" has already been added to the ' + \
+                      'to the atomic groups!'
+            _mdutils.warning.warn(message.format(group._label))
+        else:
+            super().append(group)
+            self.update_n_dof()
 
     def create_from_dict(self, group_dict: dict) -> None:
         """
@@ -518,16 +473,31 @@ class ATOMGROUPS(list):
                 If the three translational COM DOFs of this group exchange
                 kinetic energies with the internal DOFs.
         """
-        g = self.__dict_to_instance(group_dict)
+        if ('atom_list' not in group_dict.keys()):
+            raise KeyError('The "atom_list" is required to define a group !')
+        g = ATOMGROUP(self.__system, group_dict['atom_list'],
+                      group_dict.get('label', 'GROUP_' + str(len(self))))
+        g.has_translations = group_dict.get('has_translations', True)
         self.append(g)
+
+    def to_dict(self, index: int) -> dict:
+        """
+        Output information about one group to dictionary.
+
+        Parameters
+        ----------
+        index : int
+            Index of the group.
+        """
+        result = {}
+        result['label'] = self[index]._label
+        result['atom_list'] = self[index].atom_list
+        result['has_translations'] = self[index].has_translations
+        return result
 
     def update_n_dof(self) -> None:
         """
         Recalculate number of degree of freedoms of each atomic groups.
         """
         for g in self:
-            # check availability of the COM motion removers
             g.has_translations = g.has_translations
-        for g in self:
-            # update DOFs
-            g.calculate_n_dof()
