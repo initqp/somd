@@ -206,6 +206,16 @@ class ATOMGROUP(object):
         v *= _np.sqrt(temperature / t)
         self.velocities += v
 
+    def to_dict(self) -> dict:
+        """
+        Output information about this group to a dictionary.
+        """
+        result = {}
+        result['label'] = self._label
+        result['atom_list'] = self.atom_list
+        result['has_translations'] = self.has_translations
+        return result
+
     @property
     def has_translations(self) -> bool:
         """
@@ -479,21 +489,6 @@ class ATOMGROUPS(list):
                       group_dict.get('label', 'GROUP_' + str(len(self))))
         g.has_translations = group_dict.get('has_translations', True)
         self.append(g)
-
-    def to_dict(self, index: int) -> dict:
-        """
-        Output information about one group to dictionary.
-
-        Parameters
-        ----------
-        index : int
-            Index of the group.
-        """
-        result = {}
-        result['label'] = self[index]._label
-        result['atom_list'] = self[index].atom_list
-        result['has_translations'] = self[index].has_translations
-        return result
 
     def update_n_dof(self) -> None:
         """

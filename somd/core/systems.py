@@ -245,12 +245,9 @@ class MDSYSTEM(object):
         system.atomic_types[:] = self.atomic_types[:]
         system.atomic_symbols[:] = self.atomic_symbols[:]
         for group in self.groups:
-            d = {'atom_list': group.atom_list, 'label': group._label,
-                 'has_translations': group.has_translations}
-            system.groups.create_from_dict(d)
+            system.groups.create_from_dict(group.to_dict())
         for constraint in self.constraints:
             system.constraints.append(constraint)
-        system.find_segments()
         return system
 
     def update_potentials(self,
