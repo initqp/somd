@@ -304,9 +304,9 @@ class INTEGRATOR(object):
         """
         Advance the velocities and apply the COM motion removers.
         """
+        dt = self.__timesteps[dt_index]
         self.__system.velocities[:, :] += \
-            (self.__system.forces / self.__system.masses).dot(
-            self.__timesteps[dt_index])
+            (self.__system.forces / self.__system.masses).dot(dt)
         for i in self.__cmm_remover_groups:
             g = self.__system.groups[i]
             self.energy_effective += g.energy_kinetic
@@ -317,22 +317,22 @@ class INTEGRATOR(object):
         """
         Advance the positions.
         """
-        self.__system.positions[:, :] += \
-            self.__system.velocities.dot(self.__timesteps[dt_index])
+        dt = self.__timesteps[dt_index]
+        self.__system.positions[:, :] += self.__system.velocities.dot(dt)
 
     def _operator_CR(self, dt_index: int) -> None:
         """
         Perform RATTLE position constraints.
         """
-        self.__system.constraints.rattle_constrain_q(
-            self.__timesteps[dt_index])
+        dt = self.__timesteps[dt_index]
+        self.__system.constraints.rattle_constrain_q(dt)
 
     def _operator_CV(self, dt_index: int) -> None:
         """
         Perform RATTLE velocity constraints.
         """
-        self.__system.constraints.rattle_constrain_p(
-            self.__timesteps[dt_index])
+        dt = self.__timesteps[dt_index]
+        self.__system.constraints.rattle_constrain_p(dt)
 
     def _operator_F(self, dt_index: int) -> None:
         """
@@ -344,11 +344,11 @@ class INTEGRATOR(object):
         """
         Propagate the Ornstein-Uhlenbeck process.
         """
+        dt = self.__timesteps[dt_index]
         for i in range(0, len(self.__thermo_groups)):
             g = self.__system.groups[self.__thermo_groups[i]]
             self.__energy_effective += g.energy_kinetic
-            c_1 = _np.exp(-1.0 * self.__timesteps[dt_index] /
-                          self.__relaxation_times[i])
+            c_1 = _np.exp(-1.0 * dt / self.__relaxation_times[i])
             c_2 = _np.sqrt((1.0 - c_1 * c_1) * self.__temperatures[i] *
                            _mdutils.constants.BOLTZCONST)
             g.velocities *= c_1
@@ -360,18 +360,19 @@ class INTEGRATOR(object):
         """
         Propagate the Nose-Hoover Chains.
         """
+        dt = self.__timesteps[dt_index]
         for i in range(0, len(self.__thermo_groups)):
             g = self.__system.groups[self.__thermo_groups[i]]
-            E_k = g.energy_kinetic
-            self.__energy_effective += E_k
-            g.velocities *= \
-                self.__nhchains[i].propagate(E_k, self.__timesteps[dt_index])
+            energy_kinetic = g.energy_kinetic
+            self.__energy_effective += energy_kinetic
+            g.velocities *= self.__nhchains[i].propagate(energy_kinetic, dt)
             self.__energy_effective -= g.energy_kinetic
 
     def _operator_B(self, dt_index: int) -> None:
         """
         Propagate the Bussi-Donadio-Parrinello process.
         """
+        dt = self.__timesteps[dt_index]
         for i in range(0, len(self.__thermo_groups)):
             g = self.__system.groups[self.__thermo_groups[i]]
             energy_kinetic = g.energy_kinetic
@@ -384,8 +385,7 @@ class INTEGRATOR(object):
             else:
                 r_2 = 2.0 * self.__gamma((g.n_dof - 2) / 2)
                 r_2 += self.__randn() ** 2
-            c_1 = _np.exp(-1.0 * self.__timesteps[dt_index] /
-                          self.__relaxation_times[i])
+            c_1 = _np.exp(-1.0 * dt / self.__relaxation_times[i])
             term_1 = (energy_kinetic_target * (r_1 ** 2 + r_2) / g.n_dof -
                       energy_kinetic) * (1.0 - c_1)
             term_2 = _np.sqrt(energy_kinetic * energy_kinetic_target /
