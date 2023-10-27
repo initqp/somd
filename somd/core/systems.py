@@ -56,6 +56,7 @@ class SNAPSHOT(object):
         Allocate data arrays.
         """
         self.__box = _np.zeros((3, 3), _np.double)
+        self.__virial = _np.zeros((3, 3), _np.double)
         self.__forces = _np.zeros((self.n_atoms, 3), _np.double)
         self.__positions = _np.zeros((self.n_atoms, 3), _np.double)
         self.__velocities = _np.zeros((self.n_atoms, 3), _np.double)
@@ -73,6 +74,7 @@ class SNAPSHOT(object):
         snapshot = SNAPSHOT(self.n_atoms)
         snapshot.box[:] = self.__box[:]
         snapshot.forces[:] = self.__forces[:]
+        snapshot.virial[:] = self.__virial[:]
         snapshot.positions[:] = self.__positions[:]
         snapshot.velocities[:] = self.__velocities[:]
         return snapshot
@@ -119,6 +121,13 @@ class SNAPSHOT(object):
         Box vectors of this snapshot. In unit of (nm).
         """
         return self.__box
+
+    @property
+    def virial(self) -> _np.ndarray:
+        """
+        Virial tensor. In unit of (kJ/mol).
+        """
+        return self.__virial
 
     @property
     def volume(self) -> _np.float64:
@@ -208,7 +217,6 @@ class MDSYSTEM(object):
         self.__snapshot = SNAPSHOT(n_atoms)
         self.__types = _np.zeros((n_atoms, 1), _np.int_)
         self.__masses = _np.zeros((self.n_atoms, 1), _np.double)
-        self.__virial = _np.zeros((3, 3), _np.double)
         self.__energy_potential = _np.zeros((1), _np.double)
         self.__constraints = _CONSTRAINTS(self)
         self.__groups = _ATOMGROUPS(self)
@@ -381,7 +389,7 @@ class MDSYSTEM(object):
         """
         Virial tensor. In unit of (kJ/mol).
         """
-        return self.__virial
+        return self.__snapshot.virial
 
     @property
     def lattice(self) -> _np.ndarray:
@@ -467,7 +475,7 @@ class MDSYSTEM(object):
         """
         Volume of the simulated system. In unit of (nm^3).
         """
-        return _np.dot(self.box[0], _np.cross(self.box[1], self.box[2]))
+        return self.__snapshot.volume
 
     @property
     def potentials(self) -> list:
