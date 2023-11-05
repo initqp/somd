@@ -153,6 +153,7 @@ class TOMLPARSER(object):
         'n_potentials': __value__(int, False, None),
         'max_md_runs_per_iter': __value__(int, False, None),
         'max_md_steps_per_iter': __value__(int, False, None),
+        'trajectory_interval': __value__(int, False, None),
         'msd_lower_limit': __value__(float, False, None),
         'msd_upper_limit': __value__(float, False, None),
         'min_new_structures_per_iter': __value__(int, False, None),
