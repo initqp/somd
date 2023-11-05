@@ -72,6 +72,9 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             iteration. If number of the candidate structures ls larger than
             this threshold, these structures will be striped using the
             specified method.
+        - trajectory_interval : int
+            Default value : 1
+            Interval of writing trajectories during the propagation step.
         - perform_clustering : bool
             Default value : True
             If using the clustering method to strip the candidate structures.
@@ -152,6 +155,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             param['max_md_runs_per_iter'] = 1
         if ('max_md_steps_per_iter' not in param.keys()):
             param['max_md_steps_per_iter'] = 50000
+        if ('trajectory_interval' not in param.keys()):
+            param['trajectory_interval'] = 1
         if ('msd_lower_limit' not in param.keys()):
             param['msd_lower_limit'] = 50.0
         if ('msd_upper_limit' not in param.keys()):
@@ -173,8 +178,13 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 raise RuntimeError(message)
         if (param['min_new_structures_per_iter'] >
                 param['max_new_structures_per_iter']):
-            message = 'min_new_structures_per_iter is larger than ' + \
-                      'max_new_structures_per_iter !'
+            message = 'Value of the "min_new_structures_per_iter" key ' + \
+                      'should be smaller than value of the ' + \
+                      '"max_new_structures_per_iter" key!'
+            raise RuntimeError(message)
+        if (param['max_md_steps_per_iter'] < param['trajectory_interval']):
+            message = 'Value of the "trajectory_interval" should be ' + \
+                      'smaller than value of the "max_md_steps_per_iter" key!'
             raise RuntimeError(message)
         if ('initial_training_set' in param.keys() and self.n_iter != 0):
             param['initial_training_set'] = \
@@ -339,20 +349,24 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
             simulation.dump_restart('initial_conditions.h5')
             # Set up writers
             data_file_name = h5_group.attrs['system_data']
-            data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(data_file_name)
+            data_writer = _mdapps.loggers.DEFAULTCSVLOGGER(
+                data_file_name, interval=param['trajectory_interval'])
             traj_file_name = h5_group.attrs['visited_structures']
-            traj_writer = _mdapps.trajectories.H5WRITER(traj_file_name)
+            traj_writer = _mdapps.trajectories.H5WRITER(
+                traj_file_name, interval=param['trajectory_interval'])
             simulation.post_step_objects.append(data_writer)
             simulation.post_step_objects.append(traj_writer)
             # Propagate the trajectory segment.
             force_msd_limits = [param['msd_lower_limit'],
                                 param['msd_upper_limit']]
+            n_epochs = param['max_md_steps_per_iter'] // \
+                param['trajectory_interval']
             for i in range(0, param['max_md_runs_per_iter']):
                 simulation.restart_from('initial_conditions.h5',
                                         read_rng_state=False,
                                         read_nhc_data=False)
-                for j in range(0, param['max_md_steps_per_iter']):
-                    simulation.run(1)
+                for j in range(0, n_epochs):
+                    simulation.run(param['trajectory_interval'])
                     msd = _apputils.nep.get_potentials_msd(
                         self.__neps, simulation.system)
                     n = h5_group['force_msd'].shape[0]
@@ -364,8 +378,8 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                     elif (msd > force_msd_limits[1]):
                         h5_group['n_failed_structures'][0] += 1
                     else:
+                        index = n_epochs * i + j
                         h5_group['n_candidate_structures'][0] += 1
-                        index = param['max_md_steps_per_iter'] * i + j
                         h5_group['candidate_structure_indices'].resize(
                             (h5_group['n_candidate_structures'][0],))
                         h5_group['candidate_structure_indices'][-1] = index
