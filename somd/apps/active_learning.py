@@ -310,7 +310,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         try:
             files = [working_dir + '/potential_{:d}/loss.out'.format(i)
                      for i in range(0, n_potentials)]
-            losses = [_apputils.nep.get_loss(f)[5] for f in files]
+            losses = [_apputils.nep.get_loss(f)[8] for f in files]
             active_potential_index = _np.argmin(losses)
         except:
             active_potential_index = 0
