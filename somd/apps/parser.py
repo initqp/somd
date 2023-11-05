@@ -1062,13 +1062,11 @@ class TOMLPARSER(object):
         protocol = self.__root['active_learning']
         protocol = self.__normalize_table(protocol, 'active_learning')
         if (protocol['reference_potentials'] is None):
-            reference_potentials = list(
-                range(0, len(self.__potential_generators)))
+            reference_potentials = []
+            excluded_names = ['PLUMED', 'NEP']
             for i in range(0, len(self.__potential_generators)):
-                if (self.__potential_generators[i][0] == 'PLUMED'):
-                    reference_potentials.pop(i)
-                elif (self.__potential_generators[i][0] == 'NEP'):
-                    reference_potentials.pop(i)
+                if (self.__potential_generators[i][0] not in excluded_names):
+                    reference_potentials.append(i)
         else:
             reference_potentials = protocol['reference_potentials']
         for i in reference_potentials:
