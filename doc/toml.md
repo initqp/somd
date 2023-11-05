@@ -1303,6 +1303,16 @@ the active learning methodology.
 
     **Descriptions**: Number of the MD steps per training iteration.
 
+- **`trajectory_interval`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Default Value**: `1`
+
+    **Descriptions**: Interval of writing trajectories during the MD runs.
+
 - **`msd_lower_limit`**:
 
     **If Mandatory**: no
