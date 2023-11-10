@@ -532,25 +532,26 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
                 [param['initial_training_set']]
             self.root.flush()
             if ('initial_potential_files' in param.keys()):
-                # Read the potentials.
-                potentials_data = []
+                # Copy the potentials.
                 for i in range(0, param['n_potentials']):
-                    with open(param['initial_potential_files'][i], 'rb') as fp:
-                        potentials_data.append(fp.read())
-                # Write the sets.
+                    potential_file_old = param['initial_potential_files'][i]
+                    potential_dir_old = _os.path.dirname(potential_file_old)
+                    potential_dir_new = working_dir + '/potential_' + str(i)
+                    potential_file_new = potential_dir_new + '/nep.txt'
+                    loss_file_old = potential_dir_old + '/loss.out'
+                    loss_file_new = potential_dir_new + '/loss.out'
+                    _os.mkdir(potential_dir_new)
+                    _sh.copy(potential_file_old, potential_file_new)
+                    if (_os.path.exists(loss_file_old)):
+                        _sh.copy(loss_file_old, loss_file_new)
+                # Write the data sets.
                 _apputils.nep.cat_exyz([param['initial_training_set']],
                                        working_dir + '/train.xyz')
                 _apputils.nep.cat_exyz([param['initial_testing_set']],
                                        working_dir + '/test.xyz')
-                # Write the potentials.
-                for i in range(0, param['n_potentials']):
-                    potential_dir = working_dir + '/potential_{:d}'.format(i)
-                    _os.mkdir(potential_dir)
-                    with open(potential_dir + '/nep.txt', 'wb') as fp:
-                        fp.write(potentials_data[i])
+                # Update the log file.
                 self.root[h5_path]['progress'].attrs['training_finished'] = \
                     [True for i in range(0, param['n_potentials'])]
-                del potentials_data
                 self.root.flush()
             else:
                 self.__train(0)
