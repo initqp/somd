@@ -70,98 +70,99 @@ class TOMLPARSER(object):
     # Valid key-value pairs of each table.
     __parameters__ = dict()
     __parameters__['run'] = {
-        'n_steps': __value__(int, True, None),
-        'seed': __value__(int, False, None),
-        'label': __value__(str, False, None),
-        'restart_from': __value__(str, False, None)
+        'n_steps': __value__([int], True, None),
+        'seed': __value__([int], False, None),
+        'label': __value__([str], False, None),
+        'restart_from': __value__([str], False, None)
     }
     __parameters__['system'] = {
-        'structure': __value__(str, True, None),
-        'format': __value__(str, False, None),
+        'structure': __value__([str], True, None),
+        'format': __value__([str], False, None),
     }
     __parameters__['integrator'] = {
-        'timestep': __value__(float, True, None),
-        'type': __value__(str, False, None),
-        'splitting': __value__(list, False, None),
-        'temperatures': __value__(_tp.Union[list, float], False, None),
-        'relaxation_times': __value__(_tp.Union[list, float], False, None),
-        'thermo_groups': __value__(_tp.Union[list, int], False, None)
+        'timestep': __value__([float], True, None),
+        'type': __value__([str], False, None),
+        'splitting': __value__([list], False, None),
+        'temperatures': __value__([list, float], False, None),
+        'relaxation_times': __value__([list, float], False, None),
+        'thermo_groups': __value__([list, int], False, None)
     }
     __parameters__['potential'] = {
-        'type': __value__(str, True, None),
-        'atom_list': __value__(_tp.Union[list, str], False, None),
-        'siesta_options': __value__(str, True, __dep__('type', ['siesta'])),
-        'siesta_command': __value__(str, True, __dep__('type', ['siesta'])),
-        'pseudopotential_dir': __value__(str, False,
+        'type': __value__([str], True, None),
+        'atom_list': __value__([list, str], False, None),
+        'siesta_options': __value__([str], True, __dep__('type', ['siesta'])),
+        'siesta_command': __value__([str], True, __dep__('type', ['siesta'])),
+        'pseudopotential_dir': __value__([str], False,
                                          __dep__('type', ['siesta'])),
-        'functional': __value__(str, True,
+        'functional': __value__([str], True,
                                 __dep__('type', ['dftd3', 'dftd4'])),
-        'damping': __value__(str, False, __dep__('type', ['dftd3'])),
-        'atm': __value__(bool, False, __dep__('type', ['dftd3', 'dftd4'])),
-        'total_charge': __value__(int, False, __dep__('type', ['dftd4'])),
-        'file_name': __value__(str, True, __dep__('type', ['plumed', 'nep'])),
-        'use_tabulating': __value__(bool, False, __dep__('type', ['nep']))
+        'damping': __value__([str], False, __dep__('type', ['dftd3'])),
+        'atm': __value__([bool], False, __dep__('type', ['dftd3', 'dftd4'])),
+        'total_charge': __value__([int], False, __dep__('type', ['dftd4'])),
+        'file_name': __value__([str], True,
+                               __dep__('type', ['plumed', 'nep'])),
+        'use_tabulating': __value__([bool], False, __dep__('type', ['nep']))
     }
     __parameters__['group'] = {
-        'atom_list': __value__(_tp.Union[list, str], True, None),
-        'label': __value__(str, False, None),
-        'has_translations': __value__(bool, False, None),
-        'initial_velocities': __value__(list, False, None),
-        'initial_temperature': __value__(float, False, None)
+        'atom_list': __value__([list, str], True, None),
+        'label': __value__([str], False, None),
+        'has_translations': __value__([bool], False, None),
+        'initial_velocities': __value__([list], False, None),
+        'initial_temperature': __value__([float], False, None)
     }
     __parameters__['barostat'] = {
-        'pressures': __value__(_tp.Union[list, float], True, None),
-        'beta': __value__(_tp.Union[list, float], True, None),
-        'relaxation_time': __value__(float, True, None),
+        'pressures': __value__([list, float], True, None),
+        'beta': __value__([list, float], True, None),
+        'relaxation_time': __value__([float], True, None),
     }
     __parameters__['constraints'] = {
-        'types': __value__(list, True, None),
-        'indices': __value__(list, True, None),
-        'targets': __value__(list, True, None),
-        'tolerances': __value__(list, False, None),
-        'max_cycles': __value__(int, False, None)
+        'types': __value__([list], True, None),
+        'indices': __value__([list], True, None),
+        'targets': __value__([list], True, None),
+        'tolerances': __value__([list], False, None),
+        'max_cycles': __value__([int], False, None)
     }
     __parameters__['trajectory'] = {
-        'prefix': __value__(str, False, None),
-        'format': __value__(str, False, None),
-        'interval': __value__(int, False, None),
-        'write_forces': __value__(bool, False, None),
-        'write_velocities': __value__(bool, False, None),
-        'wrap_positions': __value__(bool, False, None),
-        'potential_list': __value__(list, False, None),
-        'use_float64': __value__(bool, False, __dep__('format', ['h5'])),
-        'energy_shift': __value__(float, False, __dep__('format', ['exyz'])),
-        'is_restart_file': __value__(bool, False, __dep__('format', ['h5']))
+        'prefix': __value__([str], False, None),
+        'format': __value__([str], False, None),
+        'interval': __value__([int], False, None),
+        'write_forces': __value__([bool], False, None),
+        'write_velocities': __value__([bool], False, None),
+        'wrap_positions': __value__([bool], False, None),
+        'potential_list': __value__([list], False, None),
+        'use_float64': __value__([bool], False, __dep__('format', ['h5'])),
+        'energy_shift': __value__([float], False, __dep__('format', ['exyz'])),
+        'is_restart_file': __value__([bool], False, __dep__('format', ['h5']))
     }
     __parameters__['logger'] = {
-        'format': __value__(str, False, None),
-        'prefix': __value__(str, False, None),
-        'interval': __value__(int, False, None),
-        'potential_list': __value__(list, False, None)
+        'format': __value__([str], False, None),
+        'prefix': __value__([str], False, None),
+        'interval': __value__([int], False, None),
+        'potential_list': __value__([list], False, None)
     }
     __parameters__['script'] = {
-        'update': __value__(str, True, None),
-        'interval': __value__(int, False, None),
-        'initialize': __value__(str, False, None)
+        'update': __value__([str], True, None),
+        'interval': __value__([int], False, None),
+        'initialize': __value__([str], False, None)
     }
     __parameters__['active_learning'] = {
-        'nep_options': __value__(str, True, None),
-        'nep_command': __value__(str, True, None),
-        'initial_training_set': __value__(str, True, None),
-        'n_iterations': __value__(int, True, None),
-        'n_potentials': __value__(int, False, None),
-        'max_md_runs_per_iter': __value__(int, False, None),
-        'max_md_steps_per_iter': __value__(int, False, None),
-        'trajectory_interval': __value__(int, False, None),
-        'msd_lower_limit': __value__(float, False, None),
-        'msd_upper_limit': __value__(float, False, None),
-        'min_new_structures_per_iter': __value__(int, False, None),
-        'max_new_structures_per_iter': __value__(int, False, None),
-        'initial_potential_files': __value__(list, False, None),
-        'initial_testing_set': __value__(str, False, None),
-        'reference_potentials': __value__(list, False, None),
-        'use_tabulating': __value__(bool, False, None),
-        'energy_shift': __value__(float, False, None),
+        'nep_options': __value__([str], True, None),
+        'nep_command': __value__([str], True, None),
+        'initial_training_set': __value__([str], True, None),
+        'n_iterations': __value__([int], True, None),
+        'n_potentials': __value__([int], False, None),
+        'max_md_runs_per_iter': __value__([int], False, None),
+        'max_md_steps_per_iter': __value__([int], False, None),
+        'trajectory_interval': __value__([int], False, None),
+        'msd_lower_limit': __value__([float], False, None),
+        'msd_upper_limit': __value__([float], False, None),
+        'min_new_structures_per_iter': __value__([int], False, None),
+        'max_new_structures_per_iter': __value__([int], False, None),
+        'initial_potential_files': __value__([list], False, None),
+        'initial_testing_set': __value__([str], False, None),
+        'reference_potentials': __value__([list], False, None),
+        'use_tabulating': __value__([bool], False, None),
+        'energy_shift': __value__([float], False, None),
     }
 
     def __init__(self, file_name: str) -> None:
@@ -257,13 +258,9 @@ class TOMLPARSER(object):
         # Check key names and value types.
         definitions = dict.fromkeys(parameters.keys(), None)
         for key in inp.keys():
-            if (not issubclass(type(inp[key]), parameters[key].type)):
-                if (parameters[key].type.__name__ == 'Union'):
-                    types = [t.__name__ for t in
-                             _get_args(parameters[key].type)]
-                    types = ('"{}"/' * len(types)).format(*types).strip('/')
-                else:
-                    types = '"' + parameters[key].type.__name__ + '"'
+            if (type(inp[key]) not in parameters[key].type):
+                types = parameters[key].type
+                types = ('"{}"/' * len(types)).format(*types).strip('/')
                 message = 'Wrong type of key "{}" in (one of) the ' + \
                           '[{}] table(s)! A {} typed value is expected!'
                 message = message.format(key, table_name, types)
