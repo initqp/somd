@@ -158,10 +158,8 @@ system = somd.core.systems.create_system_from_poscar('H2O.POSCAR')
 g = {'atom_list': list(range(0, system.n_atoms)), 'has_translations': False}
 system.groups.create_from_dict(g)
 system.groups[0].add_velocities_from_temperature(300)
-potential = somd.potentials.create_siesta_potential(system,
-                                                    range(0, system.n_atoms),
-                                                    siesta_options,
-                                                    siesta_command)
+potential = somd.potentials.SIESTA(range(0, system.n_atoms), system,
+                                   siesta_options, siesta_command)
 system.potentials.append(potential)
 
 integrator = somd.core.integrators.baoab_integrator(0.0005,

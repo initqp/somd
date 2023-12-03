@@ -138,8 +138,8 @@ def test_siesta():
     SolutionMethod         diagon
     ElectronicTemperature  1 meV
     """
-    potential = somd.potentials.create_siesta_potential(
-        system, [0, 1], options, command, 'data/potentials')
+    potential = somd.potentials.SIESTA(
+        [0, 1], system, options, command, 'data/potentials')
     potential.update(system)
     result = _np.loadtxt('data/potentials/potential_siesta.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], 5)
@@ -147,8 +147,8 @@ def test_siesta():
     potential.finalize()
     _sh.rmtree(potential.working_directory)
 
-    potential = somd.potentials.create_siesta_generator(
-        system, [0, 1], options, command, 'data/potentials')()
+    potential = somd.potentials.SIESTA.generator(
+        [0, 1], system, options, command, 'data/potentials')()
     potential.update(system)
     result = _np.loadtxt('data/potentials/potential_siesta.dat')
     _nt.assert_almost_equal(potential.forces, result[0:2], 5)

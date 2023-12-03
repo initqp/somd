@@ -29,7 +29,7 @@ import subprocess as _sp
 from somd import core as _mdcore
 from somd import utils as _mdutils
 
-__all__ = ['SIESTA', 'create_siesta_potential', 'create_siesta_generator']
+__all__ = ['SIESTA']
 
 
 class SIESTA(_mdcore.potential_base.POTENTIAL):
@@ -40,10 +40,40 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
     ----------
     atom_list : List[int]
         Indices of atoms included by this potential.
-    label : str
-        Basename name of the SIESTA input file.
+    system: somd.core.system.MDSYSTEM
+        The simulated system.
+    siesta_options: str
+        Auxiliary options to be added into the input file, e.g. the basis
+        size and the functional. There is an example of this parameter:
+        options = r'''
+        xc.functional          GGA
+        xc.authors             revPBE
+
+        PAO.BasisSize          TZ2P
+        Mesh.Cutoff            300 Ry
+        PAO.EnergyShift        10 meV
+        PAO.SoftDefault        T
+
+        DM.MixingWeight        0.1
+        DM.Tolerance           1.d-5
+        DM.UseSaveDM           T
+        DM.History.Depth       5
+
+        Diag.Algorithm         ELPA-1stage
+        SolutionMethod         diagon
+        ElectronicTemperature  5 meV
+        '''
     siesta_command : str
         Command of submitting a SIESTA job.
+    pseudopotential_dir : str
+        Directory of the pseudopotential files.
+
+    Notes
+    -----
+    Basenames of the pseudopotential file must be the same as symbols of
+    the elements in the simulated system. E.g. there are three elements:
+    H, O and C in the simulated system, then the pseudopotential files must
+    be named as: H.psf, O.psf and C.psf (or H.vps, O.vps and C.vps).
 
     References
     ----------
@@ -52,22 +82,150 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
            204108.
     """
 
+    # The options handled by this class.
+    __needed_options__ = [
+        'AtomicCoordinatesAndAtomicSpecies', 'SystemName', 'SystemLabel',
+        'MD.TypeOfRun', 'LatticeConstant', 'NumberOfSpecies', 'LatticeVectors',
+        'NumberOfAtoms', 'AtomicCoordinatesFormat', 'ChemicalSpeciesLabel'
+    ]
+
     def __init__(self,
                  atom_list: list,
-                 label: str,
-                 siesta_command: str = 'siesta') -> None:
+                 system: _mdcore.systems.MDSYSTEM,
+                 siesta_options: str,
+                 siesta_command: str = 'siesta',
+                 pseudopotential_dir: str = './') -> None:
         """
         Create a SIESTA instance.
         """
+        super().__init__(atom_list)
         self.__siesta_pid = 0
         self.__initialized = False
-        self.__args = [atom_list, label, siesta_command]
-        super().__init__(atom_list)
-        label = self.__strip_label(label)
-        self.__pipe_c = self.__work_dir + '/' + label + '.coords'
-        self.__pipe_f = self.__work_dir + '/' + label + '.forces'
+        pseudopotential_dir = _os.path.abspath(pseudopotential_dir)
+        self.__args = [atom_list, system.copy(), siesta_options,
+                       siesta_command, pseudopotential_dir]
+        self.__create_working_directory(system, pseudopotential_dir)
+        self.__create_siesta_input(atom_list, system, siesta_options)
+        self.__submit_siesta_job(siesta_command)
         self.__conversion = \
             _mdutils.constants.AVOGACONST * _mdutils.constants.ELECTCONST
+
+    def __create_working_directory(self,
+                                   system: _mdcore.systems.MDSYSTEM,
+                                   pseudopotential_dir: str) -> None:
+        """
+        Create a working directory for SIESTA and copy the pseudopotential
+        files.
+
+        Parameters
+        ----------
+        system : somd.systems.MDSYSTEM
+            The simulated system.
+        pseudopotential_dir : str
+            Directory of the pseudopotential files.
+        """
+        work_dir = _os.getcwd() + '/SOMD_TMP_' + _id.uuid4().hex
+        _os.mkdir(work_dir)
+        pseudopotential_dir = pseudopotential_dir + '/'
+        files = _os.listdir(pseudopotential_dir)
+        for symbol in list(set(system.atomic_symbols)):
+            if ((symbol + '.psml') in files):
+                fn = symbol + '.psml'
+                _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
+            elif ((symbol + '.psf') in files):
+                fn = symbol + '.psf'
+                _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
+            elif ((symbol + '.vps') in files):
+                fn = symbol + '.vps'
+                _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
+            else:
+                _os.rmdir(work_dir)
+                message = 'Can not find pseudopotential file for element "{}"!'
+                raise RuntimeError(message.format(symbol))
+        self.__work_dir = work_dir
+
+    def __create_siesta_input(self,
+                              atom_list: list,
+                              system: _mdcore.systems.MDSYSTEM,
+                              siesta_options: str,
+                              label: str = 'somd_tmp') -> None:
+        """
+        Create a SIESTA input file.
+
+        Parameters
+        ----------
+        atom_list : List[int]
+            Indices of atoms included by this potential.
+        system : somd.systems.MDSYSTEM
+            The simulated system.
+        siesta_options: str
+            Auxiliary options to be added into the input file.
+        label: str
+            Basename of the SIESTA input file.
+        """
+        # check the given options.
+        option_list = _re.split(' |\t|\n|\r', siesta_options)
+        option_list = [x.lower() for x in option_list]
+        for option in self.__needed_options__:
+            if (option.lower in option_list):
+                message = 'SIESTA option "{}" should not be specified!'
+                raise RuntimeError(message.format(option))
+        # write the file.
+        fp = open(self.__work_dir + '/' + label + '.fdf', 'w')
+        atomic_symbol_list = [system.atomic_symbols[i] for i in atom_list]
+        atomic_symbol_list = list(set(atomic_symbol_list))
+        atomic_symbol_list.sort()
+        print('### Sample input file generated by SOMD. ###\n', file=fp)
+        print('### SOMD generated options ###\n', file=fp)
+        print('SystemName {:s}'.format(system._label), file=fp)
+        print('SystemLabel {:s}'.format(label), file=fp)
+        print('NumberOfAtoms {:d}'.format(len(atom_list)), file=fp)
+        print('NumberOfSpecies {:d}'.format(len(atomic_symbol_list)), file=fp)
+        print('MD.TypeOfRun forces', file=fp)
+        print('%block ChemicalSpeciesLabel', file=fp)
+        for i in range(0, len(atomic_symbol_list)):
+            index = _md.element.get_by_symbol(atomic_symbol_list[i]).number
+            print('   ', end='   ', file=fp)
+            print(i + 1, end='   ', file=fp)
+            print(index, end='   ', file=fp)
+            print(atomic_symbol_list[i], file=fp)
+        print('%endblock ChemicalSpeciesLabel', file=fp)
+        print('LatticeConstant 1.0 Ang', file=fp)
+        print('%block LatticeVectors', file=fp)
+        _np.savetxt(fp, system.box * 10, fmt="%16.10f")
+        print('%endblock LatticeVectors', file=fp)
+        print('AtomicCoordinatesFormat  NotScaledCartesianAng', file=fp)
+        print('%block AtomicCoordinatesAndAtomicSpecies', file=fp)
+        for i in range(0, len(atom_list)):
+            print('{:20.10f}'.format(system.positions[atom_list[i], 0] * 10),
+                  end=' ', file=fp)
+            print('{:20.10f}'.format(system.positions[atom_list[i], 1] * 10),
+                  end=' ', file=fp)
+            print('{:20.10f}'.format(system.positions[atom_list[i], 2] * 10),
+                  end=' ', file=fp)
+            symbol = system.atomic_symbols[atom_list[i]]
+            print(atomic_symbol_list.index(symbol) + 1, file=fp)
+        print('%endblock AtomicCoordinatesAndAtomicSpecies', file=fp)
+        print('\n### User specified options ###\n', file=fp)
+        print(siesta_options, file=fp)
+        fp.close()
+
+    def __submit_siesta_job(self,
+                            siesta_command: str,
+                            label: str = 'somd_tmp') -> None:
+        """
+        Submit the SIESTA job.
+
+        Parameters
+        ----------
+        siesta_command : str
+            Command of submitting a SIESTA job.
+        label: str
+            Basename of the SIESTA input file.
+        """
+        # Make the pipe files.
+        self.__pipe_c = self.__work_dir + '/' + label + '.coords'
+        self.__pipe_f = self.__work_dir + '/' + label + '.forces'
         try:
             _os.remove(self.__pipe_c)
             _os.remove(self.__pipe_f)
@@ -75,7 +233,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
             pass
         _os.mkfifo(self.__pipe_c)
         _os.mkfifo(self.__pipe_f)
-        # we should print the PID of the SIESTA subprocess here.
+        # We should print the PID of the SIESTA subprocess here.
         # do not use proc.pid which is the PID of the invoked shell.
         command = (siesta_command + ' ' + label + '.fdf > ' + label + '.out' +
                    ' 2>' + label + '.err & echo $!')
@@ -97,23 +255,6 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
             self.__siesta_pid = int(pid_str)
         self.__initialized = True
 
-    def __strip_label(self, label: str) -> str:
-        """
-        Strip redundant charactes in the system label.
-        """
-        _os.stat(label)
-        if (_os.path.dirname(label) != ''):
-            self.__work_dir = _os.path.dirname(label)
-            label = _os.path.basename(label)
-        else:
-            self.__work_dir = './'
-        tmp = _os.path.splitext(label)
-        if (tmp[1] != '.fdf'):
-            message = 'Name of the SIESTA input file must uses an ' + \
-                      'extension name of .fdf!'
-            raise RuntimeError(message)
-        return tmp[0]
-
     @staticmethod
     def __timeout_open(file_name, mode: str, **kwargs) -> _io.TextIOWrapper:
         """
@@ -122,13 +263,12 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         message = 'The SIESTA subprocess has been silent for more than ' + \
                   '{} seconds!'.format(_mdutils.defaults.SIESTATIMEOUT)
         command = 'raise TimeoutError("{}")'.format(message)
-        _sg.signal(_sg.SIGALRM,
-                   lambda signum, frame: exec(command))
+        _sg.signal(_sg.SIGALRM, lambda signum, frame: exec(command))
         _sg.alarm(_mdutils.defaults.SIESTATIMEOUT)
         try:
             result = open(file_name, mode, **kwargs)
-        except TimeoutError as e:
-            raise e
+        except TimeoutError as error:
+            raise error
         finally:
             _sg.alarm(0)
         return result
@@ -158,11 +298,11 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         while (True):
             try:
                 fp = self.__timeout_open(self.__pipe_f, 'r')
-            except TimeoutError as e:
+            except TimeoutError as error:
                 if (not self.alive):
                     message = 'The SIESTA subprocess (PID: {}) is DIED!!!'
                     message = message.format(self.__siesta_pid)
-                    raise RuntimeError(message) from e
+                    raise RuntimeError(message) from error
             else:
                 break
         header = fp.readline()
@@ -190,9 +330,13 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         """
         Return a generator of this potential.
         """
-        message = 'Use the `create_siesta_generator` method to get ' + \
-                  'generators of SIESTA!'
-        raise NotImplementedError(message)
+        if 'file_name' in kwargs.keys():
+            kwargs['pseudopotential_dir'] = \
+                _os.path.abspath(kwargs['pseudopotential_dir'])
+        else:
+            args = list(args)
+            args[-1] = _os.path.abspath(args[-1])
+        return lambda x=tuple(args), y=kwargs: cls(*x, **y)
 
     def finalize(self) -> None:
         """
@@ -232,206 +376,3 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         The working working directory of the SIESTA calculations.
         """
         return self.__work_dir
-
-
-def _create_siesta_input(system: _mdcore.systems.MDSYSTEM,
-                         atom_list: list,
-                         options: str,
-                         file_dir: str = '.',
-                         label: str = 'somd_tmp') -> None:
-    """
-    A simple function to create a SIESTA input file. This function will
-    automatically setup the system information (atomic symbels, cell vectors,
-    etc.) in the input file.
-
-    Parameters
-    ----------
-    system: somd.core.system.MDSYSTEM
-        The simulated system.
-    atom_list : List[int]
-        Indices of atoms included by this potential.
-    options: str
-        Auxiliary options to be added into the input file.
-    file_dir:
-        Directory of the fdf file.
-    label: str
-        Basename of the file.
-    """
-    # check the given options.
-    __needed_options = ['SystemName',
-                        'SystemLabel',
-                        'MD.TypeOfRun',
-                        'NumberOfAtoms',
-                        'LatticeVectors',
-                        'LatticeConstant',
-                        'NumberOfSpecies',
-                        'ChemicalSpeciesLabel',
-                        'AtomicCoordinatesFormat',
-                        'AtomicCoordinatesAndAtomicSpecies']
-    option_list = _re.split(' |\t|\n|\r', options)
-    option_list = [x.lower() for x in option_list]
-    for o in __needed_options:
-        if (o.lower in option_list):
-            message = 'SIESTA option "{}" should not be specified!'
-            raise RuntimeError(message.format(o))
-    # write the file.
-    fp = open(file_dir + '/' + label + '.fdf', 'w')
-    atomic_symbol_list = [system.atomic_symbols[i] for i in atom_list]
-    atomic_symbol_list = list(set(atomic_symbol_list))
-    atomic_symbol_list.sort()
-    print('### Sample input file generated by SOMD. ###\n', file=fp)
-    print('### SOMD generated options ###\n', file=fp)
-    print('SystemName {:s}'.format(system._label), file=fp)
-    print('SystemLabel {:s}'.format(label), file=fp)
-    print('NumberOfAtoms {:d}'.format(len(atom_list)), file=fp)
-    print('NumberOfSpecies {:d}'.format(len(atomic_symbol_list)), file=fp)
-    print('MD.TypeOfRun forces', file=fp)
-    print('%block ChemicalSpeciesLabel', file=fp)
-    for i in range(0, len(atomic_symbol_list)):
-        index = _md.element.get_by_symbol(atomic_symbol_list[i]).number
-        print('   ', end='   ', file=fp)
-        print(i + 1, end='   ', file=fp)
-        print(index, end='   ', file=fp)
-        print(atomic_symbol_list[i], file=fp)
-    print('%endblock ChemicalSpeciesLabel', file=fp)
-    print('LatticeConstant 1.0 Ang', file=fp)
-    print('%block LatticeVectors', file=fp)
-    _np.savetxt(fp, system.box * 10, fmt="%16.10f")
-    print('%endblock LatticeVectors', file=fp)
-    print('AtomicCoordinatesFormat  NotScaledCartesianAng', file=fp)
-    print('%block AtomicCoordinatesAndAtomicSpecies', file=fp)
-    for i in range(0, len(atom_list)):
-        print('{:20.10f}'.format(system.positions[atom_list[i], 0] * 10),
-              end=' ', file=fp)
-        print('{:20.10f}'.format(system.positions[atom_list[i], 1] * 10),
-              end=' ', file=fp)
-        print('{:20.10f}'.format(system.positions[atom_list[i], 2] * 10),
-              end=' ', file=fp)
-        symbol = system.atomic_symbols[atom_list[i]]
-        print(atomic_symbol_list.index(symbol) + 1, file=fp)
-    print('%endblock AtomicCoordinatesAndAtomicSpecies', file=fp)
-    print('\n### User specified options ###\n', file=fp)
-    print(options, file=fp)
-    fp.close()
-
-
-def create_siesta_potential(system: _mdcore.systems.MDSYSTEM,
-                            atom_list: list,
-                            options: str,
-                            siesta_command: str = 'siesta',
-                            pseudopotential_dir: str = './') -> SIESTA:
-    """
-    Prepare a temporary directory to start the SIESTA calculations.
-
-    Parameters
-    ----------
-    system: somd.core.system.MDSYSTEM
-        The simulated system.
-    atom_list : List[int]
-        Indices of atoms included by this potential.
-    options: str
-        Auxiliary options to be added into the input file, e.g. the basis size
-        and the functional. There is an example of this parameter:
-        options = r'''
-        xc.functional          GGA
-        xc.authors             revPBE
-
-        PAO.BasisSize          TZ2P
-        Mesh.Cutoff            300 Ry
-        PAO.EnergyShift        10 meV
-        PAO.SoftDefault        T
-
-        DM.MixingWeight        0.1
-        DM.Tolerance           1.d-5
-        DM.UseSaveDM           T
-        DM.History.Depth       5
-
-        Diag.Algorithm         ELPA-1stage
-        SolutionMethod         diagon
-        ElectronicTemperature  5 meV
-        '''
-    siesta_command : str
-        Command of submitting a SIESTA job.
-    pseudopotential_dir : str
-        Directory of the pseudopotential files.
-
-    Notes
-    -----
-    Basenames of the pseudopotential file must be the same as symbols of the
-    elements in the simulated system. E.g. there are three elements: H, O and
-    C in the simulated system, then the pseudopotential files must be named as:
-    H.psf, O.psf and C.psf (or H.vps, O.vps and C.vps).
-    """
-    work_dir = _os.getcwd() + '/SOMD_TMP_' + _id.uuid4().hex
-    _os.mkdir(work_dir)
-    pseudopotential_dir = pseudopotential_dir + '/'
-    files = _os.listdir(pseudopotential_dir)
-    for e in list(set(system.atomic_symbols)):
-        if ((e + '.psml') in files):
-            fn = e + '.psml'
-            _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
-        elif ((e + '.psf') in files):
-            fn = e + '.psf'
-            _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
-        elif ((e + '.vps') in files):
-            fn = e + '.vps'
-            _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
-        else:
-            _os.rmdir(work_dir)
-            message = 'Can not find pseudopotential file for element ' + e
-            raise RuntimeError(message)
-    _create_siesta_input(system, atom_list, options, file_dir=work_dir)
-    return SIESTA(atom_list, work_dir + '/somd_tmp.fdf', siesta_command)
-
-
-def create_siesta_generator(system: _mdcore.systems.MDSYSTEM,
-                            atom_list: list,
-                            options: str,
-                            siesta_command: str = 'siesta',
-                            pseudopotential_dir: str = './') -> _tp.Callable:
-    """
-    Return a generator of this potential.
-
-    Parameters
-    ----------
-    system: somd.core.system.MDSYSTEM
-        The simulated system.
-    atom_list : List[int]
-        Indices of atoms included by this potential.
-    options: str
-        Auxiliary options to be added into the input file, e.g. the basis
-        size and the functional. There is an example of this parameter:
-        options = r'''
-        xc.functional          GGA
-        xc.authors             revPBE
-
-        PAO.BasisSize          TZ2P
-        Mesh.Cutoff            300 Ry
-        PAO.EnergyShift        10 meV
-        PAO.SoftDefault        T
-
-        DM.MixingWeight        0.1
-        DM.Tolerance           1.d-5
-        DM.UseSaveDM           T
-        DM.History.Depth       5
-
-        Diag.Algorithm         ELPA-1stage
-        SolutionMethod         diagon
-        ElectronicTemperature  5 meV
-        '''
-    siesta_command : str
-        Command of submitting a SIESTA job.
-    pseudopotential_dir : str
-        Directory of the pseudopotential files.
-
-    Notes
-    -----
-    Basenames of the pseudopotential file must be the same as symbols of
-    the elements in the simulated system. E.g. there are three elements:
-    H, O and C in the simulated system, then the pseudopotential files must
-    be named as: H.psf, O.psf and C.psf (or H.vps, O.vps and C.vps).
-    """
-    pseudopotential_dir = _os.path.abspath(pseudopotential_dir)
-    return lambda: create_siesta_potential(system, atom_list, options,
-                                           siesta_command,
-                                           pseudopotential_dir)

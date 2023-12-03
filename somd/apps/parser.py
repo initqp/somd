@@ -23,7 +23,6 @@ A simple TOML input paser.
 import os as _os
 import numpy as _np
 import typing as _tp
-from typing import get_args as _get_args
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
 from somd import apps as _mdapps
@@ -587,10 +586,10 @@ class TOMLPARSER(object):
         atom_list : list(int)
             The atom list.
         """
-        return _potentials.create_siesta_generator(self.__system, atom_list,
-                                                   inp['siesta_options'],
-                                                   inp['siesta_command'],
-                                                   inp['pseudopotential_dir'])
+        return _potentials.SIESTA.generator(atom_list, self.__system,
+                                            inp['siesta_options'],
+                                            inp['siesta_command'],
+                                            inp['pseudopotential_dir'])
 
     def __parse_potential_dftd3(self, inp: dict, atom_list: list) \
             -> _tp.Callable:
