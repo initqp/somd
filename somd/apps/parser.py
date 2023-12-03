@@ -78,7 +78,6 @@ class TOMLPARSER(object):
     __parameters__['system'] = {
         'structure': __value__(str, True, None),
         'format': __value__(str, False, None),
-        'box': __value__(list, False, None)
     }
     __parameters__['integrator'] = {
         'timestep': __value__(float, True, None),
@@ -192,7 +191,6 @@ class TOMLPARSER(object):
         self.__parse_scripts()
         if (self.__root['active_learning'] is None):
             self.__set_up_simulation()
-            self.__trainer = None
         else:
             self.__parse_active_learning()
 
@@ -200,23 +198,32 @@ class TOMLPARSER(object):
         """
         Check root tables.
         """
+        bad_tables = set(self.__root.keys()).difference(self.__tables__.keys())
+        if (len(bad_tables) != 0):
+            format_list = ('[{}], ' * len(bad_tables)).strip(', ')
+            message = 'Unknown table name(s): {}!'.format(format_list)
+            raise KeyError(message.format(*bad_tables))
+        required_tables = set(k for k in self.__tables__.keys() if
+                              self.__tables__[k].required)
+        missing_tables = required_tables.difference(set(self.__root.keys()))
+        if (len(missing_tables) != 0):
+            format_list = ('[{}], ' * len(missing_tables)).strip(', ')
+            message = 'Table(s) {} are required!'.format(format_list)
+            raise KeyError(message.format(*missing_tables))
         definitions = dict.fromkeys(self.__tables__.keys(), None)
         for key in self.__root.keys():
-            if key in self.__tables__.keys():
-                table = self.__root[key]
-                if (self.__tables__[key].is_array and type(table) != list):
-                    message = 'The "{}" key should correspond to an ' + \
-                              'array of tables!'
-                    raise TypeError(message.format(key))
-                if (not self.__tables__[key].is_array and type(table) != dict):
-                    message = 'The "{}" key should correspond to a table!'
-                    raise TypeError(message.format(key))
-                definitions[key] = table
-            else:
-                raise KeyError('Unknown root key or table "{}"'.format(key))
-        for key in self.__tables__.keys():
-            if (self.__tables__[key].required and (definitions[key] is None)):
-                raise KeyError('Table [{}] is required!'.format(key))
+            table = self.__root[key]
+            is_array = self.__tables__[key].is_array
+            if (is_array and (not isinstance(table, list))):
+                message = 'Name "{}" should define AN ARRAY of tables!'
+                raise TypeError(message.format(key))
+            if (is_array and (not all(isinstance(t, dict) for t in table))):
+                message = 'Name "{}" should define an array of TABLES!'
+                raise TypeError(message.format(key))
+            if ((not is_array) and (not isinstance(table, dict))):
+                message = 'Name "{}" should define a table!'
+                raise TypeError(message.format(key))
+            definitions[key] = table
         self.__root = definitions
 
     def __check_task(self) -> None:
@@ -240,66 +247,58 @@ class TOMLPARSER(object):
         table_name : str
             Name of the table.
         """
-        parameters = self.__parameters__[table_name]
-        definitions = dict.fromkeys(parameters.keys(), None)
+        parameters = self.__parameters__[table_name].copy()
+        bad_keys = set(inp.keys()).difference(parameters.keys())
+        if (len(bad_keys) != 0):
+            format_list = ('"{}", ' * len(bad_keys)).strip(', ')
+            message = 'Unknown key(s): {} in (one of) the [{}] table(s)!'
+            message = message.format(format_list, table_name)
+            raise KeyError(message.format(*bad_keys))
         # Check key names and value types.
+        definitions = dict.fromkeys(parameters.keys(), None)
         for key in inp.keys():
-            if key in parameters.keys():
-                value = inp[key]
-                if (not issubclass(type(value), parameters[key].type)):
-                    if (parameters[key].type.__name__ == 'Union'):
-                        type_list = _get_args(parameters[key].type)
-                        types = '"' + type_list[0].__name__ + '"'
-                        for t in type_list[1:]:
-                            types += ' or "' + t.__name__ + '"'
-                    else:
-                        types = '"' + parameters[key].type.__name__ + '"'
-                    message = 'Wrong type of key "{}" in (one of) the ' + \
-                              '[{}] table(s)! A {} typed value is expected!'
-                    message = message.format(key, table_name, types)
-                    raise TypeError(message)
-                definitions[key] = value
-            else:
-                message = 'Unknown key "{}" in (one of) the [{}] table(s)!'
-                raise KeyError(message.format(key, table_name))
-        # Check dependencies.
-        for key in definitions.keys():
+            if (not issubclass(type(inp[key]), parameters[key].type)):
+                if (parameters[key].type.__name__ == 'Union'):
+                    types = [t.__name__ for t in
+                             _get_args(parameters[key].type)]
+                    types = ('"{}"/' * len(types)).format(*types).strip('/')
+                else:
+                    types = '"' + parameters[key].type.__name__ + '"'
+                message = 'Wrong type of key "{}" in (one of) the ' + \
+                          '[{}] table(s)! A {} typed value is expected!'
+                message = message.format(key, table_name, types)
+                raise TypeError(message)
+            definitions[key] = inp[key]
+        # Check dependencies for empty keys.
+        keys = definitions.keys()
+        for key in [k for k in keys if definitions[k] is None]:
+            required = parameters[key].required
             dependency = parameters[key].dependency
-            if (dependency is not None and definitions[key] is not None):
-                value = definitions[dependency.key]
-                if (type(value) == str):
-                    value = value.lower()
-                if (value not in dependency.values):
-                    values = '"' + str(dependency.values[0]) + '"'
-                    for v in dependency.values[1:]:
-                        values += ' or "' + str(v) + '"'
-                    message = 'Key "{}" in the [{}] table(s) is only ' + \
-                              'required when the value of its "{}" key ' + \
-                              'is {}!'
-                    message = message.format(key, table_name, dependency.key,
-                                             values)
-                    raise KeyError(message)
-        # Check required keys.
-        for key in parameters.keys():
-            if (parameters[key].required and (definitions[key] is None)):
-                dependency = parameters[key].dependency
-                if (dependency is None):
+            if (required and dependency is None):
+                if (definitions[key] is None):
                     message = 'Key "{}" is required in the [{}] table(s)!'
                     raise KeyError(message.format(key, table_name))
-                else:
-                    value = definitions[dependency.key]
-                    if (type(value) == str):
-                        value = value.lower()
-                    if (value in dependency.values):
-                        values = '"' + str(dependency.values[0]) + '"'
-                        for v in dependency.values[1:]:
-                            values += ' or "' + str(v) + '"'
-                        message = 'Key "{}" in the [{}] table(s) is ' + \
-                                  'required when the value of its "{}" ' + \
-                                  'key is {}!'
-                        message = message.format(key, table_name,
-                                                 dependency.key, values)
-                        raise KeyError(message)
+            elif (required and dependency is not None):
+                value = definitions[dependency.key].lower()
+                if (value in dependency.values):
+                    message = 'Key "{}" in (one of) the [{}] table(s) is ' + \
+                              'required since the value of the "{}" key ' + \
+                              'is "{}"!'
+                    message = message.format(key, table_name, dependency.key,
+                                             definitions[dependency.key])
+                    raise KeyError(message)
+        # Check dependencies for non-empty keys.
+        for key in [k for k in keys if definitions[k] is not None]:
+            dependency = parameters[key].dependency
+            if (dependency is not None):
+                value = definitions[dependency.key].lower()
+                if (value not in dependency.values):
+                    message = 'Key "{}" in (one of) the [{}] table(s) is ' + \
+                              'redundant since the value of the "{}" key ' + \
+                              'is "{}"!'
+                    message = message.format(key, table_name, dependency.key,
+                                             definitions[dependency.key])
+                    raise KeyError(message)
         return definitions
 
     def __parse_atom_list(self, inp: _tp.Union[list, str]) -> list:
@@ -311,11 +310,11 @@ class TOMLPARSER(object):
         inp: list(int) or str
             The atom list to be parsed.
         """
-        if (type(inp) == list):
+        if isinstance(inp, list):
             if (not all(isinstance(i, int) for i in inp)):
-                raise RuntimeError('Unknown atom indices: {}'.format(inp))
+                raise RuntimeError('Unknown atom indices: "{}"'.format(inp))
             result = inp
-        elif (type(inp) == str):
+        elif isinstance(inp, str):
             if (inp.lower() == 'all'):
                 result = list(range(0, self.__system.n_atoms))
             else:
@@ -323,17 +322,19 @@ class TOMLPARSER(object):
                 for s in inp.split(','):
                     if (':' not in s):
                         if (not s.isnumeric()):
-                            raise SyntaxError('Unknown atom index: ' + s)
+                            message = 'Unknown atom index: "{}"'.format(s)
+                            raise SyntaxError(message)
                         result.append(int(s))
                     else:
                         l = s.split(':')
                         if (not l[0].isnumeric() or len(l) != 2 or
                                 not l[1].isnumeric()):
-                            raise SyntaxError('Unknown atom range: ' + s)
+                            message = 'Unknown atom range: "{}"'.format(s)
+                            raise SyntaxError(message)
                         for i in range(int(l[0]), int(l[1]) + 1):
                             result.append(i)
         else:
-            message = 'Type of key "atom_list" could only be list(int) or str!'
+            message = 'Type of key "atom_list" could only be List[int] or str!'
             raise RuntimeError(message)
         return result
 
@@ -355,90 +356,70 @@ class TOMLPARSER(object):
             d = {'atom_list': range(0, self.__system.n_atoms),
                  'has_translations': True, 'label': label}
             self.__system.groups.create_from_dict(d)
-            message = 'An atom group that corresponding to the whole ' + \
+            message = 'An atom group that corresponds to the whole ' + \
                       'system has been append the group list.'
             self.__root['group'].append(d)
             _mdutils.warning.warn(message)
         # The user has not defined the group without translations.
         # Check if there is any group that is corresponding to the whole group.
         if (no_translations_flag is False):
-            for index, group in enumerate(self.__system.groups):
-                if (group.n_atoms == self.__system.n_atoms):
-                    group.has_translations = False
-                    no_translations_flag = True
-                    self.__root['group'][index]['has_translations'] = False
-                    message = 'Translational degrees of freedom of group ' + \
-                              '"{}" has been automatically removed.'
-                    _mdutils.warning.warn(message.format(group._label))
-                    break
+            atom_numbers = [g.n_atoms for g in self.__system.groups]
+            index = atom_numbers.index(self.__system.n_atoms)
+            group = self.__system.groups[index]
+            self.__root['group'][index]['has_translations'] = False
+            group.has_translations = False
+            message = 'Translational degrees of freedom of group ' + \
+                      '"{}" has been automatically removed.'
+            _mdutils.warning.warn(message.format(group._label))
 
     def __parse_run(self) -> None:
         """
         Parse the simulation task information.
         """
-        run = self.__root['run']
-        if (run is None):
-            run = dict()
+        table = self.__root['run']
+        if (table is None):
+            table = dict()
             label = _os.path.splitext(self.__file_name)[0]
-            run['label'] = _os.path.basename(label)
-            run['restart_from'] = None
+            table['label'] = _os.path.basename(label)
+            table['restart_from'] = None
         else:
-            run = self.__normalize_table(self.__root['run'], 'run')
-            self.__n_steps = run['n_steps']
-            if (run['seed'] is not None):
-                _np.random.seed(run['seed'])
-            if (run['label'] is None):
+            table = self.__normalize_table(self.__root['run'], 'run')
+            if (table['seed'] is not None):
+                _np.random.seed(table['seed'])
+            if (table['label'] is None):
                 label = _os.path.splitext(self.__file_name)[0]
-                run['label'] = _os.path.basename(label)
-        self.__root['run'] = run
+                table['label'] = _os.path.basename(label)
+        self.__root['run'] = table
 
     def __parse_system(self) -> None:
         """
         Parse the system information.
         """
-        system = self.__normalize_table(self.__root['system'], 'system')
-        file_name = system['structure']
-        if (system['format'] is not None):
-            ext_name = system['format'].lower()
+        table = self.__normalize_table(self.__root['system'], 'system')
+        file_name = _os.path.basename(table['structure'])
+        if (table['format'] is not None):
+            table['format'] = table['format'].lower()
+        elif (_os.path.splitext(file_name)[0].lower() == 'poscar'):
+            table['format'] = 'poscar'
         else:
-            ext_name = _os.path.splitext(file_name)[1].lower()[1:]
-            if (ext_name == ''):
-                if (_os.path.splitext(file_name)[0].lower() == "poscar"):
-                    ext_name = 'poscar'
-                else:
-                    message = 'Your file name does contain an extension ' + \
-                              ' name, try to define "format" key in the ' + \
-                              '[system] table.'
-                    raise RuntimeError(message)
-            system['format'] = ext_name
-        if (ext_name == 'pdb'):
-            self.__system = \
-                _mdcore.systems.create_system_from_pdb(file_name)
-        elif (ext_name == 'poscar'):
-            self.__system = \
-                _mdcore.systems.create_system_from_poscar(file_name)
-        else:
-            message = 'Structure file could only be in PDB ' + \
-                      'or POSCAR format!'
-            raise RuntimeError(message)
-        if (system['box'] is not None):
-            if ((not all(isinstance(v, list) for v in system['box'])) or
-                    (not all((len(v) == 3) for v in system['box']))):
-                message = 'The "box" key in the "[group]" table requires ' + \
-                          'three box vectors with a length of three!'
+            ext_name = _os.path.splitext(file_name)[1]
+            table['format'] = ext_name.lower().strip('.')
+            if (table['format'] == ''):
+                message = 'Your file name does contain an extension ' + \
+                          'name, try to define "format" key in the ' + \
+                          '[system] table.'
                 raise RuntimeError(message)
-            else:
-                self.__system.box[:] = system['box'][:]
-        parameter_names = ['a', 'b', 'c', 'alpha', 'beta', 'gamma']
-        for i in range(0, 6):
-            if (self.__system.lattice[i] < _mdutils.defaults.LATTICETOL):
-                message = 'Very small lattice parameter: {} !' + \
-                          'If your structure file does not contain cell ' + \
-                          'data, you could set the simulation box with ' + \
-                          '"box" key in the [system] table.'
-                raise RuntimeError(message.format(parameter_names[i]))
+        if (table['format'] in ['pdb', 'pqr']):
+            self.__system = \
+                _mdcore.systems.create_system_from_pdb(table['structure'])
+        elif (table['format'] == 'poscar'):
+            self.__system = \
+                _mdcore.systems.create_system_from_poscar(table['structure'])
+        else:
+            message = 'Structure file could only be in PDB or POSCAR format!'
+            raise RuntimeError(message)
         self.__system._label = self.__root['run']['label']
-        self.__root['system'] = system
+        self.__root['system'] = table
 
     def __add_group_velocities(self) -> None:
         """
@@ -453,15 +434,14 @@ class TOMLPARSER(object):
         """
         if (self.__root['group'] is None):
             return
-        groups = self.__root['group']
-        for index, group in enumerate(groups):
-            group = self.__normalize_table(group, 'group')
-            atom_list = self.__parse_atom_list(group['atom_list'])
-            if (group['initial_temperature'] is not None):
-                self.__system.groups[index].add_velocities_from_temperature(
-                    group['initial_temperature'])
-            if (group['initial_velocities'] is not None):
-                velocities = group['initial_velocities']
+        for group, table in zip(self.__system.groups, self.__root['group']):
+            table = self.__normalize_table(table, 'group')
+            atom_list = self.__parse_atom_list(table['atom_list'])
+            if (table['initial_temperature'] is not None):
+                group.add_velocities_from_temperature(
+                    table['initial_temperature'])
+            if (table['initial_velocities'] is not None):
+                velocities = table['initial_velocities']
                 if (len(velocities) != len(atom_list) and
                         len(velocities) != 1):
                     message = 'Number of velocity vectors of the ' + \
@@ -474,78 +454,69 @@ class TOMLPARSER(object):
                               '"initial_velocities" key in [[group]] ' + \
                               'tables should have a length of three!'
                     raise RuntimeError(message)
-                self.__system.groups[index].velocities += velocities
+                group.velocities += velocities
 
     def __parse_groups(self) -> None:
         """
         Set up atom groups in the simulated system.
         """
         if (self.__root['group'] is None):
-            group = {'atom_list': range(0, self.__system.n_atoms),
+            table = {'atom_list': range(0, self.__system.n_atoms),
                      'has_translations': False, 'label': 'GROUP0'}
-            self.__system.groups.create_from_dict(group)
-            group['initial_velocities'] = None
-            group['initial_temperature'] = None
+            self.__system.groups.create_from_dict(table)
         else:
-            groups = self.__root['group']
-            if (not all(isinstance(group, dict) for group in groups)):
-                message = 'The "group" key should correspond to an array ' + \
-                          'of tables!'
-                raise RuntimeError(message)
-            for index, group in enumerate(groups):
-                group = self.__normalize_table(group, 'group')
-                group['atom_list'] = self.__parse_atom_list(group['atom_list'])
-                if (group['has_translations'] is None):
-                    group['has_translations'] = True
-                if (group['label'] is None):
-                    group['label'] = 'GROUP{:d}'.format(index)
-                self.__system.groups.create_from_dict(group)
-            self.__root['group'] = groups
+            for index, table in enumerate(self.__root['group']):
+                table = self.__normalize_table(table, 'group')
+                table['atom_list'] = self.__parse_atom_list(table['atom_list'])
+                if (table['has_translations'] is None):
+                    table['has_translations'] = True
+                if (table['label'] is None):
+                    table['label'] = 'GROUP{:d}'.format(index)
+                self.__system.groups.create_from_dict(table)
         self.__check_groups()
 
     def __parse_integrator(self) -> None:
         """
         Parse the integrator information.
         """
-        integrator = self.__normalize_table(self.__root['integrator'],
-                                            'integrator')
-        if (integrator['splitting'] is not None and
-                integrator['type'] is not None):
+        table = self.__normalize_table(self.__root['integrator'], 'integrator')
+        if (table['splitting'] is not None and table['type'] is not None):
             message = 'Key "type" or "splitting" can not be defined in ' + \
                       'an [integrator] table at the same time!'
             raise RuntimeError(message)
-        elif (integrator['splitting'] is None and integrator['type'] is None):
+        elif (table['splitting'] is None and table['type'] is None):
             message = 'Key "type" or "splitting" is required in an ' + \
                       '[integrator] table! And the types of these ' + \
                       'keys should be "str" and "list".'
             raise RuntimeError(message)
-        timestep = integrator['timestep']
-        if (integrator['relaxation_times'] is None):
-            relaxation_times = []
+        timestep = table['timestep']
+        if (table['relaxation_times'] is None):
+            relaxation_times = [0.1]
         else:
-            if (type(integrator['relaxation_times']) == list):
-                relaxation_times = integrator['relaxation_times']
+            if isinstance(table['relaxation_times'], list):
+                relaxation_times = table['relaxation_times']
             else:
-                relaxation_times = [integrator['relaxation_times']]
-        if (integrator['temperatures'] is None):
-            temperatures = []
+                relaxation_times = [table['relaxation_times']]
+        if (table['temperatures'] is None):
+            temperatures = [300]
         else:
-            if (type(integrator['temperatures']) == list):
-                temperatures = integrator['temperatures']
+            if isinstance(table['temperatures'], list):
+                temperatures = table['temperatures']
             else:
-                temperatures = [integrator['temperatures']]
-        if (integrator['thermo_groups'] is None):
-            for index, group in enumerate(self.__system.groups):
-                if (group.n_atoms == self.__system.n_atoms):
-                    thermo_groups = [index]
-                    break
+                temperatures = [table['temperatures']]
+        if (table['thermo_groups'] is None):
+            atom_numbers = [g.n_atoms for g in self.__system.groups]
+            thermo_groups = [atom_numbers.index(self.__system.n_atoms)]
+            message = 'The thermostat will act on the atom group: "{}".'
+            group_name = self.__system.groups[thermo_groups[0]]._label
+            _mdutils.warning.warn(message.format(group_name))
         else:
-            if (type(integrator['thermo_groups']) == list):
-                thermo_groups = integrator['thermo_groups']
+            if isinstance(table['thermo_groups'], list):
+                thermo_groups = table['thermo_groups']
             else:
-                thermo_groups = [integrator['thermo_groups']]
-        if (integrator['type'] is not None):
-            integrator_type = integrator['type'].lower()
+                thermo_groups = [table['thermo_groups']]
+        if (table['type'] is not None):
+            integrator_type = table['type'].lower()
             if (integrator_type == 'vv'):
                 result = _mdcore.integrators.vv_integrator(timestep)
             elif (integrator_type == 'cs4'):
@@ -590,7 +561,7 @@ class TOMLPARSER(object):
                 raise RuntimeError(message)
         else:
             result = _mdcore.integrators.INTEGRATOR(
-                timestep, integrator['splitting'], temperatures,
+                timestep, table['splitting'], temperatures,
                 relaxation_times, thermo_groups)
         if (not result._is_nve):
             if (len(temperatures) == 0):
@@ -783,140 +754,134 @@ class TOMLPARSER(object):
                 n_dof += self.__system.groups[i].n_dof
                 temperature += temperatures[i] * self.__system.groups[i].n_dof
             temperature /= n_dof
-        potentials = self.__root['potential']
-        if (not all(isinstance(potential, dict) for potential in potentials)):
-            message = 'The "potential" key should correspond to an array ' + \
-                      'of tables!'
-            raise RuntimeError(message)
         self.__potential_generators = []
-        for index, potential in enumerate(potentials):
-            potential = self.__normalize_table(potential, 'potential')
-            if (potential['file_name'] is not None):
-                potential['file_name'] = \
-                    _os.path.abspath(potential['file_name'])
-            if (potential['pseudopotential_dir'] is not None):
-                potential['pseudopotential_dir'] = \
-                    _os.path.abspath(potential['pseudopotential_dir'])
+        for index, table in enumerate(self.__root['potential']):
+            table = self.__normalize_table(table, 'potential')
+            if (table['file_name'] is not None):
+                table['file_name'] = _os.path.abspath(table['file_name'])
+            if (table['pseudopotential_dir'] is not None):
+                table['pseudopotential_dir'] = \
+                    _os.path.abspath(table['pseudopotential_dir'])
             else:
-                potential['pseudopotential_dir'] = _os.getcwd()
+                table['pseudopotential_dir'] = _os.getcwd()
             self.__potential_generators.append((
-                potential['type'].upper(),
-                self.__parse_potential(potential, index, timestep,
-                                       temperature)))
+                table['type'].upper(),
+                self.__parse_potential(table, index, timestep, temperature)
+            ))
 
     def __parse_constraints(self) -> None:
         """
         Parse the constraint information.
         """
-        constraints = self.__root['constraints']
-        if (constraints is None):
+        table = self.__root['constraints']
+        if (table is None):
             return
         else:
-            constraints = self.__normalize_table(constraints, 'constraints')
-        n_constrints = len(constraints['types'])
-        if ((len(constraints['indices']) != n_constrints) or
-                (len(constraints['types']) != n_constrints)):
-            message = 'The "types", "indices" and "targets" keys in the ' + \
+            table = self.__normalize_table(table, 'constraints')
+        n_constrints = len(table['types'])
+        if (len(table['indices']) != n_constrints):
+            message = 'The "types" and "indices" keys in the ' + \
                       '[constraints] table should have the same length!'
             raise RuntimeError(message)
-        if (not all(isinstance(i, int) for i in constraints['types'])):
+        if (len(table['targets']) != n_constrints):
+            message = 'The "types" and "targets" keys in the ' + \
+                      '[constraints] table should have the same length!'
+            raise RuntimeError(message)
+        if (not all(isinstance(i, int) for i in table['types'])):
             message = 'The "types" key in the [constraints] table should ' + \
                       'corresponding to list of integers!'
             raise RuntimeError(message)
-        if (not all(isinstance(i, list) for i in constraints['indices'])):
+        if (not all(isinstance(i, list) for i in table['indices'])):
             message = 'The "indices" key in the [constraints] table ' + \
                       'should corresponding to list of lists!'
             raise RuntimeError(message)
-        if (not all(isinstance(i, float) for i in constraints['targets'])):
+        if (not all(isinstance(i, float) for i in table['targets'])):
             message = 'The "targets" key in the [constraints] table ' + \
                       'should corresponding to list of float numbers!'
             raise RuntimeError(message)
-        if (constraints['tolerances'] is None):
-            tolerances = [1E-14] * len(constraints['types'])
+        if (table['tolerances'] is None):
+            tolerances = [1E-14] * len(table['types'])
         else:
-            if (len(constraints['tolerances']) != n_constrints):
+            if (len(table['tolerances']) != n_constrints):
                 message = 'The "types" and "tolerances" keys in the ' + \
                           '[constraints] table should have the same length!'
                 raise RuntimeError(message)
             else:
-                tolerances = constraints['tolerances']
+                tolerances = table['tolerances']
             if (not all(isinstance(i, float) for i in tolerances)):
                 message = 'The "tolerances" key in the [constraints] ' + \
                           'table should corresponding to list of float ' + \
                           'numbers!'
                 raise RuntimeError(message)
-        if (constraints['max_cycles'] is not None):
-            self.__system.constraints.max_cycles = constraints['max_cycles']
+        if (table['max_cycles'] is not None):
+            self.__system.constraints.max_cycles = table['max_cycles']
         result = []
         for i in range(0, n_constrints):
-            result.append({'type': constraints['types'][i],
-                           'indices': constraints['indices'][i],
-                           'target': constraints['targets'][i],
-                           'tolerance': tolerances[i]})
+            result.append({
+                'type': table['types'][i], 'indices': table['indices'][i],
+                'target': table['targets'][i], 'tolerance': tolerances[i]
+            })
         self.__system.constraints.appends(result)
 
     def __parse_barostat(self) -> None:
         """
         Parse the barostat information.
         """
-        barostat = self.__root['barostat']
-        if (barostat is None):
+        if (self.__root['barostat'] is None):
             self.__barostat = None
             return
         else:
-            barostat = self.__normalize_table(barostat, 'barostat')
-        if (type(barostat['beta']) == float):
-            beta = [barostat['beta'] / _mdutils.constants.MEGAPASCAL]
+            table = self.__normalize_table(self.__root['barostat'], 'barostat')
+        if isinstance(table['beta'], float):
+            beta = [table['beta'] / _mdutils.constants.MEGAPASCAL]
         else:
-            beta = [b / _mdutils.constants.MEGAPASCAL
-                    for b in barostat['beta']]
-        if (type(barostat['pressures']) == float):
-            pressures = [barostat['pressures'] * _mdutils.constants.MEGAPASCAL]
+            beta = [b / _mdutils.constants.MEGAPASCAL for b in table['beta']]
+        if isinstance(table['pressures'], float):
+            pressures = [table['pressures'] * _mdutils.constants.MEGAPASCAL]
         else:
             pressures = [p * _mdutils.constants.MEGAPASCAL
-                         for p in barostat['pressures']]
+                         for p in table['pressures']]
         self.__barostat = _mdapps.barostats.BAROSTAT(
-            pressures, beta, barostat['relaxation_time'])
+            pressures, beta, table['relaxation_time'])
 
     def __parse_loggers(self) -> None:
         """
         Parse the logger information.
         """
         self.__loggers = []
-        loggers = self.__root['logger']
-        if (loggers is None):
+        if (self.__root['logger'] is None):
             self.__loggers.append(
                 _mdapps.loggers.DEFAULTCSVLOGGER(
                     self.__root['run']['label'] + '.data.csv', interval=1,
                     append=bool(self.__root['run']['restart_from'])))
         else:
-            for index, logger in enumerate(loggers):
-                logger = self.__normalize_table(logger, 'logger')
-                if (logger['format'] is None):
+            for index, table in enumerate(self.__root['logger']):
+                table = self.__normalize_table(table, 'logger')
+                if (table['format'] is None):
                     logger_format = 'csv'
                 else:
-                    logger_format = logger['format'].lower()
+                    logger_format = table['format'].lower()
                 if (logger_format == 'csv'):
                     delimiter = ' , '
                 elif (logger_format == 'txt'):
                     delimiter = ' '
                 else:
-                    message = 'Unknown logger format ' + logger['format']
-                    raise RuntimeError(message)
-                if (logger['prefix'] is None):
+                    message = 'Unknown logger format "{}"'
+                    raise RuntimeError(message.format(table['format']))
+                if (table['prefix'] is None):
                     prefix = self.__root['run']['label']
                 else:
-                    prefix = logger['prefix']
-                if (logger['interval'] is None):
+                    prefix = table['prefix']
+                if (table['interval'] is None):
                     interval = 1
                 else:
-                    interval = logger['interval']
+                    interval = table['interval']
                 file_name = prefix + '.data.' + logger_format
                 self.__loggers.append(
                     _mdapps.loggers.DEFAULTCSVLOGGER(
                         file_name, interval=interval, delimiter=delimiter,
                         append=bool(self.__root['run']['restart_from']),
-                        potential_list=logger['potential_list']))
+                        potential_list=table['potential_list']))
         if (self.__root['active_learning'] is not None):
             self.__loggers = []
             message = 'You are performing active learning, system data ' + \
@@ -948,62 +913,60 @@ class TOMLPARSER(object):
         Parse the trajectory information.
         """
         self.__trajectories = []
-        trajectories = self.__root['trajectory']
-        if (trajectories is None):
+        if (self.__root['trajectory'] is None):
             self.__trajectories.append(
                 _mdapps.trajectories.H5WRITER(
                     self.__root['run']['label'] + '.trajectory.h5',
                     interval=1, write_virial=True, write_forces=True,
                     append=bool(self.__root['run']['restart_from'])))
         else:
-            for index, trajectory in enumerate(trajectories):
-                trajectory = self.__normalize_table(trajectory, 'trajectory')
-                if (trajectory['format'] is None):
+            for index, table in enumerate(self.__root['trajectory']):
+                table = self.__normalize_table(table, 'trajectory')
+                if (table['format'] is None):
                     trajectory_format = 'H5'
                 else:
-                    trajectory_format = trajectory['format'].upper()
-                if (trajectory['prefix'] is None):
+                    trajectory_format = table['format'].upper()
+                if (table['prefix'] is None):
                     prefix = self.__root['run']['label']
                 else:
-                    prefix = trajectory['prefix']
-                if (trajectory['interval'] is None):
+                    prefix = table['prefix']
+                if (table['interval'] is None):
                     interval = 1
                 else:
-                    interval = trajectory['interval']
+                    interval = table['interval']
                 if (trajectory_format == 'H5'):
-                    if (trajectory['is_restart_file']):
+                    if (table['is_restart_file']):
                         file_name = prefix + '.restart.h5'
                     else:
                         file_name = prefix + '.trajectory.h5'
                     writer = _mdapps.trajectories.H5WRITER(
                         file_name, interval=interval, write_virial=True,
-                        write_velocities=bool(trajectory['write_velocities']),
-                        write_forces=bool(trajectory['write_forces']),
-                        wrap_positions=bool(trajectory['wrap_positions']),
+                        write_velocities=bool(table['write_velocities']),
+                        write_forces=bool(table['write_forces']),
+                        wrap_positions=bool(table['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
-                        restart_file=bool(trajectory['is_restart_file']),
-                        use_double=bool(trajectory['use_float64']),
-                        potential_list=trajectory['potential_list'])
+                        restart_file=bool(table['is_restart_file']),
+                        use_double=bool(table['use_float64']),
+                        potential_list=table['potential_list'])
                     self.__trajectories.append(writer)
                 elif (trajectory_format == 'EXYZ'):
                     file_name = prefix + '.trajectory.xyz'
                     writer = _mdapps.trajectories.EXYZWRITER(
                         file_name, interval=interval, write_virial=True,
-                        write_velocities=bool(trajectory['write_velocities']),
-                        write_forces=bool(trajectory['write_forces']),
-                        wrap_positions=bool(trajectory['wrap_positions']),
+                        write_velocities=bool(table['write_velocities']),
+                        write_forces=bool(table['write_forces']),
+                        wrap_positions=bool(table['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
-                        potential_list=trajectory['potential_list'],
-                        energy_shift=trajectory['energy_shift'])
+                        potential_list=table['potential_list'],
+                        energy_shift=table['energy_shift'])
                     self.__trajectories.append(writer)
                 else:
-                    message = 'Unknown trajectory format ' + \
-                              trajectory['format']
-                    raise RuntimeError(message)
-                if (trajectory['potential_list'] is None):
+                    message = 'Unknown trajectory format: "{}"'
+                    raise RuntimeError(message.format(table['format']))
+                if (table['potential_list'] is None):
                     tmp = list(range(0, len(self.__potential_generators)))
                 else:
-                    tmp = trajectory['potential_list']
+                    tmp = table['potential_list']
                 for i in tmp:
                     potential_name = self.__potential_generators[i][0]
                     if (potential_name == 'PLUMED'):
@@ -1021,20 +984,19 @@ class TOMLPARSER(object):
         """
         scope = {}
         self.__scripts = []
-        scripts = self.__root['script']
-        if (scripts is None):
+        if (self.__root['script'] is None):
             return
-        for index, script in enumerate(scripts):
-            script = self.__normalize_table(script, 'script')
-            if (script['interval'] is None):
+        for index, table in enumerate(self.__root['script']):
+            table = self.__normalize_table(table, 'script')
+            if (table['interval'] is None):
                 interval = 1
             else:
-                interval = script['interval']
-            if (script['initialize'] is not None):
-                exec(script['initialize'], scope)
+                interval = table['interval']
+            if (table['initialize'] is not None):
+                exec(table['initialize'], scope)
             else:
                 scope['initialize'] = lambda: None
-            exec(script['update'], scope)
+            exec(table['update'], scope)
             if ('update' not in scope.keys()):
                 message = 'The function name defined in the "update" key ' + \
                           'of the [[script]] table(s) must be "update"!'
@@ -1054,21 +1016,24 @@ class TOMLPARSER(object):
             loggers=self.__loggers, trajectories=self.__trajectories)
         for obj in self.__scripts:
             self.__simulation.post_step_objects.append(obj)
+        restart_file = self.__root['run']['restart_from']
+        if (restart_file is not None):
+            self.__simulation.restart_from(restart_file)
 
     def __parse_active_learning(self) -> None:
         """
         Parse the active learning information.
         """
-        protocol = self.__root['active_learning']
-        protocol = self.__normalize_table(protocol, 'active_learning')
-        if (protocol['reference_potentials'] is None):
+        table = self.__root['active_learning']
+        table = self.__normalize_table(table, 'active_learning')
+        if (table['reference_potentials'] is None):
             reference_potentials = []
             excluded_names = ['PLUMED', 'NEP']
             for i in range(0, len(self.__potential_generators)):
                 if (self.__potential_generators[i][0] not in excluded_names):
                     reference_potentials.append(i)
         else:
-            reference_potentials = protocol['reference_potentials']
+            reference_potentials = table['reference_potentials']
         for i in reference_potentials:
             if (i >= len(self.__potential_generators)):
                 message = 'Unknown potential index: {:d} in the ' + \
@@ -1084,38 +1049,36 @@ class TOMLPARSER(object):
                           'potential! You should ensure that you know ' + \
                           'what you are doing!'
                 _mdutils.warning.warn(message)
-        if (protocol['initial_training_set'] is not None):
-            protocol['initial_training_set'] = \
-                _os.path.abspath(protocol['initial_training_set'])
-        if (protocol['initial_testing_set'] is not None):
-            protocol['initial_testing_set'] = \
-                _os.path.abspath(protocol['initial_testing_set'])
-        if (protocol['initial_potential_files'] is not None):
-            protocol['initial_potential_files'] = [
+        if (table['initial_training_set'] is not None):
+            table['initial_training_set'] = \
+                _os.path.abspath(table['initial_training_set'])
+        if (table['initial_testing_set'] is not None):
+            table['initial_testing_set'] = \
+                _os.path.abspath(table['initial_testing_set'])
+        if (table['initial_potential_files'] is not None):
+            table['initial_potential_files'] = [
                 _os.path.abspath(file) for file in
-                protocol['initial_potential_files']]
+                table['initial_potential_files']]
         post_step_objects = [*self.__scripts]
         if (self.__barostat is not None):
             post_step_objects.insert(0, self.__barostat)
         generators = [g[1] for g in self.__potential_generators]
-        self.__trainer = _mdapps.active_learning.ACTIVELEARNING(
+        self.__simulation = _mdapps.active_learning.ACTIVELEARNING(
             self.__system, self.__integrator, generators, reference_potentials,
-            {k: v for k, v in protocol.items() if v is not None},
-            protocol['nep_options'], protocol['nep_command'],
-            bool(protocol['use_tabulating']), post_step_objects,
+            {k: v for k, v in table.items() if v is not None},
+            table['nep_options'], table['nep_command'],
+            bool(table['use_tabulating']), post_step_objects,
             self.__root['run']['label'] + '.active_learning')
 
     def run(self) -> None:
         """
         Run the simulation.
         """
-        if (self.__trainer is not None):
-            self.__trainer.run(self.__root['active_learning']['n_iterations'])
+        if (self.__root['active_learning'] is not None):
+            n_steps = self.__root['active_learning']['n_iterations']
         else:
-            restart_file = self.__root['run']['restart_from']
-            if (restart_file is not None):
-                self.__simulation.restart_from(restart_file)
-            self.__simulation.run(self.__root['run']['n_steps'])
+            n_steps = self.__root['run']['n_steps']
+        self.__simulation.run(n_steps)
 
     @property
     def file_name(self) -> str:
@@ -1123,3 +1086,10 @@ class TOMLPARSER(object):
         Name of the configure file.
         """
         return self.__file_name
+
+    @property
+    def simulation(self) -> _tp.Union:
+        """
+        The simulation protocol.
+        """
+        return self.__simulation

@@ -1,0 +1,52 @@
+[system]
+	structure = "data/active_learning/topo.pdb"
+[[potential]]
+	type = "NEP"
+	file_name = "data/active_learning/nep.0.txt"
+[[group]]
+	atom_list = "1,3"
+	initial_temperature = 0.0
+[[group]]
+	atom_list = "5:6"
+	initial_temperature = 0.0
+[[group]]
+	atom_list = "all"
+	initial_temperature = 300.0
+[[potential]]
+	type = "NEP"
+	file_name = "data/active_learning/nep.0.txt"
+[constraints]
+	types = [0, 1, 2]
+	indices = [[4, 7], [0, 4, 7], [2, 0, 4, 7]]
+	targets = [0.108, 1.92527, -0.9995]
+	tolerances = [1E-14, 1E-14, 1E-14]
+[integrator]
+	type = "baoab"
+	timestep = 0.001
+	temperatures = 300.0
+	relaxation_times = 0.05
+[[trajectory]]
+	format = "exyz"
+	write_velocities = false
+	write_forces = false
+	energy_shift = -3.94903e+04
+	interval = 10
+[[trajectory]]
+	format = "h5"
+	write_velocities = true
+	interval = 10
+[[logger]]
+	format = "csv"
+	interval = 1
+[[script]]
+	interval = 50
+	update = """def update(integrator):
+	import os
+	print(integrator.step)
+	os.system("echo {:d} >&2".format(integrator.step))
+	"""
+[run]
+	seed = 1
+	label = "C2H6"
+	restart_from = "data/active_learning/traj.h5"
+	n_steps = 500

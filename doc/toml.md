@@ -27,8 +27,7 @@ case-insensitive.
 
 **Default Value**: None
 
-**Descriptions**: This table defines the simulated system, including the atomic
-types, initial positions and simulation box.
+**Descriptions**: This table defines the simulated system from a structure file.
 
 **Keys**:
 
@@ -62,30 +61,14 @@ types, initial positions and simulation box.
     does not contain an extension name, this option would be useful. Once this
     key is defined, the extension name of the structure file will be ignored.
 
-- **`box`**
-
-    **If Mandatory**: no
-
-    **Type**: `List[List[float]]`
-
-    **Dimension**: 3 * 3
-
-    **Unit**: nanometer
-
-    **Default Value**: None
-
-    **Descriptions**: The cell vectors of the simulated system. Once this value
-    is set, the cell vectors recorded in the structure file will be ignored.
-
 **Examples**:
 ```toml
 [system]
         structure = "H2O.pdb"
         format = "pdb"
-        box = [
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0]]
+```toml
+[system]
+        structure = "../POSCAR"
 ```
 
 ## The `[[group]]` array. <a name="group"></a>

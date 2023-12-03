@@ -1,0 +1,30 @@
+[system]
+	structure = "data/active_learning/topo.pdb"
+[[group]]
+	atom_list = "all"
+	initial_temperature = 0.0
+[[potential]]
+	type = "dftd3"
+	functional = "pbe"
+[integrator]
+	type = "nhc"
+	timestep = 0.001
+	temperatures = 300.0
+	relaxation_times = 0.1
+[active_learning]
+	n_iterations = 1
+	max_md_runs_per_iter = 2
+	max_md_steps_per_iter = 1000
+	trajectory_interval = 5
+	msd_lower_limit = 50.0
+	msd_upper_limit = 250.0
+	initial_training_set = "data/active_learning/topo.pdb"
+	initial_potential_files = [
+		"./data/active_learning/nep.0.txt",
+		"./data/active_learning/nep.1.txt",
+		"./data/active_learning/nep.2.txt",
+		"./data/active_learning/nep.3.txt"
+	]
+	reference_potentials = [0]
+	nep_options = "null"
+	nep_command = "null"
