@@ -124,7 +124,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         pseudopotential_dir : str
             Directory of the pseudopotential files.
         """
-        work_dir = _os.getcwd() + '/SOMD_TMP_' + _id.uuid4().hex
+        work_dir = _os.getcwd() + ('/SOMD_TMP_' + _id.uuid4().hex).upper()
         _os.mkdir(work_dir)
         pseudopotential_dir = pseudopotential_dir + '/'
         files = _os.listdir(pseudopotential_dir)
@@ -249,7 +249,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         fp.close()
         pid_str = proc.communicate()[0].decode('UTF8').strip()
         if (not pid_str.isdigit()):
-            message = 'Unknown PID string: {} ! Check your login shell!'
+            message = 'Unknown PID string: "{}"! Check your login shell!'
             raise RuntimeError(message.format(pid_str))
         else:
             self.__siesta_pid = int(pid_str)
