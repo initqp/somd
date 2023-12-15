@@ -22,6 +22,7 @@ Potential calculator interfaces.
 
 from ._nep import *
 from ._fake import *
+from ._mace import *
 from ._dftd3 import *
 from ._dftd4 import *
 from ._siesta import *
