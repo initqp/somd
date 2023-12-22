@@ -140,7 +140,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         self.energy_potential[0] = energy * self.__energy_unit
         forces = result['forces'].detach().cpu().numpy()
         self.forces[:] = forces * self.__energy_unit / self.__length_unit
-        virial = result['virials']
+        virial = result['virials'].detach().cpu().numpy()
         self.virial[:] = virial * self.__energy_unit
 
     @classmethod
