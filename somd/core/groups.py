@@ -28,7 +28,7 @@ __all__ = ['ATOMGROUP', 'ATOMGROUPS']
 
 class ATOMGROUP(object):
     """
-    The atomic group.
+    The atom group.
 
     Parameters
     ----------
@@ -120,7 +120,7 @@ class ATOMGROUP(object):
 
         Notes
         -----
-        This is the most expansive method among all atomic group-related
+        This is the most expansive method among all atom group-related
         methods. So only call this method when constraints/groups are
         added/deleted, and use the cached self.__n_dof variable otherwise.
         """
@@ -130,7 +130,7 @@ class ATOMGROUP(object):
         # group list.
         t = [g.has_translations for g in self.__system.groups if g in self]
         self.__n_dof -= 3 * t.count(False)
-        # In case this group is not in the system's atomic group list.
+        # In case this group is not in the system's atom group list.
         if (self not in self.__system.groups) and (not self.has_translations):
             self.__n_dof -= 3
         return self.__n_dof
@@ -402,7 +402,7 @@ class ATOMGROUP(object):
 
 class ATOMGROUPS(list):
     """
-    The atomic groups. This class provides the automatic updates of the groups
+    The atom groups. This class provides the automatic updates of the groups
     data.
 
     Parameters
@@ -451,24 +451,40 @@ class ATOMGROUPS(list):
 
     def append(self, group: ATOMGROUP) -> None:
         """
-        Append a new atomic group to the groups.
+        Append a new atom group to the groups.
 
         Parameters
         ----------
         group : somd.core.groups.ATOMGROUP
              The group to append.
         """
+        if (group.__class__.__name__ != 'ATOMGROUP'):
+            message = 'Expect an object in type of `ATOMGROUP`!'
+            raise RuntimeError(message)
         if (group in self):
             message = 'Group "{}" has already been added to the ' + \
-                      'to the atomic groups!'
+                      'to the atom groups!'
             _mdutils.warning.warn(message.format(group._label))
         else:
             super().append(group)
             self.update_n_dof()
 
+    def pop(self, index: int) -> ATOMGROUP:
+        """
+        Pop an atom group from the groups.
+
+        Parameters
+        ----------
+        index : int
+             Index of the group to pop.
+        """
+        g = super().pop(index)
+        self.update_n_dof()
+        return g
+
     def create_from_dict(self, group_dict: dict) -> None:
         """
-        Create a new atomic group and append it to the groups.
+        Create a new atom group and append it to the groups.
 
         Parameters
         ----------
@@ -492,7 +508,7 @@ class ATOMGROUPS(list):
 
     def update_n_dof(self) -> None:
         """
-        Recalculate number of degree of freedoms of each atomic groups.
+        Recalculate number of degree of freedoms of each atom groups.
         """
         for g in self:
             g.has_translations = g.has_translations

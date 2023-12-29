@@ -81,6 +81,11 @@ def test_dof_3():
     assert (system.groups[0].n_dof == 5)
     assert (system.groups[1].n_dof == 2)
     assert (system.groups[2].n_dof == 3)
+    system.groups.pop(2)
+    assert (system.groups[0].n_dof == 8)
+    assert (system.groups[1].n_dof == 2)
+    system.groups.pop(1)
+    assert (system.groups[0].n_dof == 11)
 
 
 def test_velocities():
