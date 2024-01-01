@@ -143,8 +143,7 @@ class SNAPSHOT(object):
         of nm (a, b, c) and degree (alpha, beta, gamma).
         """
         result = _np.zeros(6, dtype=_np.double)
-        for i in range(0, 3):
-            result[i] = _np.linalg.norm(self.box[i, :])
+        result[:3] = _np.linalg.norm(self.box, axis=1)
         result[3] = _np.arccos(self.box[1, :].dot(self.box[2, :]) /
                                result[1] / result[2]) * 180.0 / _np.pi
         result[4] = _np.arccos(self.box[0, :].dot(self.box[2, :]) /
@@ -164,11 +163,9 @@ class SNAPSHOT(object):
             The lattice parameters: [a, b, c, alpha, beta, gamma]. In units of
             nm (a, b, c) and degree (alpha, beta, gamma).
         """
-        parameter_names = ['a', 'b', 'c', 'alpha', 'beta', 'gamma']
-        for i in range(0, 6):
-            if (l[i] < _mdutils.defaults.LATTICETOL):
-                message = 'Very small lattice parameter {}: {:d}'
-                raise RuntimeError(message.format(parameter_names[i], l[i]))
+        if (any(_np.array(l) < 1E-6)):
+            message = 'Very small lattice parameters: {}!'.format(l)
+            raise RuntimeError(message)
         self.box[0, 0] = l[0]
         self.box[0, 1] = 0.0
         self.box[0, 2] = 0.0
