@@ -62,9 +62,13 @@ def back_up(file_name: str) -> None:
     file_name : str
         Name of the file.
     """
-    file_list = _os.listdir()
-    file_name = _os.path.basename(file_name)
-    n = __find_max_backup_number(file_name, file_list)
+    directory = _os.path.dirname(file_name)
+    if (directory == ''):
+        directory = '.'
+    file_list = _os.listdir(directory)
+    base_name = _os.path.basename(file_name)
+    n = __find_max_backup_number(base_name, file_list)
     if ((_os.path.exists(file_name) or
          _os.path.islink(file_name)) and n != -2):
-        _os.rename(file_name, 'bck.' + str(n + 1) + '.' + file_name)
+        file_name_new = directory + '/' + 'bck.' + str(n + 1) + '.' + base_name
+        _os.rename(file_name, file_name_new)
