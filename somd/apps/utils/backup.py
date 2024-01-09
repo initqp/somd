@@ -63,6 +63,7 @@ def back_up(file_name: str) -> None:
         Name of the file.
     """
     file_list = _os.listdir()
+    file_name = _os.path.basename(file_name)
     n = __find_max_backup_number(file_name, file_list)
     if ((_os.path.exists(file_name) or
          _os.path.islink(file_name)) and n != -2):
