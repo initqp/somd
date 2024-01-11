@@ -21,7 +21,11 @@ Classes for setting up atom groups.
 """
 
 import numpy as _np
+import typing as _tp
+import inspect as _it
 from somd import utils as _mdutils
+from .snapshots import SNAPSHOT as _SNAPSHOT
+from ._lib import CONSTRAINTS as _CONSTRAINTS
 
 __all__ = ['ATOMGROUP', 'ATOMGROUPS']
 
@@ -32,19 +36,22 @@ class ATOMGROUP(object):
 
     Parameters
     ----------
-    system : somd.systems.MDSYSTEM
-        The system that contains this group.
+    snapshot : somd.snapshots.SNAPSHOT
+        The snapshot of the simulated system.
     atom_list : List[int]
         IDs of the atoms in this group.
     label : str
         A descriptive string of this group. If no value is given, the label
         will be assigned according to the id of the instance.
+    n_dof_hanlder : typing.Callable
+        The update function number of DOF.
     """
 
     def __init__(self,
-                 system,
+                 snapshot: _SNAPSHOT,
                  atom_list: list,
-                 label: str = None) -> None:
+                 label: str = None,
+                 n_dof_hanlder: _tp.Callable = None) -> None:
         """
         Create an ATOMGROUP instance.
         """
@@ -52,24 +59,24 @@ class ATOMGROUP(object):
             self._label = 'GROUP_' + str(id(self))
         else:
             self._label = str(label)
-        self.__atom_list = _np.array(atom_list, _np.int_)
-        self.__atom_list.sort()
-        self.__has_translations = True
-        if (self.n_atoms > system.n_atoms):
+        self.__atom_list = _np.sort(_np.array(atom_list, _np.int_))
+        if (self.n_atoms > snapshot.n_atoms):
             message = 'Can not initialize group "{}" that contains ' + \
-                      '{:d} atoms from system "{}" with {:d} atoms!'
+                      '{:d} atoms from snapshot with {:d} atoms!'
             message = message.format(self._label, self.__atom_list.size,
-                                     system._label, system.n_atoms)
+                                     snapshot.n_atoms)
             raise IndexError(message)
-        elif (self.__atom_list.max() >= system.n_atoms):
+        elif (self.__atom_list.max() >= snapshot.n_atoms):
             message = 'Can not initialize group "{}" that contains ' + \
-                      'a maximum atomic ID of {:d} from system "{}" ' + \
-                      'with {:d} atoms!'
+                      'a maximum atomic ID of {:d} from with {:d} atoms!'
             message = message.format(self._label, self.__atom_list.max(),
-                                     system._label, system.n_atoms)
+                                     snapshot.n_atoms)
             raise IndexError(message)
         else:
-            self.__system = system
+            self.__snapshot = snapshot
+        self.__has_translations = True
+        self.__n_dof_hanlder = n_dof_hanlder
+        self.__n_constraints = 0
         self.__n_dof = 0
 
     def __eq__(self, g) -> bool:
@@ -101,7 +108,7 @@ class ATOMGROUP(object):
         atom_set_group = set(g.atom_list.tolist())
         return atom_set_group.issubset(atom_set_self)
 
-    def overlap_with(self, g) -> bool:
+    def __and__(self, g) -> bool:
         """
         Check if a given group is overlapping with this group.
 
@@ -113,27 +120,6 @@ class ATOMGROUP(object):
         atom_set_self = set(self.__atom_list.tolist())
         atom_set_group = set(g.atom_list.tolist())
         return atom_set_group.intersection(atom_set_self)
-
-    def calculate_n_dof(self) -> int:
-        """
-        Calculate number of the degree of freedoms of this group.
-
-        Notes
-        -----
-        This is the most expansive method among all atom group-related
-        methods. So only call this method when constraints/groups are
-        added/deleted, and use the cached self.__n_dof variable otherwise.
-        """
-        self.__n_dof = self.n_atoms * 3 - self.n_constraints
-        # Check if there are subgroups (including this group) binding to COM
-        # motion removers, whatever this group itself is in the system's atomic
-        # group list.
-        t = [g.has_translations for g in self.__system.groups if g in self]
-        self.__n_dof -= 3 * t.count(False)
-        # In case this group is not in the system's atom group list.
-        if (self not in self.__system.groups) and (not self.has_translations):
-            self.__n_dof -= 3
-        return self.__n_dof
 
     def remove_com_motion(self, scale_after_removal: bool = False) -> None:
         """
@@ -241,28 +227,11 @@ class ATOMGROUP(object):
     @has_translations.setter
     def has_translations(self, v: bool) -> None:
         """
-        Check inter-group overlapping and set has_translations.
+        Set if the three translational COM DOFs of this group exchange kinetic
+        energies with the internal DOFs.
         """
-        if (self in self.__system.groups):
-            # Bound group, do not check self.
-            t = [g.has_translations for g in self.__system.groups if
-                 self.overlap_with(g) and (self != g)]
-        else:
-            # Unbound group, check self.
-            t = [g.has_translations for g in self.__system.groups if
-                 self.overlap_with(g)]
-        if (not v) and (False in t):
-            message = 'Atom group "{}" is overlapping with other atomic ' + \
-                      'group(s) while all of them are binding with COM ' + \
-                      'motion removers!'
-            raise RuntimeError(message.format(self._label))
         self.__has_translations = bool(v)
-        # Calculate n_dof.
-        if (self in self.__system.groups):
-            for g in self.__system.groups:
-                g.calculate_n_dof()
-        else:
-            self.calculate_n_dof()
+        self.__n_dof_hanlder()
 
     @property
     def n_atoms(self) -> int:
@@ -270,32 +239,6 @@ class ATOMGROUP(object):
         Number of atoms in this group.
         """
         return len(self.__atom_list)
-
-    @property
-    def n_constraints(self) -> int:
-        """
-        Number of constraints that belongs to this group.
-        """
-        result = 0
-        atom_set_group = set(self.__atom_list.tolist())
-        for constraint in self.__system.constraints:
-            atom_set_constraint = set(constraint['indices'])
-            if (atom_set_constraint.issubset(atom_set_group)):
-                result += 1
-            elif (atom_set_constraint.intersection(atom_set_group)):
-                message = 'Can not compute number of constraints that ' + \
-                          'belongs to group "{:s}"! Because atoms in ' + \
-                          'constraint "{}" are only included partly by ' + \
-                          'this group!'
-                raise RuntimeError(message.format(self._label, constraint))
-        return result
-
-    @property
-    def _system_label(self) -> str:
-        """
-        Label of the simulated system bound with this group.
-        """
-        return self.__system._label
 
     @property
     def atom_list(self) -> str:
@@ -311,47 +254,76 @@ class ATOMGROUP(object):
         """
         return self.__n_dof
 
+    @n_dof.setter
+    def n_dof(self, v: int) -> None:
+        """
+        Set the degree of freedom of this group.
+        """
+        caller = _it.currentframe().f_back.f_code.co_name
+        if (caller == '__update_n_dof'):
+            self.__n_dof = v
+        else:
+            raise RuntimeError('This attribute is handled interally!')
+
+    @property
+    def n_constraints(self) -> int:
+        """
+        Number of constraints that belongs to this group.
+        """
+        return self.__n_constraints
+
+    @n_constraints.setter
+    def n_constraints(self, v: int) -> int:
+        """
+        Set number of constraints that belongs to this group.
+        """
+        caller = _it.currentframe().f_back.f_code.co_name
+        if (caller == '__update_n_constrains'):
+            self.__n_constraints = v
+        else:
+            raise RuntimeError('This attribute is handled interally!')
+
     @property
     def velocities(self) -> _np.ndarray:
         """
         Velocities of atoms in this group.
         """
-        return self.__system.velocities[self.__atom_list]
+        return self.__snapshot.velocities[self.__atom_list]
 
     @velocities.setter
     def velocities(self, v: _np.ndarray) -> None:
         """
         Set velocities of atoms in this group.
         """
-        self.__system.velocities[self.__atom_list] = v
+        self.__snapshot.velocities[self.__atom_list] = v
 
     @property
     def positions(self) -> _np.ndarray:
         """
         Positions of atoms in this group.
         """
-        return self.__system.positions[self.__atom_list]
+        return self.__snapshot.positions[self.__atom_list]
 
     @positions.setter
     def positions(self, q: _np.ndarray) -> None:
         """
         Set positions of atoms in this group.
         """
-        self.__system.positions[self.__atom_list] = q
+        self.__snapshot.positions[self.__atom_list] = q
 
     @property
     def masses(self) -> _np.ndarray:
         """
         Masses of atoms in this group.
         """
-        return self.__system.masses[self.__atom_list]
+        return self.__snapshot.masses[self.__atom_list]
 
     @masses.setter
     def masses(self, m: _np.ndarray) -> None:
         """
         Masses of atoms in this group.
         """
-        self.__system.masses[self.__atom_list] = m
+        self.__snapshot.masses[self.__atom_list] = m
 
     @property
     def energy_kinetic(self) -> _np.float64:
@@ -407,16 +379,19 @@ class ATOMGROUPS(list):
 
     Parameters
     ----------
-    system : somd.core.systems.MDSYSTEM
-        The simulated system.
+    snapshot : somd.snapshots.SNAPSHOT
+        The snapshot of the simulated system.
+    constraints : somd._lib.CONSTRAINTS
+        The constraints that are bound to the system.
     """
 
-    def __init__(self, system) -> None:
+    def __init__(self, snapshot: _SNAPSHOT, constraints: _CONSTRAINTS) -> None:
         """
         Create an ATOMGROUPS instance.
         """
         super().__init__([])
-        self.__system = system
+        self.__snapshot = snapshot
+        self.__constraints = constraints
 
     def __setitem__(self, index: int, item: ATOMGROUP) -> None:
         """
@@ -424,6 +399,51 @@ class ATOMGROUPS(list):
         """
         super().__setitem__(index, item)
         self.update_n_dof()
+
+    def __update_n_constrains(self) -> list:
+        """
+        Calculate number of constraints that belongs to each group.
+        """
+        for i, group in enumerate(self):
+            group.n_constraints = 0
+            atom_set_group = set(group.atom_list.tolist())
+            for constraint in self.__constraints:
+                atom_set_constraint = set(constraint['indices'])
+                if (atom_set_constraint.issubset(atom_set_group)):
+                    group.n_constraints += 1
+                elif (atom_set_constraint.intersection(atom_set_group)):
+                    message = 'Can not compute number of constraints that ' + \
+                              'belongs to group "{:s}"! Because atoms in ' + \
+                              'constraint "{}" are only included partly ' + \
+                              'by this group!'
+                    message = message.format(group._label, constraint)
+                    raise RuntimeError(message)
+
+    def __update_n_dof(self) -> list:
+        """
+        Calculate number of degree of freedoms of each atom groups.
+        """
+        self.__update_n_constrains()
+        for i, group in enumerate(self):
+            # Check the availability of the COM remover.
+            if (not group.has_translations):
+                flags = [((len(group & g) != 0) and (group != g))
+                         for g in self if (not g.has_translations)]
+                if (True in flags):
+                    message = 'Atom group "{}" is overlapping with other ' + \
+                              'atomic group(s) while all of them are ' + \
+                              'binding with COM motion removers!'
+                    raise RuntimeError(message.format(group._label))
+            # Actually calculate the number DOFs.
+            n_dof = group.n_atoms * 3 - group.n_constraints
+            # Check if there are subgroups (including this group) binding total
+            # COM motion removers, whatever this group itself is in the
+            # system's atomic group list.
+            flags = [g.has_translations for g in self if g in group]
+            n_dof -= 3 * flags.count(False)
+            # Set the value.
+            group.n_dof = n_dof
+        return [g.n_dof for g in self]
 
     def sort(self) -> None:
         """
@@ -501,14 +521,14 @@ class ATOMGROUPS(list):
         """
         if ('atom_list' not in group_dict.keys()):
             raise KeyError('The "atom_list" is required to define a group !')
-        g = ATOMGROUP(self.__system, group_dict['atom_list'],
-                      group_dict.get('label', 'GROUP_' + str(len(self))))
+        g = ATOMGROUP(self.__snapshot, group_dict['atom_list'],
+                      group_dict.get('label', 'GROUP_' + str(len(self))),
+                      self.update_n_dof)
         g.has_translations = group_dict.get('has_translations', True)
         self.append(g)
 
-    def update_n_dof(self) -> None:
+    def update_n_dof(self) -> list:
         """
-        Recalculate number of degree of freedoms of each atom groups.
+        Calculate number of degree of freedoms of each atom groups.
         """
-        for g in self:
-            g.has_translations = g.has_translations
+        return self.__update_n_dof()

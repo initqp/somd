@@ -26,157 +26,12 @@ from threading import Thread as _Thread
 from somd import utils as _mdutils
 from .groups import ATOMGROUP as _ATOMGROUP
 from .groups import ATOMGROUPS as _ATOMGROUPS
+from .snapshots import SNAPSHOT as _SNAPSHOT
 from ._lib import CONSTRAINTS as _CONSTRAINTS
 
-__all__ = ['SNAPSHOT',
-           'MDSYSTEM',
+__all__ = ['MDSYSTEM',
            'create_system_from_pdb',
            'create_system_from_poscar']
-
-
-class SNAPSHOT(object):
-    """
-    The minimal snapshot of a system.
-
-    Parameters
-    ----------
-    n_atoms : int
-        Number of the atom in this snapshot.
-    """
-
-    def __init__(self, n_atoms: int) -> None:
-        """
-        Create a SNAPSHOT instance.
-        """
-        self.__n_atoms = int(n_atoms)
-        self.__allocate()
-
-    def __allocate(self) -> None:
-        """
-        Allocate data arrays.
-        """
-        self.__box = _np.zeros((3, 3), _np.double)
-        self.__virial = _np.zeros((3, 3), _np.double)
-        self.__forces = _np.zeros((self.n_atoms, 3), _np.double)
-        self.__positions = _np.zeros((self.n_atoms, 3), _np.double)
-        self.__velocities = _np.zeros((self.n_atoms, 3), _np.double)
-
-    def __copy__(self) -> 'SNAPSHOT':
-        """
-        Clone this snapshot.
-        """
-        return self.copy()
-
-    def copy(self) -> 'SNAPSHOT':
-        """
-        Clone this snapshot.
-        """
-        snapshot = SNAPSHOT(self.n_atoms)
-        snapshot.box[:] = self.__box[:]
-        snapshot.forces[:] = self.__forces[:]
-        snapshot.virial[:] = self.__virial[:]
-        snapshot.positions[:] = self.__positions[:]
-        snapshot.velocities[:] = self.__velocities[:]
-        return snapshot
-
-    @property
-    def n_atoms(self) -> int:
-        """
-        Number of atoms in this snapshot.
-        """
-        return self.__n_atoms
-
-    @property
-    def forces(self) -> _np.ndarray:
-        """
-        Total forces of each atom. In unit of (kJ/mol/nm).
-        """
-        return self.__forces
-
-    @property
-    def positions(self) -> _np.ndarray:
-        """
-        Unwrapped positions of each atom. In unit of (nm).
-        """
-        return self.__positions
-
-    @property
-    def positions_wrapped(self) -> _np.ndarray:
-        """
-        Wrapped positions of each atom. In unit of (nm).
-        """
-        s = (_np.linalg.pinv(self.box.T).dot(self.positions.T)) % 1
-        return (self.box.T.dot(s)).T
-
-    @property
-    def velocities(self) -> _np.ndarray:
-        """
-        Velocities of each atom. In unit of (nm/ps).
-        """
-        return self.__velocities
-
-    @property
-    def box(self) -> _np.ndarray:
-        """
-        Box vectors of this snapshot. In unit of (nm).
-        """
-        return self.__box
-
-    @property
-    def virial(self) -> _np.ndarray:
-        """
-        Virial tensor. In unit of (kJ/mol).
-        """
-        return self.__virial
-
-    @property
-    def volume(self) -> _np.float64:
-        """
-        Volume of this snapshot. In unit of (nm^3).
-        """
-        return _np.dot(self.box[0], _np.cross(self.box[1], self.box[2]))
-
-    @property
-    def lattice(self) -> _np.ndarray:
-        """
-        Lattice parameters of the cell: [a, b, c, alpha, beta, gamma]. In units
-        of nm (a, b, c) and degree (alpha, beta, gamma).
-        """
-        result = _np.zeros(6, dtype=_np.double)
-        result[:3] = _np.linalg.norm(self.box, axis=1)
-        result[3] = _np.arccos(self.box[1, :].dot(self.box[2, :]) /
-                               result[1] / result[2]) * 180.0 / _np.pi
-        result[4] = _np.arccos(self.box[0, :].dot(self.box[2, :]) /
-                               result[0] / result[2]) * 180.0 / _np.pi
-        result[5] = _np.arccos(self.box[1, :].dot(self.box[0, :]) /
-                               result[0] / result[1]) * 180.0 / _np.pi
-        return result
-
-    @lattice.setter
-    def lattice(self, l: list) -> None:
-        """
-        Set lattice parameters of the cell.
-
-        Parameters
-        ----------
-        l : List[float]
-            The lattice parameters: [a, b, c, alpha, beta, gamma]. In units of
-            nm (a, b, c) and degree (alpha, beta, gamma).
-        """
-        if (any(_np.array(l) < 1E-6)):
-            message = 'Very small lattice parameters: {}!'.format(l)
-            raise RuntimeError(message)
-        self.box[0, 0] = l[0]
-        self.box[0, 1] = 0.0
-        self.box[0, 2] = 0.0
-        self.box[1, 0] = l[1] * _np.cos(l[5] / 180.0 * _np.pi)
-        self.box[1, 1] = l[1] * _np.sin(l[5] / 180.0 * _np.pi)
-        self.box[1, 2] = 0.0
-        self.box[2, 0] = l[2] * _np.cos(l[4] / 180.0 * _np.pi)
-        self.box[2, 1] = (l[1] * l[2] * _np.cos(l[3] / 180.0 * _np.pi) -
-                          self.box[2, 0] * self.box[1, 0]) / self.box[1, 1]
-        self.box[2, 2] = _np.sqrt(l[2] ** 2 - self.box[2, 0] ** 2 -
-                                  self.box[2, 1] ** 2)
 
 
 class MDSYSTEM(object):
@@ -211,12 +66,11 @@ class MDSYSTEM(object):
         n_atoms : int
             Number of the atom in the simulated system.
         """
-        self.__snapshot = SNAPSHOT(n_atoms)
+        self.__snapshot = _SNAPSHOT(n_atoms, True)
         self.__types = _np.zeros((n_atoms, 1), _np.int_)
-        self.__masses = _np.zeros((self.n_atoms, 1), _np.double)
         self.__energy_potential = _np.zeros((1), _np.double)
-        self.__constraints = _CONSTRAINTS(self)
-        self.__groups = _ATOMGROUPS(self)
+        self.__constraints = _CONSTRAINTS(self.snapshot, self.update_states)
+        self.__groups = _ATOMGROUPS(self.snapshot, self.constraints)
         self.__segments = []
         self.__potentials = []
         self.__atomic_symbols = []
@@ -233,12 +87,7 @@ class MDSYSTEM(object):
         """
         system = MDSYSTEM(self.n_atoms)
         system._label = self._label
-        system.box[:] = self.box[:]
-        system.masses[:] = self.masses[:]
-        system.forces[:] = self.forces[:]
-        system.virial[:] = self.virial[:]
-        system.positions[:] = self.positions[:]
-        system.velocities[:] = self.velocities[:]
+        system.snapshot = self.snapshot
         system.atomic_types[:] = self.atomic_types[:]
         system.atomic_symbols[:] = self.atomic_symbols[:]
         for group in self.groups:
@@ -315,15 +164,23 @@ class MDSYSTEM(object):
                 l = [atom.index for atom in list(m)]
                 self.__segments.append(_ATOMGROUP(self, l))
 
+    def update_states(self) -> None:
+        """
+        Update internal state. This method should be called after any
+        modifications related to groups/constraints.
+        """
+        self.groups.update_n_dof()
+        self.find_segments()
+
     @property
-    def snapshot(self) -> SNAPSHOT:
+    def snapshot(self) -> _SNAPSHOT:
         """
         The current state of this system.
         """
         return self.__snapshot
 
     @snapshot.setter
-    def snapshot(self, f: SNAPSHOT) -> None:
+    def snapshot(self, f: _SNAPSHOT) -> None:
         """
         Copy the current state of this system from another snapshot.
         """
@@ -333,8 +190,11 @@ class MDSYSTEM(object):
             raise RuntimeError(message)
         self.box[:] = f.box[:]
         self.forces[:] = f.forces[:]
+        self.virial[:] = f.virial[:]
         self.positions[:] = f.positions[:]
         self.velocities[:] = f.velocities[:]
+        if (f.masses is not None):
+            self.masses[:] = f.masses[:]
 
     @property
     def n_atoms(self) -> int:
@@ -349,6 +209,13 @@ class MDSYSTEM(object):
         Total forces of each atom. In unit of (kJ/mol/nm).
         """
         return self.__snapshot.forces
+
+    @property
+    def masses(self) -> _np.ndarray:
+        """
+        Atomic masses. In unit of (g/mol).
+        """
+        return self.__snapshot.masses
 
     @property
     def positions(self) -> _np.ndarray:
@@ -405,13 +272,6 @@ class MDSYSTEM(object):
             nm (a, b, c) and degree (alpha, beta, gamma).
         """
         self.__snapshot.lattice = l
-
-    @property
-    def masses(self) -> _np.ndarray:
-        """
-        Atomic masses. In unit of (g/mol).
-        """
-        return self.__masses
 
     @property
     def atomic_types(self) -> _np.ndarray:

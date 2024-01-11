@@ -22,5 +22,6 @@ Core components of SOMD.
 
 from somd.core import groups
 from somd.core import systems
+from somd.core import snapshots
 from somd.core import integrators
 from somd.core import potential_base
