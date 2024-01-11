@@ -12,7 +12,7 @@ def test_operators():
     g1 = somd.core.groups.ATOMGROUP(system, [0, 1, 2])
     g2 = somd.core.groups.ATOMGROUP(system, [1, 2, 3])
     g3 = somd.core.groups.ATOMGROUP(system, [0, 1, 2, 3])
-    assert (g1.overlap_with(g2))
+    assert (len(g1 & g2) != 0)
     assert (g1 in system.groups[0])
     assert (system.groups[0] == g3)
     system.groups.create_from_dict({'atom_list': [0, 1, 2, 3]})

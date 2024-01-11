@@ -66,6 +66,7 @@ class SIMULATION(object):
         self.__read_force = False
         self.__initialized = False
         self.__post_step_objects = []
+        self.__n_dof = [g.n_dof for g in self.system.groups]
         # Check the groups.
         if (len(system.groups) == 0):
             raise RuntimeError('No group has been bound to the system!')
@@ -121,6 +122,14 @@ class SIMULATION(object):
             obj.initialize()
         self.__initialized = True
 
+    def _update_internal_states(self) -> None:
+        """
+        Update internal states of the system and the integrator.
+        """
+        n_dof = [g.n_dof for g in self.system.groups]
+        if (n_dof != self.__n_dof):
+            self.integrator.bind_system(self.system)
+
     def run(self, n_steps: int) -> None:
         """
         Run the simulation.
@@ -133,6 +142,7 @@ class SIMULATION(object):
         # Initialize only once.
         if (not self.__initialized):
             self._initialize()
+        self._update_internal_states()
         # IKUZO!
         for i in range(0, n_steps):
             self._loop()

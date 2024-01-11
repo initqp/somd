@@ -22,6 +22,8 @@
 from cython cimport double
 from libcpp.vector cimport vector
 from constraints cimport RATTLE
+import typing as _tp
+from .snapshots import SNAPSHOT as _SNAPSHOT
 
 __all__ = ['CONSTRAINTS']
 
@@ -37,18 +39,23 @@ cdef class CONSTRAINTS(object):
 
     Parameters
     ----------
-    system : somd.core.systems.MDSYSTEM
+    snapshot : somd.core.snapshots.SNAPSHOT
+        The snapshot of the simulated.
+    handler : typing.Callable
+        The handler function for updating system state.
     """
 
     # Pointer to the internal C++ object.
-    cdef object __system
+    cdef object __handler
+    cdef object __snapshot
     cdef RATTLE *__cxx_obj_ptr
 
-    def __cinit__(self, system) -> None:
+    def __cinit__(self, snapshot: _SNAPSHOT, handler: _tp.Callable) -> None:
         """
         Initialize the internal data.
         """
-        self.__system = system
+        self.__handler = handler
+        self.__snapshot = snapshot
         self.__cxx_obj_ptr = new RATTLE()
 
     def __dealloc__(self) -> None:
@@ -128,10 +135,9 @@ cdef class CONSTRAINTS(object):
             - 'tolerance' : float
                 Tolerance value of the RATTLE iterations.
         """
-        self.__cxx_obj_ptr.append(
-            c['type'], c['indices'], c['target'], c['tolerance'])
-        self.__system.groups.update_n_dof()
-        self.__system.find_segments()
+        self.__cxx_obj_ptr.append(c['type'], c['indices'], c['target'],
+                                  c['tolerance'])
+        self.__handler()
 
     def appends(self, c_list: list) -> None:
         """
@@ -143,10 +149,9 @@ cdef class CONSTRAINTS(object):
             The constraints to append.
         """
         for c in c_list:
-            self.__cxx_obj_ptr.append(
-                c['type'], c['indices'], c['target'], c['tolerance'])
-        self.__system.groups.update_n_dof()
-        self.__system.find_segments()
+            self.__cxx_obj_ptr.append(c['type'], c['indices'], c['target'],
+                                      c['tolerance'])
+        self.__handler()
 
     def pop(self, idx: int = None) -> dict:
         """
@@ -163,8 +168,7 @@ cdef class CONSTRAINTS(object):
             return
         result = self[idx]
         self.__cxx_obj_ptr.pop(idx)
-        self.__system.groups.update_n_dof()
-        self.__system.find_segments()
+        self.__handler()
         return result
 
     def clear(self) -> None:
@@ -172,6 +176,7 @@ cdef class CONSTRAINTS(object):
         Remove all the constraints.
         """
         self.__cxx_obj_ptr.clear()
+        self.__handler()
 
     cdef void rattle_constrain_q_wrapper(self,
                                          positions: double[:, :],
@@ -198,8 +203,9 @@ cdef class CONSTRAINTS(object):
         """
         cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
-            self.__cxx_obj_ptr.rattle_constrain_q(
-                &positions[0,0], &velocities[0,0], &mass[0,0], dt, n_atoms)
+            self.__cxx_obj_ptr.rattle_constrain_q(&positions[0,0],
+                                                  &velocities[0,0],
+                                                  &mass[0,0], dt, n_atoms)
 
     cdef void rattle_constrain_p_wrapper(self,
                                          positions: double[:, :],
@@ -226,8 +232,9 @@ cdef class CONSTRAINTS(object):
         """
         cdef int n_atoms = positions.shape[0]
         if (self.__cxx_obj_ptr.get_n_constraints() != 0):
-            self.__cxx_obj_ptr.rattle_constrain_p(
-                &positions[0,0], &velocities[0,0], &mass[0,0], dt, n_atoms)
+            self.__cxx_obj_ptr.rattle_constrain_p(&positions[0,0],
+                                                  &velocities[0,0],
+                                                  &mass[0,0], dt, n_atoms)
 
     def rattle_constrain_q(self, dt: double) -> None:
         """
@@ -238,9 +245,9 @@ cdef class CONSTRAINTS(object):
         dt : float
             Timestep of the simulation. In unit of (ps).
         """
-        self.rattle_constrain_q_wrapper(
-            self.__system.positions, self.__system.velocities,
-            self.__system.masses, dt)
+        self.rattle_constrain_q_wrapper(self.__snapshot.positions,
+                                        self.__snapshot.velocities,
+                                        self.__snapshot.masses, dt)
 
     def rattle_constrain_p(self, dt: double) -> None:
         """
@@ -251,6 +258,6 @@ cdef class CONSTRAINTS(object):
         dt : float
             Timestep of the simulation. In unit of (ps).
         """
-        self.rattle_constrain_p_wrapper(
-            self.__system.positions, self.__system.velocities,
-            self.__system.masses, dt)
+        self.rattle_constrain_p_wrapper(self.__snapshot.positions,
+                                        self.__snapshot.velocities,
+                                        self.__snapshot.masses, dt)

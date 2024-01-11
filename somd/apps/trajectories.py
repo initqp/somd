@@ -674,11 +674,11 @@ class H5READER(object):
         self.__check_attribute('application', die_on_fail=False)
 
     def _read_snapshot(self,
-                       frame_index: int = -1) -> _mdcore.systems.SNAPSHOT:
+                       frame_index: int = -1) -> _mdcore.snapshots.SNAPSHOT:
         """
-        Read one frame from the trajectory as the `somd.core.systems.SNAPSHOT`
-        instance. This method do not require an integrator, but can not read
-        NHC data as well.
+        Read one frame from the trajectory as the
+        `somd.core.snapshots.SNAPSHOT` instance. This method do not require an
+        integrator, but can not read NHC data as well.
 
         Parameters
         ----------
@@ -698,7 +698,7 @@ class H5READER(object):
             message = message.format(frame_index,
                                      self.__root['coordinates'].shape[0])
             raise RuntimeError(message)
-        snapshot = _mdcore.systems.SNAPSHOT(self.__n_atoms)
+        snapshot = _mdcore.snapshots.SNAPSHOT(self.__n_atoms)
         if (self.__read_coordinates):
             if ('coordinates' in self.__root.keys()):
                 snapshot.positions[:, :] = \
