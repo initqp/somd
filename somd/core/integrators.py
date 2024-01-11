@@ -417,7 +417,9 @@ class INTEGRATOR(object):
                 message = 'Invalid thermalized group: {:d}!'
                 raise IndexError(message.format(max(self.__thermo_groups)))
             # Thermo groups
-            overlaps = [g_i.overlap_with(g_j) for g_i in self.__thermo_groups
+            overlaps = [(len(self.__system.groups[g_i] &
+                             self.__system.groups[g_j]) > 0)
+                        for g_i in self.__thermo_groups
                         for g_j in self.__thermo_groups if g_i != g_j]
             if (True in overlaps):
                 message = 'Overlaps found between thermalized groups!'
