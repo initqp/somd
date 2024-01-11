@@ -50,6 +50,12 @@ def test_dof_1():
          {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
     system.constraints.appends(c)
     assert (system.groups[0].n_dof == 6)
+    try:
+        system.groups[0].n_dof = 0
+    except:
+        pass
+    else:
+        raise AssertionError
 
 
 def test_dof_2():

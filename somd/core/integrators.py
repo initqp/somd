@@ -404,8 +404,8 @@ class INTEGRATOR(object):
         """
         if (self.__system is not None):
             message = 'Binding integrator from system "{}" to system "{}".'
-            _mdutils.warning.warn(message.format(self.__system._label,
-                                                 system._label))
+            message = message.format(self.__system._label, system._label)
+            _mdutils.warning.warn(message)
         if (not self.__is_nve):
             if (len(set(self.__thermo_groups)) != len(self.__thermo_groups)):
                 message = 'Duplicate indices in thermalized groups "{}"!'
@@ -417,8 +417,7 @@ class INTEGRATOR(object):
                 message = 'Invalid thermalized group: {:d}!'
                 raise IndexError(message.format(max(self.__thermo_groups)))
             # Thermo groups
-            overlaps = [(len(self.__system.groups[g_i] &
-                             self.__system.groups[g_j]) > 0)
+            overlaps = [(len(system.groups[g_i] & system.groups[g_j]) > 0)
                         for g_i in self.__thermo_groups
                         for g_j in self.__thermo_groups if g_i != g_j]
             if (True in overlaps):

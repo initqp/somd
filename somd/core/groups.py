@@ -400,6 +400,12 @@ class ATOMGROUPS(list):
         super().__setitem__(index, item)
         self.update_n_dof()
 
+    def __getitem__(self, index: int) -> ATOMGROUP:
+        """
+        Get one atom group.
+        """
+        return super().__getitem__(index)
+
     def __update_n_constrains(self) -> list:
         """
         Calculate number of constraints that belongs to each group.
