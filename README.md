@@ -82,6 +82,10 @@ SOMD by the following steps.
     Specifically, the above commands do not install the PLUMED kernel library
     for you. You should compile it separately and export the `PLUMED_KERNEL`
     environment variable before actually perform your PLUMED aided MD runs.
+7.  If you would like to use the MACE potential with SOMD, you should also
+    install the MACE package. Read MACE's
+    [documentation](https://mace-docs.readthedocs.io/en/latest/) for
+    installation instructions.
 
 ## TESTS
 First, install the `pytest` package with:

@@ -248,7 +248,7 @@ to be present.
 
     **Type**: `str`
 
-    **Valid Values**: `"siesta"`, `"dftd3"`, `"dftd4"`, `"nep"` or `"plumed"`
+    **Valid Values**: `"siesta"`, `"dftd3"`, `"dftd4"`, `"nep"`, `"mace"` or `"plumed"`
 
     **Default Value**: None
 
@@ -257,8 +257,10 @@ to be present.
     - **`"dftd3"`**: Grimme's DFTD3 dispersion corrections.
     - **`"dftd4"`**: Grimme's DFTD4 dispersion corrections.
     - **`"nep"`**: The neuroevolution potential.
+    - **`"mace"`**: The E(3)-equivariant potentials based on the Atomic Cluster
+      Expansion.
     - **`"plumed"`**: The PLUMED wrapper. Although a PLUMED calculation may be
-    bias-free, you still need to define it here.
+      bias-free, you still need to define it here.
 
     **Required Keys**: Different potential calculator will require different
     other keys:
@@ -267,6 +269,8 @@ to be present.
     - **`"dftd3"`**: `atom_list`, `functional`, `damping`, `atm`
     - **`"dftd4"`**: `atom_list`, `functional`, `total_charge`, `atm`
     - **`"nep"`**: `atom_list`, `file_name`, `use_tabulating`
+    - **`"mace"`**: `atom_list`, `file_name`, `device`, `energy_unit`,
+      `length_unit`
     - **`"plumed"`**: `file_name`
 
 - **`atom_list`**
@@ -405,10 +409,11 @@ to be present.
 
     **Default Value**: None
 
-    **Dependency**: `type = "nep"` or `type = "plumed"`
+    **Dependency**: `type = "nep"`, `type = "mace"` or `type = "plumed"`
 
-    **Descriptions**: Path to the NEP potential file (`nep.txt`) or path to
-    the PLUMED input file, depending on the value of the `type` key.
+    **Descriptions**: Path to the NEP potential file (`nep.txt`), path to
+    the MACE model file or path to the PLUMED input file, depending on the
+    value of the `type` key.
 
 - **`use_tabulating`**:
 
@@ -423,6 +428,52 @@ to be present.
     **Descriptions**: If invoke the tabulated version of NEP. This could speed
     up the calculation, read
     [this page](https://github.com/brucefan1983/NEP_CPU/pull/18) for details.
+
+- **`device`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: `"cpu"`
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: Name of the device to use for evaluating the potential.
+
+- **`energy_unit`**:
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Default Value**: `96.485`
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: The energy unit of the model outputs. In unit of (kJ/mol).
+    E.g., if the your model trained with a dataset that invokes (eV) as energy
+    units, this parameter should be set to 96.485.  The default value is capable
+    for [most pretrained models provided by the MACE team](
+    https://mace-docs.readthedocs.io/en/latest/examples/foundation_models.html
+    ).
+
+- **`length_unit`**:
+
+    **If Mandatory**: no
+
+    **Type**: `float`
+
+    **Default Value**: `0.1`
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: The length unit of the model outputs. In unit of (nm).
+    E.g., if the your model trained with a dataset that invokes (A) as length
+    units, this parameter should be set to 0.1. The default value is capable for
+    [most pretrained models provided by the MACE team](
+    https://mace-docs.readthedocs.io/en/latest/examples/foundation_models.html
+    ).
 
 **Examples**:
 ```toml
