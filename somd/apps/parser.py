@@ -99,8 +99,11 @@ class TOMLPARSER(object):
         'atm': __value__([bool], False, __dep__('type', ['dftd3', 'dftd4'])),
         'total_charge': __value__([int], False, __dep__('type', ['dftd4'])),
         'file_name': __value__([str], True,
-                               __dep__('type', ['plumed', 'nep'])),
-        'use_tabulating': __value__([bool], False, __dep__('type', ['nep']))
+                               __dep__('type', ['plumed', 'nep', 'mace'])),
+        'use_tabulating': __value__([bool], False, __dep__('type', ['nep'])),
+        'device': __value__([bool], False, __dep__('type', ['mace'])),
+        'energy_unit': __value__([bool], False, __dep__('type', ['mace'])),
+        'length_unit': __value__([bool], False, __dep__('type', ['mace']))
     }
     __parameters__['group'] = {
         'atom_list': __value__([list, str], True, None),
@@ -650,6 +653,36 @@ class TOMLPARSER(object):
                                          atom_symbols,
                                          bool(inp['use_tabulating']))
 
+    def __parse_potential_mace(self, inp: dict, atom_list: list) \
+            -> _tp.Callable:
+        """
+        Parse the MACE potential options.
+
+        Parameters
+        ----------
+        inp: dict
+            The dictionary that defines the DFTD3 potential.
+        atom_list : list(int)
+            The atom list.
+        """
+        if (inp['device'] is None):
+            device = 'cpu'
+        else:
+            device = inp['device']
+        if (inp['energy_unit'] is None):
+            energy_unit = _mdutils.constants.AVOGACONST * \
+                _mdutils.constants.ELECTCONST * 0.001
+        else:
+            energy_unit = inp['energy_unit']
+        if (inp['length_unit'] is None):
+            length_unit = 0.1
+        else:
+            length_unit = inp['length_unit']
+        atom_types = self.__system.atomic_types[atom_list]
+        return _potentials.MACE.generator(atom_list, inp['file_name'],
+                                          atom_types, device, energy_unit,
+                                          length_unit)
+
     def __parse_potential_plumed(self,
                                  inp: dict,
                                  timestep: float,
@@ -705,22 +738,24 @@ class TOMLPARSER(object):
             atom_list = list(range(0, self.__system.n_atoms))
         else:
             atom_list = inp['atom_list']
-        potential_type = inp['type'].upper()
-        if (potential_type == 'SIESTA'):
+        potential_type = inp['type'].lower()
+        if (potential_type == 'siesta'):
             generator = self.__parse_potential_siesta(inp, atom_list)
-        elif (potential_type == 'DFTD3'):
+        elif (potential_type == 'dftd3'):
             generator = self.__parse_potential_dftd3(inp, atom_list)
-        elif (potential_type == 'DFTD4'):
+        elif (potential_type == 'dftd4'):
             generator = self.__parse_potential_dftd4(inp, atom_list)
-        elif (potential_type == 'NEP'):
+        elif (potential_type == 'nep'):
             generator = self.__parse_potential_nep(inp, atom_list)
-        elif (potential_type == 'PLUMED'):
+        elif (potential_type == 'mace'):
+            generator = self.__parse_potential_mace(inp, atom_list)
+        elif (potential_type == 'plumed'):
             generator = self.__parse_potential_plumed(inp, timestep,
                                                       temperature, atom_list,
                                                       index)
         else:
-            message = 'Unknown potential type: ' + potential_type
-            raise RuntimeError(message)
+            message = 'Unknown potential type: "{:s}"!'
+            raise RuntimeError(message.format(potential_type))
         return generator
 
     def __parse_potentials(self,
@@ -761,7 +796,7 @@ class TOMLPARSER(object):
             else:
                 table['pseudopotential_dir'] = _os.getcwd()
             self.__potential_generators.append((
-                table['type'].upper(),
+                table['type'].lower(),
                 self.__parse_potential(table, index, timestep, temperature)
             ))
 
@@ -919,9 +954,9 @@ class TOMLPARSER(object):
             for index, table in enumerate(self.__root['trajectory']):
                 table = self.__normalize_table(table, 'trajectory')
                 if (table['format'] is None):
-                    trajectory_format = 'H5'
+                    trajectory_format = 'h5'
                 else:
-                    trajectory_format = table['format'].upper()
+                    trajectory_format = table['format'].lower()
                 if (table['prefix'] is None):
                     prefix = self.__root['run']['label']
                 else:
@@ -930,7 +965,7 @@ class TOMLPARSER(object):
                     interval = 1
                 else:
                     interval = table['interval']
-                if (trajectory_format == 'H5'):
+                if (trajectory_format == 'h5'):
                     if (table['is_restart_file']):
                         file_name = prefix + '.restart.h5'
                     else:
@@ -945,7 +980,7 @@ class TOMLPARSER(object):
                         use_double=bool(table['use_float64']),
                         potential_list=table['potential_list'])
                     self.__trajectories.append(writer)
-                elif (trajectory_format == 'EXYZ'):
+                elif (trajectory_format == 'exyz'):
                     file_name = prefix + '.trajectory.xyz'
                     writer = _mdapps.trajectories.EXYZWRITER(
                         file_name, interval=interval, write_virial=True,
@@ -965,7 +1000,7 @@ class TOMLPARSER(object):
                     tmp = table['potential_list']
                 for i in tmp:
                     potential_name = self.__potential_generators[i][0]
-                    if (potential_name == 'PLUMED'):
+                    if (potential_name == 'plumed'):
                         message = 'The forces and energies in the ' + \
                                   'trajectory file "{:s}" may include ' + \
                                   'contributions of PLUMED bias ' + \
@@ -1022,11 +1057,12 @@ class TOMLPARSER(object):
         """
         table = self.__root['active_learning']
         table = self.__normalize_table(table, 'active_learning')
+        excluded_names = ['plumed', 'nep', 'mace']
         if (table['reference_potentials'] is None):
             reference_potentials = []
-            excluded_names = ['PLUMED', 'NEP']
             for i in range(0, len(self.__potential_generators)):
-                if (self.__potential_generators[i][0] not in excluded_names):
+                potential_name = self.__potential_generators[i][0]
+                if (potential_name not in excluded_names):
                     reference_potentials.append(i)
         else:
             reference_potentials = table['reference_potentials']
@@ -1035,16 +1071,11 @@ class TOMLPARSER(object):
                 message = 'Unknown potential index: {:d} in the ' + \
                           '[active_learning] table!'
                 raise IndexError(message.format(i))
-            if (self.__potential_generators[i][0] == 'PLUMED'):
-                message = 'You are using PLUMED as one of the reference ' + \
-                          'potential! You should ensure that you know ' + \
-                          'what you are doing!'
-                _mdutils.warning.warn(message)
-            if (self.__potential_generators[i][0] == 'NEP'):
-                message = 'You are using NEP as one of the reference ' + \
-                          'potential! You should ensure that you know ' + \
-                          'what you are doing!'
-                _mdutils.warning.warn(message)
+            potential_name = self.__potential_generators[i][0]
+            if (potential_name in excluded_names):
+                message = 'You are using "{:s}" as one of the reference ' + \
+                          'potentials! MAKE SURE THAT THIS IS WHAT YOU WANT!!'
+                _mdutils.warning.warn(message.format(potential_name.upper()))
         if (table['initial_training_set'] is not None):
             table['initial_training_set'] = \
                 _os.path.abspath(table['initial_training_set'])
