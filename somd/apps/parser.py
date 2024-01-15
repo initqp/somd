@@ -102,8 +102,8 @@ class TOMLPARSER(object):
                                __dep__('type', ['plumed', 'nep', 'mace'])),
         'use_tabulating': __value__([bool], False, __dep__('type', ['nep'])),
         'device': __value__([str], False, __dep__('type', ['mace'])),
-        'energy_unit': __value__([bool], False, __dep__('type', ['mace'])),
-        'length_unit': __value__([bool], False, __dep__('type', ['mace']))
+        'energy_unit': __value__([float], False, __dep__('type', ['mace'])),
+        'length_unit': __value__([float], False, __dep__('type', ['mace']))
     }
     __parameters__['group'] = {
         'atom_list': __value__([list, str], True, None),
