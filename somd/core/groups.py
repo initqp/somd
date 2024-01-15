@@ -406,6 +406,19 @@ class ATOMGROUPS(list):
         """
         return super().__getitem__(index)
 
+    def __check_translations(self) -> list:
+        """
+        Check the availability of the COM motion removers.
+        """
+        for i, group in enumerate(self):
+            flags = [((len(group & g) != 0) and (group != g))
+                     for g in self if (not g.has_translations)]
+            if (True in flags and (not group.has_translations)):
+                message = 'Atom group "{}" is overlapping with other atom ' + \
+                          'group(s) while all of them are binding with ' + \
+                          'COM motion removers!'
+                raise RuntimeError(message.format(group._label))
+
     def __update_n_constrains(self) -> list:
         """
         Calculate number of constraints that belongs to each group.
@@ -429,22 +442,12 @@ class ATOMGROUPS(list):
         """
         Calculate number of degree of freedoms of each atom groups.
         """
+        self.__check_translations()
         self.__update_n_constrains()
         for i, group in enumerate(self):
-            # Check the availability of the COM remover.
-            if (not group.has_translations):
-                flags = [((len(group & g) != 0) and (group != g))
-                         for g in self if (not g.has_translations)]
-                if (True in flags):
-                    message = 'Atom group "{}" is overlapping with other ' + \
-                              'atomic group(s) while all of them are ' + \
-                              'binding with COM motion removers!'
-                    raise RuntimeError(message.format(group._label))
-            # Actually calculate the number DOFs.
             n_dof = group.n_atoms * 3 - group.n_constraints
-            # Check if there are subgroups (including this group) binding total
-            # COM motion removers, whatever this group itself is in the
-            # system's atomic group list.
+            # Check if there are subgroups (including this group) binding to
+            # COM motion removers.
             flags = [g.has_translations for g in self if g in group]
             n_dof -= 3 * flags.count(False)
             # Set the value.
