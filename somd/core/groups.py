@@ -406,7 +406,7 @@ class ATOMGROUPS(list):
         """
         return super().__getitem__(index)
 
-    def __check_translations(self) -> list:
+    def __check_translations(self) -> None:
         """
         Check the availability of the COM motion removers.
         """
@@ -419,7 +419,7 @@ class ATOMGROUPS(list):
                           'COM motion removers!'
                 raise RuntimeError(message.format(group._label))
 
-    def __update_n_constrains(self) -> list:
+    def __update_n_constrains(self) -> None:
         """
         Calculate number of constraints that belongs to each group.
         """
