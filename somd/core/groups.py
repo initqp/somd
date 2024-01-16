@@ -235,7 +235,7 @@ class ATOMGROUP(object):
             self.__n_dof_handler()
         else:
             message = 'Group "{:s}" is not bound with any system! ' + \
-                      'Setting the translational flag will be uesless!'
+                      'Setting the translational flag will be useless!'
             _mdutils.warning.warn(message.format(self._label))
 
     @property
