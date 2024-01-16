@@ -43,7 +43,7 @@ class ATOMGROUP(object):
     label : str
         A descriptive string of this group. If no value is given, the label
         will be assigned according to the id of the instance.
-    n_dof_hanlder : typing.Callable
+    n_dof_handler : typing.Callable
         The update function number of DOF.
     """
 
@@ -51,7 +51,7 @@ class ATOMGROUP(object):
                  snapshot: _SNAPSHOT,
                  atom_list: list,
                  label: str = None,
-                 n_dof_hanlder: _tp.Callable = None) -> None:
+                 n_dof_handler: _tp.Callable = None) -> None:
         """
         Create an ATOMGROUP instance.
         """
@@ -75,7 +75,7 @@ class ATOMGROUP(object):
         else:
             self.__snapshot = snapshot
         self.__has_translations = True
-        self.__n_dof_hanlder = n_dof_hanlder
+        self.__n_dof_handler = n_dof_handler
         self.__n_constraints = 0
         self.__n_dof = 0
 
@@ -231,7 +231,7 @@ class ATOMGROUP(object):
         energies with the internal DOFs.
         """
         self.__has_translations = bool(v)
-        self.__n_dof_hanlder()
+        self.__n_dof_handler()
 
     @property
     def n_atoms(self) -> int:
