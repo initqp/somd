@@ -231,7 +231,12 @@ class ATOMGROUP(object):
         energies with the internal DOFs.
         """
         self.__has_translations = bool(v)
-        self.__n_dof_handler()
+        if (self.__n_dof_handler is not None):
+            self.__n_dof_handler()
+        else:
+            message = 'Group "{:s}" is not bound with any system! ' + \
+                      'Setting the translational flag will be uesless!'
+            _mdutils.warning.warn(message.format(self._label))
 
     @property
     def n_atoms(self) -> int:
