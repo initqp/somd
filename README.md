@@ -3,7 +3,7 @@
 ![logo](doc/logo.png "logo")
 
 SOMD is an ab-initio molecular dynamics (AIMD) package designed for the
-[SIESTA](https://departments.icmab.es/leem/siesta/) DFT code. The SOMD code
+[SIESTA](https://siesta-project.org/siesta/) DFT code. The SOMD code
 provides some common functionalities to perform standard Born-Oppenheimer
 molecular dynamics (BOMD) simulations, and contains a simple wrapper to the
 [Neuroevolution Potential (NEP)](https://github.com/brucefan1983/NEP_CPU)
@@ -61,8 +61,8 @@ SOMD by the following steps.
     ```
     If the installation is successful, a version string should be printed as
     well.
-5.  Compile the [SIESTA](https://departments.icmab.es/leem/siesta/) code. SOMD
-    could work with the 4.1.5 or the
+5.  Compile the [SIESTA](https://siesta-project.org/siesta/) code. SOMD could
+    work with the 4.1.5 or the
     [git master](https://gitlab.com/siesta-project/siesta) version of SIESTA.
     When compiling, you are suggested to link your binary against the ELPA
     library (and using ELPA as the diagonalization algorithm). This is because
