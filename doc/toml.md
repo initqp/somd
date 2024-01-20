@@ -66,6 +66,7 @@ case-insensitive.
 [system]
         structure = "H2O.pdb"
         format = "pdb"
+```
 ```toml
 [system]
         structure = "../POSCAR"
