@@ -47,6 +47,10 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
     cv_names : List[dict]
         Names and components of the collective variables to save. For example:
         cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
+    charge_model_index : int
+        Index of the MACE charge model in the system's potential list. If this
+        option is set, the charge CV value will be pass to PLUMED by the extra
+        CV option.
 
     References
     ----------
@@ -64,7 +68,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                  temperature: float = None,
                  restart: bool = False,
                  output_prefix: str = None,
-                 cv_names: list = []) -> None:
+                 cv_names: list = [],
+                 charge_model_index: int = None) -> None:
         """
         Create a PLUMED instance.
         """
@@ -89,21 +94,31 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
             log_file = _os.devnull
         else:
             log_file = output_prefix + '.log'
-        self.__plumed.cmd("setMDEngine", "SOMD")
-        self.__plumed.cmd("setMDTimeUnits", 1.0)
-        self.__plumed.cmd("setMDMassUnits", 1.0)
-        self.__plumed.cmd("setMDEnergyUnits", 1.0)
-        self.__plumed.cmd("setMDLengthUnits", 1.0)
-        self.__plumed.cmd("setMDChargeUnits", 1.0)
-        self.__plumed.cmd("setRestart", restart)
-        self.__plumed.cmd("setTimestep", timestep)
-        self.__plumed.cmd("setPlumedDat", file_name)
-        self.__plumed.cmd("setNatoms", len(atom_list))
-        self.__plumed.cmd("setLogFile", log_file)
+        self.__plumed.cmd('setMDEngine', 'SOMD')
+        self.__plumed.cmd('setMDTimeUnits', 1.0)
+        self.__plumed.cmd('setMDMassUnits', 1.0)
+        self.__plumed.cmd('setMDEnergyUnits', 1.0)
+        self.__plumed.cmd('setMDLengthUnits', 1.0)
+        self.__plumed.cmd('setMDChargeUnits', 1.0)
+        self.__plumed.cmd('setRestart', restart)
+        self.__plumed.cmd('setTimestep', timestep)
+        self.__plumed.cmd('setPlumedDat', file_name)
+        self.__plumed.cmd('setNatoms', len(atom_list))
+        self.__plumed.cmd('setLogFile', log_file)
         if (temperature is not None):
             kb_T = temperature * _mdutils.constants.BOLTZCONST
-            self.__plumed.cmd("setKbT", kb_T)
-        self.__plumed.cmd("init")
+            self.__plumed.cmd('setKbT', kb_T)
+        if (charge_model_index is not None):
+            self.__charge_model_index = charge_model_index
+            self.__charge_cv = _np.zeros(1, dtype=_np.double)
+            self.__charge_cv_force = _np.zeros(1, dtype=_np.double)
+            self.__plumed.cmd('setExtraCV CHARGECV', self.__charge_cv)
+            self.__plumed.cmd('setExtraCVForce CHARGECV',
+                              self.__charge_cv_force)
+            self.__has_charge_cv = True
+        else:
+            self.__has_charge_cv = False
+        self.__plumed.cmd('init')
         self.__set_up_cv(cv_names)
         self.__restart = restart
         self.__stop_flag = _np.zeros(1, dtype=_np.int64)
@@ -128,7 +143,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                           'one item!'
                 raise RuntimeError(message)
             name = list(cv.keys())[0]
-            if (type(cv[name]) == str):
+            if (type(cv[name]) is str):
                 data = _np.zeros(1, dtype=_np.double)
                 if (cv[name] == ''):
                     command = 'setMemoryForData ' + name
@@ -151,16 +166,23 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         self.forces[:] = 0.0
         self.virial[:] = 0.0
-        self.__plumed.cmd("setStep", self.__step)
-        self.__plumed.cmd("setVirial", self.virial)
-        self.__plumed.cmd("setForces", self.forces)
-        self.__plumed.cmd("setBox", system.box)
-        self.__plumed.cmd("setPositions", system.positions)
-        self.__plumed.cmd("setMasses", system.masses.reshape(-1))
-        self.__plumed.cmd("setStopFlag", self.__stop_flag)
-        self.__plumed.cmd("prepareCalc")
-        self.__plumed.cmd("performCalc")
-        self.__plumed.cmd("getBias", self.energy_potential)
+        if (self.__has_charge_cv):
+            mace = system.potentials[self.__charge_model_index]
+            self.__charge_cv[0] = mace.charge_cv[0]
+            self.__charge_cv_force[0] = 0.0
+        self.__plumed.cmd('setStep', self.__step)
+        self.__plumed.cmd('setVirial', self.virial)
+        self.__plumed.cmd('setForces', self.forces)
+        self.__plumed.cmd('setBox', system.box)
+        self.__plumed.cmd('setPositions', system.positions)
+        self.__plumed.cmd('setMasses', system.masses.reshape(-1))
+        self.__plumed.cmd('setStopFlag', self.__stop_flag)
+        self.__plumed.cmd('prepareCalc')
+        self.__plumed.cmd('performCalc')
+        self.__plumed.cmd('getBias', self.energy_potential)
+        if (self.__has_charge_cv):
+            cv_forces = self.__charge_cv_force[0] * mace.charge_cv_gradients
+            self.forces[:] += cv_forces
         self.virial[:] *= -1.0
         self.__step += 1
 
