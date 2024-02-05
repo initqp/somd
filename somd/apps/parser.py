@@ -103,7 +103,9 @@ class TOMLPARSER(object):
         'use_tabulating': __value__([bool], False, __dep__('type', ['nep'])),
         'device': __value__([str], False, __dep__('type', ['mace'])),
         'energy_unit': __value__([float], False, __dep__('type', ['mace'])),
-        'length_unit': __value__([float], False, __dep__('type', ['mace']))
+        'length_unit': __value__([float], False, __dep__('type', ['mace'])),
+        'model_dtype': __value__([str], False, __dep__('type', ['mace'])),
+        'charge_cv_expr': __value__([str], False, __dep__('type', ['mace']))
     }
     __parameters__['group'] = {
         'atom_list': __value__([list, str], True, None),
@@ -678,17 +680,28 @@ class TOMLPARSER(object):
             length_unit = 0.1
         else:
             length_unit = inp['length_unit']
+        if (inp['model_dtype'] is None):
+            model_dtype = 'float64'
+        else:
+            model_dtype = inp['model_dtype']
+        if (inp['charge_cv_expr'] is None):
+            charge_cv_expr = None
+        else:
+            charge_cv_expr = eval(inp['charge_cv_expr'])
         atom_types = self.__system.atomic_types[atom_list]
         return _potentials.MACE.generator(atom_list, inp['file_name'],
                                           atom_types, device, energy_unit,
-                                          length_unit)
+                                          length_unit, model_dtype,
+                                          charge_cv_expr)
 
     def __parse_potential_plumed(self,
                                  inp: dict,
                                  timestep: float,
                                  temperature: float,
                                  atom_list: list,
-                                 potential_index: int) -> _tp.Callable:
+                                 potential_index: int,
+                                 charge_model_index: int = None
+                                 ) -> _tp.Callable:
         """
         Parse the PLUMED potential options.
 
@@ -704,6 +717,8 @@ class TOMLPARSER(object):
             The atom list.
         potential_index : int
             Index of this potential.
+        charge_model_index : int
+            Index of the MACE charge model in the system's potential list.
         """
         if (len(atom_list) != self.__system.n_atoms):
             message = 'The PLUMED potential must act on the whole system!'
@@ -711,9 +726,9 @@ class TOMLPARSER(object):
         prefix = self.__root['run']['label'] + \
             '.plumed.pot_{:d}'.format(potential_index)
         if_restart = bool(self.__root['run']['restart_from'])
-        return _potentials.PLUMED.generator(atom_list, inp['file_name'],
-                                            timestep, temperature, if_restart,
-                                            prefix)
+        return _potentials.PLUMED.generator(
+            atom_list, inp['file_name'], timestep, temperature, if_restart,
+            prefix, charge_model_index=charge_model_index)
 
     def __parse_potential(self,
                           inp: dict,
@@ -799,6 +814,29 @@ class TOMLPARSER(object):
                 table['type'].lower(),
                 self.__parse_potential(table, index, timestep, temperature)
             ))
+        # Set up charge CV.
+        has_charge_model = False
+        for index, table in enumerate(self.__root['potential']):
+            table = self.__normalize_table(table, 'potential')
+            if (table['type'].lower() == 'mace'):
+                if (table['charge_cv_expr'] is not None):
+                    if (has_charge_model):
+                        message = 'Multiple charge model is not supported!'
+                        raise RuntimeError(message)
+                    else:
+                        has_charge_model = True
+                        charge_model_index = index
+        if (has_charge_model):
+            items = zip(self.__root['potential'], self.__potential_generators)
+            for index, (table, generator) in enumerate(items):
+                if (generator[0] == 'plumed'):
+                    table = self.__normalize_table(table, 'potential')
+                    atom_list = list(range(0, self.__system.n_atoms))
+                    new_generator = self.__parse_potential_plumed(
+                        table, timestep, temperature, atom_list,
+                        index, charge_model_index)
+                    item = ('plumed', new_generator)
+                    self.__potential_generators[index] = item
 
     def __parse_constraints(self) -> None:
         """
