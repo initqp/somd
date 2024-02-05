@@ -195,6 +195,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             self.__charge_cv[:] = charge_cv
             charge_cv_gradients = result['charge_cv_gradients']
             charge_cv_gradients = charge_cv_gradients.detach().cpu().numpy()
+            charge_cv_gradients = charge_cv_gradients / self.__length_unit
             self.__charge_cv_gradients[:] = charge_cv_gradients
 
     @classmethod
