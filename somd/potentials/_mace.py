@@ -94,8 +94,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                               '(https://github.com/ACEsuit/mace) ' +
                               'installed to use the MACE potential!')
         model = torch.load(f=file_name, map_location=device)
+        defuault_dtype = next(model.parameters()).dtype
         if (model_dtype is None):
-            dtype = next(model.parameters()).dtype
+            dtype = defuault_dtype
         elif (model_dtype in ['float32', 'float']):
             dtype = torch.float32
         elif (model_dtype in ['float64', 'double']):
@@ -103,6 +104,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         else:
             message = 'Unknown model dtype: {}!'
             raise RuntimeError(message.format(model_dtype))
+        if (dtype != defuault_dtype):
+            message = 'Model dtype has been convert from {} to {} as required.'
+            _warn(message.format(defuault_dtype, dtype))
         if (dtype == torch.float64):
             self.__model = model.to(device).double()
             self.__dtype = 'float64'
