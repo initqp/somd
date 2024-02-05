@@ -21,6 +21,7 @@ import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
 from somd.utils import constants as _c
+from somd.utils.warning import warn as _warn
 
 __all__ = ['MACE']
 
@@ -47,6 +48,11 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         The length unit of the model inputs and outputs. In unit of (nm). E.g.,
         if the model takes atomic positions in unit of (A) as input, this
         parameter should be set to 0.1.
+    model_dtype : str
+        Data type of the model.
+    charge_cv_expr : Callable
+        Expression of the charge CV. This option will only work when your MACE
+        model is a charge model.
 
     References
     ----------
@@ -61,7 +67,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                  atomic_types: list,
                  device: str = 'cpu',
                  energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
-                 length_unit: float = 0.1) -> None:
+                 length_unit: float = 0.1,
+                 model_dtype: str = 'float64',
+                 charge_cv_expr: _tp.Callable = None) -> None:
         """
         Create a MACE instance.
         """
@@ -86,7 +94,15 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                               '(https://github.com/ACEsuit/mace) ' +
                               'installed to use the MACE potential!')
         model = torch.load(f=file_name, map_location=device)
-        dtype = next(model.parameters()).dtype
+        if (model_dtype is None):
+            dtype = next(model.parameters()).dtype
+        elif (model_dtype in ['float32', 'float']):
+            dtype = torch.float32
+        elif (model_dtype in ['float64', 'double']):
+            dtype = torch.float64
+        else:
+            message = 'Unknown model dtype: {}!'
+            raise RuntimeError(message.format(model_dtype))
         if (dtype == torch.float64):
             self.__model = model.to(device).double()
             self.__dtype = 'float64'
@@ -103,6 +119,30 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         for parameter in self.__model.parameters():
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
+        if (model._get_name() in ['EnergyChargesMACE', 'AtomicsChargesMACE']):
+            if (charge_cv_expr is not None):
+                self.__charge_cv_expr = charge_cv_expr
+                self.__charge_cv = _np.zeros(1, dtype=_np.double)
+                self.__charge_cv_gradients = _np.zeros((len(atom_list), 3),
+                                                       dtype=_np.double)
+                self.__is_charge_model = True
+                if (model._get_name() == 'AtomicsChargesMACE'):
+                    self.__charge_only = True
+                else:
+                    self.__charge_only = False
+            else:
+                message = 'Your MACE model is a charge model, but no ' + \
+                          'charge CV expersion was given! Will not ' + \
+                          'charge CV!'
+                _warn(message)
+                self.__is_charge_model = False
+                self.__charge_only = False
+        else:
+            message = 'Your MACE model is not a charge model, but a ' + \
+                      'charge CV expersion was given! Will not charge CV!'
+            _warn(message)
+            self.__is_charge_model = False
+            self.__charge_only = False
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -135,13 +175,27 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         data_loader = self.__mace.tools.torch_geometric.dataloader.DataLoader(
             dataset=[data_set], batch_size=1, shuffle=False, drop_last=False)
         batch = next(iter(data_loader)).to(self.__device)
-        result = self.__model(batch.to_dict(), compute_virials=True)
-        energy = result['energy'].detach().cpu().numpy()
-        self.energy_potential[0] = energy * self.__energy_unit
-        forces = result['forces'].detach().cpu().numpy()
-        self.forces[:] = forces * self.__energy_unit / self.__length_unit
-        virial = result['virials'].detach().cpu().numpy()
-        self.virial[:] = virial * self.__energy_unit
+        if (self.__is_charge_model and self.__charge_only):
+            result = self.__model(batch.to_dict(),
+                                  charge_cv_expr=self.__charge_cv_expr)
+        elif (self.__is_charge_model):
+            result = self.__model(batch.to_dict(), compute_virials=True,
+                                  charge_cv_expr=self.__charge_cv_expr)
+        else:
+            result = self.__model(batch.to_dict(), compute_virials=True)
+        if (not self.__charge_only):
+            energy = result['energy'].detach().cpu().numpy()
+            self.energy_potential[0] = energy * self.__energy_unit
+            forces = result['forces'].detach().cpu().numpy()
+            self.forces[:] = forces * self.__energy_unit / self.__length_unit
+            virial = result['virials'].detach().cpu().numpy()
+            self.virial[:] = virial * self.__energy_unit
+        if (self.__is_charge_model):
+            charge_cv = result['charge_cv'].detach().cpu().numpy()
+            self.__charge_cv[:] = charge_cv
+            charge_cv_gradients = result['charge_cv_gradients']
+            charge_cv_gradients = charge_cv_gradients.detach().cpu().numpy()
+            self.__charge_cv_gradients[:] = charge_cv_gradients
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -154,3 +208,32 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             args = list(args)
             args[1] = _os.path.abspath(args[1])
         return lambda x=tuple(args), y=kwargs: cls(*x, **y)
+
+    @property
+    def is_charge_model(self) -> bool:
+        """
+        If this model is a charge model.
+        """
+        return self.__is_charge_model
+
+    @property
+    def charge_cv(self) -> _np.ndarray:
+        """
+        The charge CV.
+        """
+        if (self.__is_charge_model):
+            return self.__charge_cv
+        else:
+            message = 'The MACE model is not a charge model!'
+            raise RuntimeError(message)
+
+    @property
+    def charge_cv_gradients(self) -> _np.ndarray:
+        """
+        Gradients of the charge CV.
+        """
+        if (self.__is_charge_model):
+            return self.__charge_cv_gradients
+        else:
+            message = 'The MACE model is not a charge model!'
+            raise RuntimeError(message)
