@@ -839,7 +839,7 @@ class TOMLPARSER(object):
                     atom_list = list(range(0, self.__system.n_atoms))
                     new_generator = self.__parse_potential_plumed(
                         table, timestep, temperature, atom_list,
-                        index, ['CHARGECV'], charge_model_index)
+                        index, ['CHARGECV', 'TOTALCHARGE'], charge_model_index)
                     item = ('plumed', new_generator)
                     self.__potential_generators[index] = item
 

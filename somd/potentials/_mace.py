@@ -126,9 +126,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         if (model._get_name() in ['EnergyChargesMACE', 'AtomicsChargesMACE']):
             if (charge_cv_expr is not None):
                 self.__charge_cv_expr = charge_cv_expr
-                self.__charge_cv_value = _np.zeros((1, 1), dtype=_np.double)
-                self.__charge_cv_gradients = _np.zeros((1, len(atom_list), 3),
-                                                       dtype=_np.double)
+                self.__extra_cv_value = _np.zeros((2, 1), dtype=_np.double)
+                self.__extra_cv_gradients = _np.zeros((2, len(atom_list), 3),
+                                                      dtype=_np.double)
                 self.__is_charge_model = True
                 if (model._get_name() == 'AtomicsChargesMACE'):
                     self.__charge_only = True
@@ -196,11 +196,13 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             self.virial[:] = virial * self.__energy_unit
         if (self.__is_charge_model):
             charge_cv_value = result['charge_cv'].detach().cpu().numpy()
-            self.__charge_cv_value[0, :] = charge_cv_value
-            charge_cv_gradients = result['charge_cv_gradients']
-            charge_cv_gradients = charge_cv_gradients.detach().cpu().numpy()
-            charge_cv_gradients = charge_cv_gradients / self.__length_unit
-            self.__charge_cv_gradients[0, :] = charge_cv_gradients
+            self.__extra_cv_value[0, :] = charge_cv_value
+            gradients = result['charge_cv_gradients'].detach().cpu().numpy()
+            self.__extra_cv_gradients[0, :] = gradients / self.__length_unit
+            total_charge = result['total_charge'].detach().cpu().numpy()
+            self.__extra_cv_value[1, :] = total_charge
+            gradients = result['total_charge_gradients'].detach().cpu().numpy()
+            self.__extra_cv_gradients[1, :] = gradients / self.__length_unit
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -227,7 +229,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         The charge CV.
         """
         if (self.__is_charge_model):
-            return self.__charge_cv_value
+            return self.__extra_cv_value
         else:
             message = 'The MACE model is not a charge model!'
             raise RuntimeError(message)
@@ -238,7 +240,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         Gradients of the charge CV.
         """
         if (self.__is_charge_model):
-            return self.__charge_cv_gradients
+            return self.__extra_cv_gradients
         else:
             message = 'The MACE model is not a charge model!'
             raise RuntimeError(message)
