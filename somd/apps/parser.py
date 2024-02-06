@@ -837,6 +837,10 @@ class TOMLPARSER(object):
                         index, charge_model_index)
                     item = ('plumed', new_generator)
                     self.__potential_generators[index] = item
+                    message = 'Charge model assigned. Will try to use the ' + \
+                              'charge CV calculated from potential {:d} ' + \
+                              'as PLUMED\'s extra CV (NAME=CHARGECV).'
+                    _mdutils.warning.warn(message.format(charge_model_index))
 
     def __parse_constraints(self) -> None:
         """
