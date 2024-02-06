@@ -47,10 +47,10 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
     cv_names : List[dict]
         Names and components of the collective variables to save. For example:
         cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
-    charge_model_index : int
-        Index of the MACE charge model in the system's potential list. If this
-        option is set, the charge CV value will be pass to PLUMED by the extra
-        CV option.
+    extra_cv_names : List[str]
+        Names of the extra CVs.
+    extra_cv_potential_index : int
+        Index of the potential calculator for reading extra CV gradients from.
 
     References
     ----------
@@ -69,7 +69,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                  restart: bool = False,
                  output_prefix: str = None,
                  cv_names: list = [],
-                 charge_model_index: int = None) -> None:
+                 extra_cv_names: list = [],
+                 extra_cv_potential_index: int = None) -> None:
         """
         Create a PLUMED instance.
         """
@@ -108,23 +109,19 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         if (temperature is not None):
             kb_T = temperature * _mdutils.constants.BOLTZCONST
             self.__plumed.cmd('setKbT', kb_T)
-        if (charge_model_index is not None):
-            self.__charge_model_index = charge_model_index
-            self.__charge_cv = _np.zeros(1, dtype=_np.double)
-            self.__charge_cv_force = _np.zeros(1, dtype=_np.double)
-            self.__plumed.cmd('setExtraCV CHARGECV', self.__charge_cv)
-            self.__plumed.cmd('setExtraCVForce CHARGECV',
-                              self.__charge_cv_force)
-            self.__has_charge_cv = True
+        if (len(extra_cv_names) != 0):
+            self.__set_up_extra_cvs(extra_cv_names, extra_cv_potential_index)
+            self.__extra_cv_checked = False
+            self.__has_extra_cvs = True
         else:
-            self.__has_charge_cv = False
+            self.__has_extra_cvs = False
         self.__plumed.cmd('init')
-        self.__set_up_cv(cv_names)
+        self.__set_up_cvs(cv_names)
         self.__restart = restart
         self.__stop_flag = _np.zeros(1, dtype=_np.int64)
         self.__step = 1
 
-    def __set_up_cv(self, cv_names: list) -> None:
+    def __set_up_cvs(self, cv_names: list) -> None:
         """
         Set up collective variables data.
 
@@ -155,6 +152,64 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                 message = 'Type of CV components should be str!'
                 raise RuntimeError(message)
 
+    def __set_up_extra_cvs(self,
+                           extra_cv_names: list,
+                           extra_cv_potential_index: int):
+        """
+        Set up the extra CVs.
+
+        Parameters
+        ----------
+        extra_cv_names : List[str]
+            Names of the extra CVs.
+        extra_cv_potential_index : int
+            Index of the potential calculator for reading extra CV gradients
+            from.
+        """
+        if (extra_cv_potential_index is None):
+            message = 'Index of the potential calculator for ' + \
+                      'reading extra CV gradients is required!'
+            raise RuntimeError(message)
+        cv_shape = (len(extra_cv_names), 1)
+        self.__extra_cv_names = extra_cv_names
+        self.__extra_cv_index = extra_cv_potential_index
+        self.__extra_cv_values = _np.zeros(cv_shape, dtype=_np.double)
+        self.__extra_cv_forces = _np.zeros(cv_shape, dtype=_np.double)
+        for i in range(0, cv_shape[0]):
+            command = 'setExtraCV {:s}'.format(self.__extra_cv_names[i])
+            self.__plumed.cmd(command, self.__extra_cv_values[i])
+            command = 'setExtraCVForce {:s}'.format(self.__extra_cv_names[i])
+            self.__plumed.cmd(command, self.__extra_cv_forces[i])
+            message = 'Extra CV "{:s}" has been added to PLUMED.'
+            _mdutils.warning.warn(message.format(self.__extra_cv_names[i]))
+
+    def __check_extra_cv(self, system: _mdcore.systems.MDSYSTEM):
+        """
+        Check the extra CV setup.
+        """
+        potential = system.potentials[self.__extra_cv_index]
+        if (not self.__extra_cv_checked):
+            if (potential.atom_list.tolist() != self.atom_list.tolist()):
+                message = 'The extra CV calculator (potential {:d}) ' + \
+                          'and the PLUMED interface act on different ' + \
+                          'atoms!'
+                raise RuntimeError(message.format(self.__extra_cv_index))
+            if (not hasattr(potential, 'extra_cv_values')):
+                message = 'Potential {:d} can not be used to ' + \
+                          'calculate extra CV!'
+                raise RuntimeError(message.format(self.__extra_cv_index))
+            if (not hasattr(potential, 'extra_cv_gradients')):
+                message = 'Potential {:d} can not be used to ' + \
+                          'calculate extra CV!'
+                raise RuntimeError(message.format(self.__extra_cv_index))
+            if (len(potential.extra_cv_values) != len(self.__extra_cv_values)):
+                message = 'Mismatch between the number of expected and ' + \
+                          'provided extra CVs and number of provided CV ' + \
+                          'names ({:d} v.s. {:d})!'
+                message = message.format(len(potential.extra_cv_values),
+                                         len(self.__extra_cv_values))
+            self.__extra_cv_checked = True
+
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
         Update this potential.
@@ -166,10 +221,11 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         self.forces[:] = 0.0
         self.virial[:] = 0.0
-        if (self.__has_charge_cv):
-            mace = system.potentials[self.__charge_model_index]
-            self.__charge_cv[0] = mace.charge_cv[0]
-            self.__charge_cv_force[0] = 0.0
+        if (self.__has_extra_cvs):
+            self.__check_extra_cv(system)
+            potential = system.potentials[self.__extra_cv_index]
+            self.__extra_cv_values[:] = potential.extra_cv_values
+            self.__extra_cv_forces[:] = 0
         self.__plumed.cmd('setStep', self.__step)
         self.__plumed.cmd('setVirial', self.virial)
         self.__plumed.cmd('setForces', self.forces)
@@ -180,9 +236,11 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd('prepareCalc')
         self.__plumed.cmd('performCalc')
         self.__plumed.cmd('getBias', self.energy_potential)
-        if (self.__has_charge_cv):
-            cv_forces = self.__charge_cv_force[0] * mace.charge_cv_gradients
-            self.forces[:] += cv_forces
+        if (self.__has_extra_cvs):
+            potential = system.potentials[self.__extra_cv_index]
+            for i in range(0, len(self.__extra_cv_values)):
+                cv_forces = self.__extra_cv_forces[i]
+                self.forces[:] += cv_forces * potential.extra_cv_gradients[i]
         self.virial[:] *= -1.0
         self.__step += 1
 

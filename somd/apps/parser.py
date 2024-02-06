@@ -700,7 +700,8 @@ class TOMLPARSER(object):
                                  temperature: float,
                                  atom_list: list,
                                  potential_index: int,
-                                 charge_model_index: int = None
+                                 extra_cv_names: int = [],
+                                 extra_cv_potential_index: int = None
                                  ) -> _tp.Callable:
         """
         Parse the PLUMED potential options.
@@ -717,8 +718,11 @@ class TOMLPARSER(object):
             The atom list.
         potential_index : int
             Index of this potential.
-        charge_model_index : int
-            Index of the MACE charge model in the system's potential list.
+        extra_cv_names : List[str]
+            Names of the extra CVs.
+        extra_cv_potential_index : int
+            Index of the potential calculator for reading extra CV gradients
+            from.
         """
         if (len(atom_list) != self.__system.n_atoms):
             message = 'The PLUMED potential must act on the whole system!'
@@ -728,7 +732,8 @@ class TOMLPARSER(object):
         if_restart = bool(self.__root['run']['restart_from'])
         return _potentials.PLUMED.generator(
             atom_list, inp['file_name'], timestep, temperature, if_restart,
-            prefix, charge_model_index=charge_model_index)
+            prefix, extra_cv_names=extra_cv_names,
+            extra_cv_potential_index=extra_cv_potential_index)
 
     def __parse_potential(self,
                           inp: dict,
@@ -834,13 +839,9 @@ class TOMLPARSER(object):
                     atom_list = list(range(0, self.__system.n_atoms))
                     new_generator = self.__parse_potential_plumed(
                         table, timestep, temperature, atom_list,
-                        index, charge_model_index)
+                        index, ['CHARGECV'], charge_model_index)
                     item = ('plumed', new_generator)
                     self.__potential_generators[index] = item
-                    message = 'Charge model assigned. Will try to use the ' + \
-                              'charge CV calculated from potential {:d} ' + \
-                              'as PLUMED\'s extra CV (NAME=CHARGECV).'
-                    _mdutils.warning.warn(message.format(charge_model_index))
 
     def __parse_constraints(self) -> None:
         """

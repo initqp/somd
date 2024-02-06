@@ -126,8 +126,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         if (model._get_name() in ['EnergyChargesMACE', 'AtomicsChargesMACE']):
             if (charge_cv_expr is not None):
                 self.__charge_cv_expr = charge_cv_expr
-                self.__charge_cv = _np.zeros(1, dtype=_np.double)
-                self.__charge_cv_gradients = _np.zeros((len(atom_list), 3),
+                self.__charge_cv_value = _np.zeros((1, 1), dtype=_np.double)
+                self.__charge_cv_gradients = _np.zeros((1, len(atom_list), 3),
                                                        dtype=_np.double)
                 self.__is_charge_model = True
                 if (model._get_name() == 'AtomicsChargesMACE'):
@@ -195,12 +195,12 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             virial = result['virials'].detach().cpu().numpy()
             self.virial[:] = virial * self.__energy_unit
         if (self.__is_charge_model):
-            charge_cv = result['charge_cv'].detach().cpu().numpy()
-            self.__charge_cv[:] = charge_cv
+            charge_cv_value = result['charge_cv'].detach().cpu().numpy()
+            self.__charge_cv_value[0, :] = charge_cv_value
             charge_cv_gradients = result['charge_cv_gradients']
             charge_cv_gradients = charge_cv_gradients.detach().cpu().numpy()
             charge_cv_gradients = charge_cv_gradients / self.__length_unit
-            self.__charge_cv_gradients[:] = charge_cv_gradients
+            self.__charge_cv_gradients[0, :] = charge_cv_gradients
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -222,18 +222,18 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         return self.__is_charge_model
 
     @property
-    def charge_cv(self) -> _np.ndarray:
+    def extra_cv_values(self) -> _np.ndarray:
         """
         The charge CV.
         """
         if (self.__is_charge_model):
-            return self.__charge_cv
+            return self.__charge_cv_value
         else:
             message = 'The MACE model is not a charge model!'
             raise RuntimeError(message)
 
     @property
-    def charge_cv_gradients(self) -> _np.ndarray:
+    def extra_cv_gradients(self) -> _np.ndarray:
         """
         Gradients of the charge CV.
         """
