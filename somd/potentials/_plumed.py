@@ -202,12 +202,14 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                 message = 'Potential {:d} can not be used to ' + \
                           'calculate extra CV!'
                 raise RuntimeError(message.format(self.__extra_cv_index))
-            if (len(potential.extra_cv_values) != len(self.__extra_cv_values)):
-                message = 'Mismatch between the number of expected and ' + \
-                          'provided extra CVs and number of provided CV ' + \
-                          'names ({:d} v.s. {:d})!'
-                message = message.format(len(potential.extra_cv_values),
+            if (len(self.__extra_cv_values) > len(potential.extra_cv_values)):
+                message = 'Required extra CV is more than the number of ' + \
+                          'extra CVs provided by potential {:d}: ' + \
+                          '{:d} v.s. {:d}!'
+                message = message.format(self.__extra_cv_index,
+                                         len(potential.extra_cv_values),
                                          len(self.__extra_cv_values))
+                raise RuntimeError(message)
             self.__extra_cv_checked = True
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
@@ -223,8 +225,9 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.virial[:] = 0.0
         if (self.__has_extra_cvs):
             self.__check_extra_cv(system)
+            n_extra_cvs = len(self.__extra_cv_values)
             potential = system.potentials[self.__extra_cv_index]
-            self.__extra_cv_values[:] = potential.extra_cv_values
+            self.__extra_cv_values[:] = potential.extra_cv_values[:n_extra_cvs]
             self.__extra_cv_forces[:] = 0
         self.__plumed.cmd('setStep', self.__step)
         self.__plumed.cmd('setVirial', self.virial)
