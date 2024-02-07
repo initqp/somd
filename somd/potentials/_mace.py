@@ -53,6 +53,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
     charge_cv_expr : Callable
         Expression of the charge CV. This option will only work when your MACE
         model is a charge model.
+    calculate_total_charge_gradients : bool
+        If calculate gradients of the total charge.
 
     References
     ----------
@@ -69,7 +71,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                  energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
                  length_unit: float = 0.1,
                  model_dtype: str = 'float64',
-                 charge_cv_expr: _tp.Callable = None) -> None:
+                 charge_cv_expr: _tp.Callable = None,
+                 calculate_total_charge_gradients: bool = False) -> None:
         """
         Create a MACE instance.
         """
@@ -130,6 +133,11 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 self.__extra_cv_gradients = _np.zeros((2, len(atom_list), 3),
                                                       dtype=_np.double)
                 self.__is_charge_model = True
+                if (not calculate_total_charge_gradients):
+                    message = 'Total charge gradients will NOT be ' + \
+                              'calculated as required!'
+                    _warn(message)
+                self.__tc_gradients = calculate_total_charge_gradients
                 if (model._get_name() == 'AtomicsChargesMACE'):
                     self.__charge_only = True
                 else:
@@ -180,11 +188,14 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             dataset=[data_set], batch_size=1, shuffle=False, drop_last=False)
         batch = next(iter(data_loader)).to(self.__device)
         if (self.__is_charge_model and self.__charge_only):
-            result = self.__model(batch.to_dict(),
-                                  charge_cv_expr=self.__charge_cv_expr)
+            result = self.__model(
+                batch.to_dict(), charge_cv_expr=self.__charge_cv_expr,
+                compute_total_charge_gradients=self.__tc_gradients)
         elif (self.__is_charge_model):
-            result = self.__model(batch.to_dict(), compute_virials=True,
-                                  charge_cv_expr=self.__charge_cv_expr)
+            result = self.__model(
+                batch.to_dict(), compute_virials=True,
+                charge_cv_expr=self.__charge_cv_expr,
+                compute_total_charge_gradients=self.__tc_gradients)
         else:
             result = self.__model(batch.to_dict(), compute_virials=True)
         if (not self.__charge_only):
@@ -201,8 +212,11 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             self.__extra_cv_gradients[0, :] = gradients / self.__length_unit
             total_charge = result['total_charge'].detach().cpu().numpy()
             self.__extra_cv_values[1, :] = total_charge
-            gradients = result['total_charge_gradients'].detach().cpu().numpy()
-            self.__extra_cv_gradients[1, :] = gradients / self.__length_unit
+            if (self.__tc_gradients):
+                gradients = result['total_charge_gradients']
+                gradients = gradients.detach().cpu().numpy()
+                gradients = gradients / self.__length_unit
+                self.__extra_cv_gradients[1, :] = gradients
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
