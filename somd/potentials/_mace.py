@@ -145,16 +145,18 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             else:
                 message = 'Your MACE model is a charge model, but no ' + \
                           'charge CV expersion was given! Will not ' + \
-                          'charge CV!'
+                          'calculate charge CV!'
                 _warn(message)
                 self.__is_charge_model = False
                 self.__charge_only = False
         else:
-            message = 'Your MACE model is not a charge model, but a ' + \
-                      'charge CV expersion was given! Will not charge CV!'
-            _warn(message)
-            self.__is_charge_model = False
             self.__charge_only = False
+            self.__is_charge_model = False
+            if (charge_cv_expr is not None):
+                message = 'Your MACE model is not a charge model, but a ' + \
+                          'charge CV expersion was given! Will not ' + \
+                          'calculate charge CV!'
+                _warn(message)
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
