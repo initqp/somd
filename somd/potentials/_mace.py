@@ -50,6 +50,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         parameter should be set to 0.1.
     model_dtype : str
         Data type of the model.
+    calculate_virial : bool
+        If calculate the virial tensor.
     charge_cv_expr : Callable
         Expression of the charge CV. This option will only work when your MACE
         model is a charge model.
@@ -71,6 +73,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                  energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
                  length_unit: float = 0.1,
                  model_dtype: str = 'float64',
+                 calculate_virial: bool = True,
                  charge_cv_expr: _tp.Callable = None,
                  calculate_total_charge_gradients: bool = False) -> None:
         """
@@ -79,6 +82,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         super().__init__(atom_list)
         self.__energy_unit = energy_unit
         self.__length_unit = length_unit
+        self.__calculate_virial = calculate_virial
         self.__atomic_types = _np.array(atomic_types, dtype=int).reshape(-1)
         self.__input_pbc = _np.array([True] * 3, dtype=bool)
         self.__input_forces = _np.zeros((len(atom_list), 3), dtype=float)
@@ -157,6 +161,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                           'charge CV expersion was given! Will not ' + \
                           'calculate charge CV!'
                 _warn(message)
+        if (self.__charge_only and self.__calculate_virial):
+            message = 'Can not calculate virial for a charge-only model!'
+            raise RuntimeError(message)
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -195,16 +202,18 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 compute_total_charge_gradients=self.__tc_gradients)
         elif (self.__is_charge_model):
             result = self.__model(
-                batch.to_dict(), compute_virials=True,
+                batch.to_dict(), compute_virials=self.__calculate_virial,
                 charge_cv_expr=self.__charge_cv_expr,
                 compute_total_charge_gradients=self.__tc_gradients)
         else:
-            result = self.__model(batch.to_dict(), compute_virials=True)
+            result = self.__model(batch.to_dict(),
+                                  compute_virials=self.__calculate_virial)
         if (not self.__charge_only):
             energy = result['energy'].detach().cpu().numpy()
             self.energy_potential[0] = energy * self.__energy_unit
             forces = result['forces'].detach().cpu().numpy()
             self.forces[:] = forces * self.__energy_unit / self.__length_unit
+        if (self.__calculate_virial):
             virial = result['virials'].detach().cpu().numpy()
             self.virial[:] = virial * self.__energy_unit
         if (self.__is_charge_model):
