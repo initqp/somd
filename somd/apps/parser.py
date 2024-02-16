@@ -105,7 +105,7 @@ class TOMLPARSER(object):
         'energy_unit': __value__([float], False, __dep__('type', ['mace'])),
         'length_unit': __value__([float], False, __dep__('type', ['mace'])),
         'model_dtype': __value__([str], False, __dep__('type', ['mace'])),
-        'virial': __value__([str], False, __dep__('type', ['mace'])),
+        'virial': __value__([bool], False, __dep__('type', ['mace'])),
         'charge_cv_expr': __value__([str], False, __dep__('type', ['mace'])),
         'total_charge_gradients': __value__([bool], False,
                                             __dep__('type', ['mace'])),
