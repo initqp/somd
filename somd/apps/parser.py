@@ -687,6 +687,10 @@ class TOMLPARSER(object):
             model_dtype = 'float64'
         else:
             model_dtype = inp['model_dtype']
+        if (inp['virial'] is None):
+            calculate_virial = True
+        else:
+            calculate_virial = inp['virial']
         if (inp['charge_cv_expr'] is None):
             charge_cv_expr = None
         else:
@@ -695,7 +699,7 @@ class TOMLPARSER(object):
         return _potentials.MACE.generator(atom_list, inp['file_name'],
                                           atom_types, device, energy_unit,
                                           length_unit, model_dtype,
-                                          bool(inp['virial']), charge_cv_expr,
+                                          calculate_virial, charge_cv_expr,
                                           bool(inp['total_charge_gradients']))
 
     def __parse_potential_plumed(self,
