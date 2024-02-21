@@ -96,6 +96,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             import mace.data
             import mace.tools
             self.__mace = mace
+            self.__torch = torch
         except:
             raise ImportError('You need to have the mace package ' +
                               '(https://github.com/ACEsuit/mace) ' +
@@ -130,6 +131,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         for parameter in self.__model.parameters():
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
+        self.__grad_outputs = [self.__torch.ones(1).to(self.__device)]
         if (model._get_name() in ['EnergyChargesMACE', 'AtomicsChargesMACE']):
             if (charge_cv_expr is not None):
                 self.__charge_cv_expr = charge_cv_expr
@@ -195,37 +197,69 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             configure, z_table=self.__z_table, cutoff=self.__r_max)
         data_loader = self.__mace.tools.torch_geometric.dataloader.DataLoader(
             dataset=[data_set], batch_size=1, shuffle=False, drop_last=False)
-        batch = next(iter(data_loader)).to(self.__device)
-        if (self.__is_charge_model and self.__charge_only):
-            result = self.__model(
-                batch.to_dict(), charge_cv_expr=self.__charge_cv_expr,
-                compute_total_charge_gradients=self.__tc_gradients)
-        elif (self.__is_charge_model):
-            result = self.__model(
-                batch.to_dict(), compute_virials=self.__calculate_virial,
-                charge_cv_expr=self.__charge_cv_expr,
-                compute_total_charge_gradients=self.__tc_gradients)
-        else:
-            result = self.__model(batch.to_dict(),
-                                  compute_virials=self.__calculate_virial)
+        batch = next(iter(data_loader)).to(self.__device).to_dict()
+        outputs = self.__model(batch, training=False, compute_force=False,
+                               compute_virials=False, compute_stress=False,
+                               compute_displacement=self.__calculate_virial)
+        if (self.__is_charge_model):
+            charge_cv_value = [self.__charge_cv_expr(outputs['charges'])]
+            charge_cv_value = self.__torch.stack(charge_cv_value, dim=-1)
+            charge_cv_gradients = self.__torch.autograd.grad(
+                outputs=[charge_cv_value],
+                inputs=[batch['positions']],
+                grad_outputs=self.__grad_outputs,
+                retain_graph=True,
+                create_graph=False,
+                allow_unused=True)
+            charge_cv_gradients = charge_cv_gradients[0]
+            if (self.__tc_gradients):
+                total_charge_gradients = self.__torch.autograd.grad(
+                    outputs=[outputs['total_charge']],
+                    inputs=[batch['positions']],
+                    grad_outputs=self.__grad_outputs,
+                    retain_graph=True,
+                    create_graph=False,
+                    allow_unused=True)
+                total_charge_gradients = total_charge_gradients[0]
         if (not self.__charge_only):
-            energy = result['energy'].detach().cpu().numpy()
+            if (self.__calculate_virial):
+                forces, virial = self.__torch.autograd.grad(
+                    outputs=[outputs['energy']],
+                    inputs=[batch['positions'], outputs['displacement']],
+                    grad_outputs=self.__grad_outputs,
+                    retain_graph=False,
+                    create_graph=False,
+                    allow_unused=True)
+            else:
+                forces = self.__torch.autograd.grad(
+                    outputs=[outputs['energy']],
+                    inputs=[batch['positions']],
+                    grad_outputs=self.__grad_outputs,
+                    retain_graph=False,
+                    create_graph=False,
+                    allow_unused=True)
+                forces = forces[0]
+            if (self.__calculate_virial and (virial is None)):
+                raise RuntimeError('Can not calculate virial!')
+            if (forces is None):
+                raise RuntimeError('Can not calculate forces!')
+        if (not self.__charge_only):
+            energy = outputs['energy'].detach().cpu().numpy()
             self.energy_potential[0] = energy * self.__energy_unit
-            forces = result['forces'].detach().cpu().numpy()
+            forces = forces.detach().cpu().numpy() * -1
             self.forces[:] = forces * self.__energy_unit / self.__length_unit
         if (self.__calculate_virial):
-            virial = result['virials'].detach().cpu().numpy()
+            virial = virial.detach().cpu().numpy() * -1
             self.virial[:] = virial * self.__energy_unit
         if (self.__is_charge_model):
-            charge_cv_value = result['charge_cv'].detach().cpu().numpy()
+            charge_cv_value = charge_cv_value.detach().cpu().numpy()
             self.__extra_cv_values[0, :] = charge_cv_value
-            gradients = result['charge_cv_gradients'].detach().cpu().numpy()
+            gradients = charge_cv_gradients.detach().cpu().numpy()
             self.__extra_cv_gradients[0, :] = gradients / self.__length_unit
-            total_charge = result['total_charge'].detach().cpu().numpy()
+            total_charge = outputs['total_charge'].detach().cpu().numpy()
             self.__extra_cv_values[1, :] = total_charge
             if (self.__tc_gradients):
-                gradients = result['total_charge_gradients']
-                gradients = gradients.detach().cpu().numpy()
+                gradients = total_charge_gradients.detach().cpu().numpy()
                 gradients = gradients / self.__length_unit
                 self.__extra_cv_gradients[1, :] = gradients
 
