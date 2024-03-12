@@ -47,6 +47,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
     cv_names : List[dict]
         Names and components of the collective variables to save. For example:
         cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
+    extra_cv_potential_index : int
+        Index of the potential calculator for reading extra CV gradients from.
 
     References
     ----------
@@ -64,7 +66,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                  temperature: float = None,
                  restart: bool = False,
                  output_prefix: str = None,
-                 cv_names: list = []) -> None:
+                 cv_names: list = [],
+                 extra_cv_potential_index: int = None) -> None:
         """
         Create a PLUMED instance.
         """
@@ -89,27 +92,33 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
             log_file = _os.devnull
         else:
             log_file = output_prefix + '.log'
-        self.__plumed.cmd("setMDEngine", "SOMD")
-        self.__plumed.cmd("setMDTimeUnits", 1.0)
-        self.__plumed.cmd("setMDMassUnits", 1.0)
-        self.__plumed.cmd("setMDEnergyUnits", 1.0)
-        self.__plumed.cmd("setMDLengthUnits", 1.0)
-        self.__plumed.cmd("setMDChargeUnits", 1.0)
-        self.__plumed.cmd("setRestart", restart)
-        self.__plumed.cmd("setTimestep", timestep)
-        self.__plumed.cmd("setPlumedDat", file_name)
-        self.__plumed.cmd("setNatoms", len(atom_list))
-        self.__plumed.cmd("setLogFile", log_file)
+        self.__plumed.cmd('setMDEngine', 'SOMD')
+        self.__plumed.cmd('setMDTimeUnits', 1.0)
+        self.__plumed.cmd('setMDMassUnits', 1.0)
+        self.__plumed.cmd('setMDEnergyUnits', 1.0)
+        self.__plumed.cmd('setMDLengthUnits', 1.0)
+        self.__plumed.cmd('setMDChargeUnits', 1.0)
+        self.__plumed.cmd('setRestart', restart)
+        self.__plumed.cmd('setTimestep', timestep)
+        self.__plumed.cmd('setPlumedDat', file_name)
+        self.__plumed.cmd('setNatoms', len(atom_list))
+        self.__plumed.cmd('setLogFile', log_file)
         if (temperature is not None):
             kb_T = temperature * _mdutils.constants.BOLTZCONST
-            self.__plumed.cmd("setKbT", kb_T)
-        self.__plumed.cmd("init")
-        self.__set_up_cv(cv_names)
+            self.__plumed.cmd('setKbT', kb_T)
+        if (extra_cv_potential_index is not None):
+            self.__extra_cv_checked = False
+            self.__extra_cv_index = extra_cv_potential_index
+        else:
+            self.__extra_cv_checked = False
+            self.__extra_cv_index = None
+        self.__plumed.cmd('init')
+        self.__set_up_cvs(cv_names)
         self.__restart = restart
         self.__stop_flag = _np.zeros(1, dtype=_np.int64)
         self.__step = 1
 
-    def __set_up_cv(self, cv_names: list) -> None:
+    def __set_up_cvs(self, cv_names: list) -> None:
         """
         Set up collective variables data.
 
@@ -128,7 +137,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                           'one item!'
                 raise RuntimeError(message)
             name = list(cv.keys())[0]
-            if (type(cv[name]) == str):
+            if (type(cv[name]) is str):
                 data = _np.zeros(1, dtype=_np.double)
                 if (cv[name] == ''):
                     command = 'setMemoryForData ' + name
@@ -139,6 +148,50 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
             else:
                 message = 'Type of CV components should be str!'
                 raise RuntimeError(message)
+
+    def __check_extra_cv(self, system: _mdcore.systems.MDSYSTEM):
+        """
+        Check the extra CV setup.
+
+        Parameters
+        ----------
+        system : somd.core.systems.MDSYSTEM
+            The simulated system.
+        """
+        potential = system.potentials[self.__extra_cv_index]
+        if (not hasattr(potential, 'extra_cv_names')):
+            message = 'Potential {:d} can not be used to calculate extra CV!'
+            raise RuntimeError(message.format(self.__extra_cv_index))
+        if (potential.extra_cv_names is None):
+            message = 'Potential {:d} can not be used to calculate extra CV!'
+            raise RuntimeError(message.format(self.__extra_cv_index))
+        if (potential.atom_list.tolist() != self.atom_list.tolist()):
+            message = 'The extra CV calculator (potential {:d}) and the ' + \
+                      'PLUMED interface act on different atoms!'
+            raise RuntimeError(message.format(self.__extra_cv_index))
+
+    def __set_up_extra_cvs(self, system: _mdcore.systems.MDSYSTEM):
+        """
+        Set up the extra CVs.
+
+        Parameters
+        ----------
+        system : somd.core.systems.MDSYSTEM
+            The simulated system.
+        """
+        self.__check_extra_cv(system)
+        potential = system.potentials[self.__extra_cv_index]
+        cv_shape = (len(potential.extra_cv_names), 1)
+        self.__extra_cv_values = _np.zeros(cv_shape, dtype=_np.double)
+        self.__extra_cv_forces = _np.zeros(cv_shape, dtype=_np.double)
+        for i in range(0, cv_shape[0]):
+            cmd = 'setExtraCV {:s}'.format(potential.extra_cv_names[i])
+            self.__plumed.cmd(cmd, self.__extra_cv_values[i])
+            cmd = 'setExtraCVForce {:s}'.format(potential.extra_cv_names[i])
+            self.__plumed.cmd(cmd, self.__extra_cv_forces[i])
+            message = 'Extra CV "{:s}" has been added to PLUMED.'
+            _mdutils.warning.warn(message.format(potential.extra_cv_names[i]))
+        self.__extra_cv_checked = True
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -151,16 +204,28 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         self.forces[:] = 0.0
         self.virial[:] = 0.0
-        self.__plumed.cmd("setStep", self.__step)
-        self.__plumed.cmd("setVirial", self.virial)
-        self.__plumed.cmd("setForces", self.forces)
-        self.__plumed.cmd("setBox", system.box)
-        self.__plumed.cmd("setPositions", system.positions)
-        self.__plumed.cmd("setMasses", system.masses.reshape(-1))
-        self.__plumed.cmd("setStopFlag", self.__stop_flag)
-        self.__plumed.cmd("prepareCalc")
-        self.__plumed.cmd("performCalc")
-        self.__plumed.cmd("getBias", self.energy_potential)
+        if (self.__extra_cv_index is not None):
+            if (not self.__extra_cv_checked):
+                self.__set_up_extra_cvs(system)
+            n_extra_cvs = len(self.__extra_cv_values)
+            potential = system.potentials[self.__extra_cv_index]
+            self.__extra_cv_values[:] = potential.extra_cv_values[:n_extra_cvs]
+            self.__extra_cv_forces[:] = 0
+        self.__plumed.cmd('setStep', self.__step)
+        self.__plumed.cmd('setVirial', self.virial)
+        self.__plumed.cmd('setForces', self.forces)
+        self.__plumed.cmd('setBox', system.box)
+        self.__plumed.cmd('setPositions', system.positions)
+        self.__plumed.cmd('setMasses', system.masses.reshape(-1))
+        self.__plumed.cmd('setStopFlag', self.__stop_flag)
+        self.__plumed.cmd('prepareCalc')
+        self.__plumed.cmd('performCalc')
+        self.__plumed.cmd('getBias', self.energy_potential)
+        if (self.__extra_cv_index is not None):
+            potential = system.potentials[self.__extra_cv_index]
+            for i in range(0, len(self.__extra_cv_values)):
+                cv_forces = self.__extra_cv_forces[i]
+                self.forces[:] += cv_forces * potential.extra_cv_gradients[i]
         self.virial[:] *= -1.0
         self.__step += 1
 
@@ -231,3 +296,19 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         Saved collective variable values.
         """
         return _np.concatenate(self.__cv_values)
+
+    @property
+    def extra_cv_potential_index(self) -> int:
+        """
+        Index of the potential calculator for reading extra CV gradients from.
+        """
+        return self.__extra_cv_index
+
+    @extra_cv_potential_index.setter
+    def extra_cv_potential_index(self, v: int) -> int:
+        """
+        Set index of the potential calculator for reading extra CV gradients
+        from.
+        """
+        self.__extra_cv_checked = False
+        self.__extra_cv_index = v

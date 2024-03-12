@@ -55,7 +55,7 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
                  append: bool = False,
                  delimiter: str = ' , ',
                  potential_list: list = None,
-                 format_str: str = '{:-10.5e}') -> None:
+                 format_str: str = '{:-15.10e}') -> None:
         """
         Create a DEFAULTCSVLOGGER instance.
         """

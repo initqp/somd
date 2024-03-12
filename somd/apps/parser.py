@@ -103,7 +103,12 @@ class TOMLPARSER(object):
         'use_tabulating': __value__([bool], False, __dep__('type', ['nep'])),
         'device': __value__([str], False, __dep__('type', ['mace'])),
         'energy_unit': __value__([float], False, __dep__('type', ['mace'])),
-        'length_unit': __value__([float], False, __dep__('type', ['mace']))
+        'length_unit': __value__([float], False, __dep__('type', ['mace'])),
+        'model_dtype': __value__([str], False, __dep__('type', ['mace'])),
+        'virial': __value__([bool], False, __dep__('type', ['mace'])),
+        'charge_cv_expr': __value__([str], False, __dep__('type', ['mace'])),
+        'extra_cv_potential_index': __value__([int], False,
+                                              __dep__('type', ['plumed']))
     }
     __parameters__['group'] = {
         'atom_list': __value__([list, str], True, None),
@@ -678,10 +683,23 @@ class TOMLPARSER(object):
             length_unit = 0.1
         else:
             length_unit = inp['length_unit']
+        if (inp['model_dtype'] is None):
+            model_dtype = 'float64'
+        else:
+            model_dtype = inp['model_dtype']
+        if (inp['virial'] is None):
+            calculate_virial = True
+        else:
+            calculate_virial = inp['virial']
+        if (inp['charge_cv_expr'] is None):
+            charge_cv_expr = None
+        else:
+            charge_cv_expr = eval(inp['charge_cv_expr'])
         atom_types = self.__system.atomic_types[atom_list]
         return _potentials.MACE.generator(atom_list, inp['file_name'],
                                           atom_types, device, energy_unit,
-                                          length_unit)
+                                          length_unit, model_dtype,
+                                          calculate_virial, charge_cv_expr)
 
     def __parse_potential_plumed(self,
                                  inp: dict,
@@ -704,6 +722,9 @@ class TOMLPARSER(object):
             The atom list.
         potential_index : int
             Index of this potential.
+        extra_cv_potential_index : int
+            Index of the potential calculator for reading extra CV gradients
+            from.
         """
         if (len(atom_list) != self.__system.n_atoms):
             message = 'The PLUMED potential must act on the whole system!'
@@ -711,9 +732,9 @@ class TOMLPARSER(object):
         prefix = self.__root['run']['label'] + \
             '.plumed.pot_{:d}'.format(potential_index)
         if_restart = bool(self.__root['run']['restart_from'])
-        return _potentials.PLUMED.generator(atom_list, inp['file_name'],
-                                            timestep, temperature, if_restart,
-                                            prefix)
+        return _potentials.PLUMED.generator(
+            atom_list, inp['file_name'], timestep, temperature, if_restart,
+            prefix, extra_cv_potential_index=inp["extra_cv_potential_index"])
 
     def __parse_potential(self,
                           inp: dict,

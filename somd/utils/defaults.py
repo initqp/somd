@@ -37,4 +37,4 @@ LATTICETOL: float = 1E-7
 SIMUUPDATE: bool = False
 
 # Timeout for any SIESTA operations (second).
-SIESTATIMEOUT: int = 120
+SIESTATIMEOUT: int = 540
