@@ -107,8 +107,8 @@ class TOMLPARSER(object):
         'model_dtype': __value__([str], False, __dep__('type', ['mace'])),
         'virial': __value__([bool], False, __dep__('type', ['mace'])),
         'charge_cv_expr': __value__([str], False, __dep__('type', ['mace'])),
-        'total_charge_gradients': __value__([bool], False,
-                                            __dep__('type', ['mace'])),
+        'extra_cv_potential_index': __value__([int], False,
+                                              __dep__('type', ['plumed']))
     }
     __parameters__['group'] = {
         'atom_list': __value__([list, str], True, None),
@@ -699,18 +699,14 @@ class TOMLPARSER(object):
         return _potentials.MACE.generator(atom_list, inp['file_name'],
                                           atom_types, device, energy_unit,
                                           length_unit, model_dtype,
-                                          calculate_virial, charge_cv_expr,
-                                          bool(inp['total_charge_gradients']))
+                                          calculate_virial, charge_cv_expr)
 
     def __parse_potential_plumed(self,
                                  inp: dict,
                                  timestep: float,
                                  temperature: float,
                                  atom_list: list,
-                                 potential_index: int,
-                                 extra_cv_names: int = [],
-                                 extra_cv_potential_index: int = None
-                                 ) -> _tp.Callable:
+                                 potential_index: int) -> _tp.Callable:
         """
         Parse the PLUMED potential options.
 
@@ -726,8 +722,6 @@ class TOMLPARSER(object):
             The atom list.
         potential_index : int
             Index of this potential.
-        extra_cv_names : List[str]
-            Names of the extra CVs.
         extra_cv_potential_index : int
             Index of the potential calculator for reading extra CV gradients
             from.
@@ -740,8 +734,7 @@ class TOMLPARSER(object):
         if_restart = bool(self.__root['run']['restart_from'])
         return _potentials.PLUMED.generator(
             atom_list, inp['file_name'], timestep, temperature, if_restart,
-            prefix, extra_cv_names=extra_cv_names,
-            extra_cv_potential_index=extra_cv_potential_index)
+            prefix, extra_cv_potential_index=inp["extra_cv_potential_index"])
 
     def __parse_potential(self,
                           inp: dict,
@@ -827,29 +820,6 @@ class TOMLPARSER(object):
                 table['type'].lower(),
                 self.__parse_potential(table, index, timestep, temperature)
             ))
-        # Set up charge CV.
-        has_charge_model = False
-        for index, table in enumerate(self.__root['potential']):
-            table = self.__normalize_table(table, 'potential')
-            if (table['type'].lower() == 'mace'):
-                if (table['charge_cv_expr'] is not None):
-                    if (has_charge_model):
-                        message = 'Multiple charge model is not supported!'
-                        raise RuntimeError(message)
-                    else:
-                        has_charge_model = True
-                        charge_model_index = index
-        if (has_charge_model):
-            items = zip(self.__root['potential'], self.__potential_generators)
-            for index, (table, generator) in enumerate(items):
-                if (generator[0] == 'plumed'):
-                    table = self.__normalize_table(table, 'potential')
-                    atom_list = list(range(0, self.__system.n_atoms))
-                    new_generator = self.__parse_potential_plumed(
-                        table, timestep, temperature, atom_list,
-                        index, ['CHARGECV', 'TOTALCHARGE'], charge_model_index)
-                    item = ('plumed', new_generator)
-                    self.__potential_generators[index] = item
 
     def __parse_constraints(self) -> None:
         """

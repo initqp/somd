@@ -55,8 +55,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
     charge_cv_expr : Callable
         Expression of the charge CV. This option will only work when your MACE
         model is a charge model.
-    calculate_total_charge_gradients : bool
-        If calculate gradients of the total charge.
 
     References
     ----------
@@ -74,8 +72,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                  length_unit: float = 0.1,
                  model_dtype: str = 'float64',
                  calculate_virial: bool = True,
-                 charge_cv_expr: _tp.Callable = None,
-                 calculate_total_charge_gradients: bool = False) -> None:
+                 charge_cv_expr: _tp.Callable = None) -> None:
         """
         Create a MACE instance.
         """
@@ -83,6 +80,10 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         self.__energy_unit = energy_unit
         self.__length_unit = length_unit
         self.__calculate_virial = calculate_virial
+        self.__charge_only = False
+        self.__is_charge_model = False
+        self.__extra_cv_values = None
+        self.__extra_cv_gradients = None
         self.__atomic_types = _np.array(atomic_types, dtype=int).reshape(-1)
         self.__input_pbc = _np.array([True] * 3, dtype=bool)
         self.__input_forces = _np.zeros((len(atom_list), 3), dtype=float)
@@ -132,32 +133,24 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
         self.__grad_outputs = [self.__torch.ones(1).to(self.__device)]
-        if (model._get_name() in ['EnergyChargesMACE', 'AtomicsChargesMACE']):
+        if (model._get_name() in ['EnergyChargesMACE', 'AtomicChargesMACE']):
             if (charge_cv_expr is not None):
+                self.__is_charge_model = True
+                if (model._get_name() == 'AtomicChargesMACE'):
+                    self.__charge_only = True
                 self.__charge_cv_expr = charge_cv_expr
                 self.__extra_cv_values = _np.zeros((2, 1), dtype=_np.double)
                 self.__extra_cv_gradients = _np.zeros((2, len(atom_list), 3),
                                                       dtype=_np.double)
-                self.__is_charge_model = True
-                if (not calculate_total_charge_gradients):
-                    message = 'Total charge gradients will NOT be ' + \
-                              'calculated as required!'
-                    _warn(message)
-                self.__tc_gradients = calculate_total_charge_gradients
-                if (model._get_name() == 'AtomicsChargesMACE'):
-                    self.__charge_only = True
-                else:
-                    self.__charge_only = False
+                message = 'Total charge gradients will NOT be calculated ' + \
+                          'inside SOMD!'
+                _warn(message)
             else:
                 message = 'Your MACE model is a charge model, but no ' + \
                           'charge CV expersion was given! Will not ' + \
                           'calculate charge CV!'
                 _warn(message)
-                self.__is_charge_model = False
-                self.__charge_only = False
         else:
-            self.__charge_only = False
-            self.__is_charge_model = False
             if (charge_cv_expr is not None):
                 message = 'Your MACE model is not a charge model, but a ' + \
                           'charge CV expersion was given! Will not ' + \
@@ -212,15 +205,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 create_graph=False,
                 allow_unused=True)
             charge_cv_gradients = charge_cv_gradients[0]
-            if (self.__tc_gradients):
-                total_charge_gradients = self.__torch.autograd.grad(
-                    outputs=[outputs['total_charge']],
-                    inputs=[batch['positions']],
-                    grad_outputs=self.__grad_outputs,
-                    retain_graph=True,
-                    create_graph=False,
-                    allow_unused=True)
-                total_charge_gradients = total_charge_gradients[0]
         if (not self.__charge_only):
             if (self.__calculate_virial):
                 forces, virial = self.__torch.autograd.grad(
@@ -258,10 +242,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             self.__extra_cv_gradients[0, :] = gradients / self.__length_unit
             total_charge = outputs['total_charge'].detach().cpu().numpy()
             self.__extra_cv_values[1, :] = total_charge
-            if (self.__tc_gradients):
-                gradients = total_charge_gradients.detach().cpu().numpy()
-                gradients = gradients / self.__length_unit
-                self.__extra_cv_gradients[1, :] = gradients
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -276,30 +256,25 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         return lambda x=tuple(args), y=kwargs: cls(*x, **y)
 
     @property
-    def is_charge_model(self) -> bool:
+    def extra_cv_names(self) -> bool:
         """
-        If this model is a charge model.
+        Name of the charge CV.
         """
-        return self.__is_charge_model
+        if (self.__is_charge_model):
+            return ['CHARGECV', 'TOTALCHARGE']
+        else:
+            return None
 
     @property
     def extra_cv_values(self) -> _np.ndarray:
         """
         The charge CV.
         """
-        if (self.__is_charge_model):
-            return self.__extra_cv_values
-        else:
-            message = 'The MACE model is not a charge model!'
-            raise RuntimeError(message)
+        return self.__extra_cv_values
 
     @property
     def extra_cv_gradients(self) -> _np.ndarray:
         """
         Gradients of the charge CV.
         """
-        if (self.__is_charge_model):
-            return self.__extra_cv_gradients
-        else:
-            message = 'The MACE model is not a charge model!'
-            raise RuntimeError(message)
+        return self.__extra_cv_gradients
