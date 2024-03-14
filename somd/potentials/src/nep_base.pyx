@@ -26,6 +26,7 @@ from nep cimport NEP3
 
 __all__ = ['NEPWRAPPER']
 
+
 cdef class NEPWRAPPER(object):
     """
     Wrapper of the neuroevolution potential, version 3 [1].
@@ -98,9 +99,11 @@ cdef class NEPWRAPPER(object):
             if (not is_valid):
                 raise RuntimeError('Unknown element: ' + atomic_symbols[i])
 
-    cdef void __copy_input_data(self,
-                                positions: double[:, :],
-                                box: double[:, :]):
+    cdef void __copy_input_data(
+        self,
+        positions: double[:, :],
+        box: double[:, :]
+    ):
        """ Copy and transpose the position and box data. """
        cdef int i = 0
        for i in range(0, self.__n_atoms):
@@ -117,9 +120,11 @@ cdef class NEPWRAPPER(object):
        self.__cxx_box_vec[7] = box[1, 2]
        self.__cxx_box_vec[8] = box[2, 2]
 
-    cdef double __copy_output_data(self,
-                                   forces: double[:, :],
-                                   virial: double[:, :]):
+    cdef double __copy_output_data(
+        self,
+        forces: double[:, :],
+        virial: double[:, :]
+    ):
        """ Calculate and return the total energy, force and virial data. """
        cdef int i = 0
        cdef double energy = 0
@@ -149,11 +154,13 @@ cdef class NEPWRAPPER(object):
         """ NEP types of each atom. """
         return self.__cxx_type_vec
 
-    def calculate(self,
-                  box: double[:, :],
-                  positions: double[:, :],
-                  forces: double[:, :],
-                  virial: double[:, :]) -> double:
+    def calculate(
+        self,
+        box: double[:, :],
+        positions: double[:, :],
+        forces: double[:, :],
+        virial: double[:, :]
+    ) -> double:
         """
         Perform the NEP calculation.
 
@@ -173,12 +180,14 @@ cdef class NEPWRAPPER(object):
             The total virial tensor. In unit of (eV).
         """
         self.__copy_input_data(positions, box)
-        self.__cxx_obj_ptr.compute(self.__cxx_type_vec,
-                                   self.__cxx_box_vec,
-                                   self.__cxx_position_vec,
-                                   self.__cxx_energy_vec,
-                                   self.__cxx_force_vec,
-                                   self.__cxx_virial_vec)
+        self.__cxx_obj_ptr.compute(
+            self.__cxx_type_vec,
+            self.__cxx_box_vec,
+            self.__cxx_position_vec,
+            self.__cxx_energy_vec,
+            self.__cxx_force_vec,
+            self.__cxx_virial_vec
+        )
         return self.__copy_output_data(forces, virial)
 
     def dealloc(self) -> None:

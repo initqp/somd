@@ -25,6 +25,7 @@ from nhc cimport NHC
 
 __all__ = ['NHCHAINS']
 
+
 cdef class NHCHAINS(object):
     """
     Define Nose-Hoover Chains [1].
@@ -38,12 +39,14 @@ cdef class NHCHAINS(object):
     # Pointer to the internal C++ object.
     cdef NHC *__cxx_obj_ptr
 
-    def __cinit__(self,
-                  temperature: double,
-                  tau: double,
-                  n_bead: int,
-                  n_dof: int,
-                  n_respa: int) -> None:
+    def __cinit__(
+        self,
+        temperature: double,
+        tau: double,
+        n_bead: int,
+        n_dof: int,
+        n_respa: int
+    ) -> None:
         """
         Initialize the Nose-Hoover chains.
 
@@ -78,8 +81,13 @@ cdef class NHCHAINS(object):
         """
         Clone the chains.
         """
-        result = NHCHAINS(self.temperature, self.tau, self.length, self.n_dof,
-                          self.n_respa)
+        result = NHCHAINS(
+            self.temperature,
+            self.tau,
+            self.length,
+            self.n_dof,
+            self.n_respa
+        )
         result.positions = self.positions
         result.momentums = self.momentums
         return result
