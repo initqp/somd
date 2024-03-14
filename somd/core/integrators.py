@@ -316,6 +316,16 @@ class INTEGRATOR(object):
         exec(s, scope)
         self.propagate = _ts.MethodType(scope['propagate'], self)
 
+    def __remove_com_motions(self) -> None:
+        """
+        Remove the COM motions.
+        """
+        for i in self.__cmm_remover_groups:
+            g = self.__system.groups[i]
+            self.energy_effective += g.energy_kinetic
+            g.remove_com_motion(self.__is_nve)
+            self.energy_effective -= g.energy_kinetic
+
     def _randomize_nhchains_states(self) -> None:
         """
         Randomize momentums of the Nose-Hoover chains.
@@ -336,11 +346,7 @@ class INTEGRATOR(object):
         self.__system.velocities[:, :] += (
             self.__system.forces / self.__system.masses
         ).dot(dt)
-        for i in self.__cmm_remover_groups:
-            g = self.__system.groups[i]
-            self.energy_effective += g.energy_kinetic
-            g.remove_com_motion(self.__is_nve)
-            self.energy_effective -= g.energy_kinetic
+        self.__remove_com_motions()
 
     def _operator_R(self, dt_index: int) -> None:
         """
@@ -362,6 +368,7 @@ class INTEGRATOR(object):
         """
         dt = self.__timesteps[dt_index]
         self.__system.constraints.rattle_constrain_p(dt)
+        self.__remove_com_motions()
 
     def _operator_F(self, dt_index: int) -> None:
         """
@@ -373,9 +380,9 @@ class INTEGRATOR(object):
         """
         Propagate the Ornstein-Uhlenbeck process.
         """
+        # fmt: off
         dt = self.__timesteps[dt_index]
         for i in range(0, len(self.__thermo_groups)):
-            # fmt: off
             g = self.__system.groups[self.__thermo_groups[i]]
             self.__energy_effective += g.energy_kinetic
             c_1 = _np.exp(-1.0 * dt / self.__relaxation_times[i])
@@ -389,7 +396,8 @@ class INTEGRATOR(object):
                 self.__randn((g.n_atoms, 3)).dot(c_2) / _np.sqrt(g.masses)
             )
             self.__energy_effective -= g.energy_kinetic
-            # fmt: on
+        self.__remove_com_motions()
+        # fmt: on
 
     def _operator_N(self, dt_index: int) -> None:
         """
@@ -402,6 +410,7 @@ class INTEGRATOR(object):
             self.__energy_effective += energy_kinetic
             g.velocities *= self.__nhchains[i].propagate(energy_kinetic, dt)
             self.__energy_effective -= g.energy_kinetic
+        self.__remove_com_motions()
 
     def _operator_B(self, dt_index: int) -> None:
         """
@@ -434,6 +443,7 @@ class INTEGRATOR(object):
             ) * 2.0 * r_1
             g.velocities *= _np.sqrt(1 + (term_1 + term_2) / energy_kinetic)
             self.__energy_effective -= g.energy_kinetic
+        self.__remove_com_motions()
         # fmt: on
 
     def bind_system(self, system: _MDSYSTEM) -> None:
