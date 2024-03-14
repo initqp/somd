@@ -98,7 +98,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
 
     def __init__(
         self,
-        atom_list: list,
+        atom_list: _tp.List[int],
         system: _mdcore.systems.MDSYSTEM,
         siesta_options: str,
         siesta_command: str = 'siesta',
@@ -161,7 +161,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
 
     def __create_siesta_input(
         self,
-        atom_list: list,
+        atom_list: _tp.List[int],
         system: _mdcore.systems.MDSYSTEM,
         siesta_options: str,
         label: str = 'somd_tmp',

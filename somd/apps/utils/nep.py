@@ -23,6 +23,7 @@ NEP utils.
 import os as _os
 import re as _re
 import numpy as _np
+import typing as _tp
 from somd import core as _mdcore
 
 __all__ = [
@@ -34,7 +35,7 @@ __all__ = [
 ]
 
 
-def cat_exyz(set_in: list, set_out: str) -> None:
+def cat_exyz(set_in: _tp.List[str], set_out: str) -> None:
     """
     Combine two EXYZ training sets.
 
@@ -56,7 +57,8 @@ def cat_exyz(set_in: list, set_out: str) -> None:
 
 
 def get_potentials_msd(
-    potentials: list, system: _mdcore.systems.MDSYSTEM
+    potentials: _tp.List[_mdcore.potential_base.POTENTIAL],
+    system: _mdcore.systems.MDSYSTEM
 ) -> float:
     """
     Return the maximum standard deviation of the forces calculated by
@@ -104,7 +106,7 @@ def get_loss(file_name: str) -> list:
     return [float(i) for i in loss if i != '']
 
 
-def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
+def check_nep_parameters(nep_parameters: str, symbols: _tp.List[str]) -> bool:
     """
     Check the NEP training parameters.
 
@@ -141,7 +143,7 @@ def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
     return write_symbols
 
 
-def make_nep_in(nep_parameters: str, symbols: list = None) -> None:
+def make_nep_in(nep_parameters: str, symbols: _tp.List[str] = None) -> None:
     """
     Write the nep.in file.
 

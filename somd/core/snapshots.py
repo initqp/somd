@@ -21,6 +21,7 @@ The minimal snapshot of a system.
 """
 
 import numpy as _np
+import typing as _tp
 
 __all__ = ['SNAPSHOT']
 
@@ -171,7 +172,7 @@ class SNAPSHOT(object):
         return result
 
     @lattice.setter
-    def lattice(self, l: list) -> None:
+    def lattice(self, l: _tp.List[float]) -> None:
         """
         Set lattice parameters of the cell.
 

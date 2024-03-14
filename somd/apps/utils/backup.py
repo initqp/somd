@@ -22,11 +22,12 @@ Helper functions for backing up files.
 
 import os as _os
 import re as _re
+import typing as _tp
 
 __all__ = ['back_up']
 
 
-def __find_max_backup_number(base_name: str, file_list: list) -> int:
+def __find_max_backup_number(base_name: str, file_list: _tp.List[str]) -> int:
     """
     Find maximum backup number of the file with a given base name.
 

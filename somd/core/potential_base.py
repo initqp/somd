@@ -22,6 +22,7 @@ Base class of all potentials calculators.
 
 import abc as _ab
 import numpy as _np
+import typing as _tp
 import atexit as _ae
 from .systems import MDSYSTEM as _MDSYSTEM
 
@@ -38,7 +39,7 @@ class POTENTIAL(_ab.ABC):
         Indices of atoms included by this potential.
     """
 
-    def __init__(self, atom_list: list) -> None:
+    def __init__(self, atom_list: _tp.List[int]) -> None:
         """
         Create a POTENTIAL instance.
         """

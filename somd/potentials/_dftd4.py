@@ -1,4 +1,5 @@
 import numpy as _np
+import typing as _tp
 from somd import core as _mdcore
 from somd.utils import constants as _c
 
@@ -31,8 +32,8 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
 
     def __init__(
         self,
-        atom_list: list,
-        atomic_types: list,
+        atom_list: _tp.List[int],
+        atomic_types: _tp.List[int],
         method: str,
         total_charges: int = 0,
         atm: bool = False,

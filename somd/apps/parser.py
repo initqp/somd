@@ -252,13 +252,15 @@ class TOMLPARSER(object):
             message = 'One of the following tables must present: {}'
             raise RuntimeError(message.format(task_tables))
 
-    def __normalize_table(self, inp: dict, table_name: str) -> dict:
+    def __normalize_table(
+        self, inp: _tp.Dict[str, _tp.Any], table_name: str
+    ) -> _tp.Dict[str, _tp.Any]:
         """
         Check keys and their types of a table.
 
         Parameters
         ----------
-        inp : dict
+        inp :  Dict[str, Any]
             The input parameter table.
         table_name : str
             Name of the table.
@@ -331,7 +333,7 @@ class TOMLPARSER(object):
 
         Parameters
         ----------
-        inp: list(int) or str
+        inp: List[int] or str
             The atom list to be parsed.
         """
         if isinstance(inp, list):
@@ -641,16 +643,16 @@ class TOMLPARSER(object):
         self.__integrator = result
 
     def __parse_potential_siesta(
-        self, inp: dict, atom_list: list
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
         """
         Parse the SIESTA potential options.
 
         Parameters
         ----------
-        inp : dict
+        inp : Dict[str, Any]
             The dictionary that defines the SIESTA potential.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         """
         return _potentials.SIESTA.generator(
@@ -662,16 +664,16 @@ class TOMLPARSER(object):
         )
 
     def __parse_potential_dftd3(
-        self, inp: dict, atom_list: list
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
         """
         Parse the DFTD3 potential options.
 
         Parameters
         ----------
-        inp: dict
+        inp: Dict[str, Any]
             The dictionary that defines the DFTD3 potential.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         """
         if inp['damping'] is None:
@@ -684,16 +686,16 @@ class TOMLPARSER(object):
         )
 
     def __parse_potential_dftd4(
-        self, inp: dict, atom_list: list
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
         """
         Parse the DFTD4 potential options.
 
         Parameters
         ----------
-        inp: dict
+        inp: Dict[str, Any]
             The dictionary that defines the DFTD4 potential.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         """
         if inp['total_charge'] is None:
@@ -710,16 +712,16 @@ class TOMLPARSER(object):
         )
 
     def __parse_potential_nep(
-        self, inp: dict, atom_list: list
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
         """
         Parse the NEP potential options.
 
         Parameters
         ----------
-        inp: dict
+        inp: Dict[str, Any]
             The dictionary that defines the NEP potential.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         """
         atom_symbols = [self.__system.atomic_symbols[i] for i in atom_list]
@@ -731,16 +733,16 @@ class TOMLPARSER(object):
         )
 
     def __parse_potential_mace(
-        self, inp: dict, atom_list: list
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
         """
         Parse the MACE potential options.
 
         Parameters
         ----------
-        inp: dict
+        inp: Dict[str, Any]
             The dictionary that defines the DFTD3 potential.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         """
         if inp['device'] is None:
@@ -786,10 +788,10 @@ class TOMLPARSER(object):
 
     def __parse_potential_plumed(
         self,
-        inp: dict,
+        inp: _tp.Dict[str, _tp.Any],
         timestep: float,
         temperature: float,
-        atom_list: list,
+        atom_list: _tp.List[int],
         potential_index: int,
     ) -> _tp.Callable:
         """
@@ -797,13 +799,13 @@ class TOMLPARSER(object):
 
         Parameters
         ----------
-        inp: dict
+        inp: Dict[str, Any]
             The dictionary that defines the PLUMED potential.
         timestep: float
             The integration timestep.
         temperature: float
             The temperature of the thermostat.
-        atom_list : list(int)
+        atom_list : List[int]
             The atom list.
         potential_index : int
             Index of this potential.
@@ -829,20 +831,24 @@ class TOMLPARSER(object):
         )
 
     def __parse_potential(
-        self, inp: dict, index: int, timestep: float, temperature: float
+        self,
+        inp: _tp.Dict[str, _tp.Any],
+        index: int,
+        timestep: float,
+        temperature: float
     ) -> _tp.Callable:
         """
         Parse one potential with given index.
 
         Parameters
         ----------
-        inp : dict
+        inp : Dict[str, Any]
             Information about the potential.
         index : int
             Index of the potential.
         timestep : float
             Timestep of the integrator. In unit of (ps).
-        temperatures : list(float)
+        temperature : float
             Temperatures of the integrator. In unit of (K).
         """
         if inp['atom_list'] is None:
@@ -870,7 +876,10 @@ class TOMLPARSER(object):
         return generator
 
     def __parse_potentials(
-        self, timestep: float, temperatures: list, thermo_groups: list
+        self,
+        timestep: float,
+        temperatures: _tp.List[float],
+        thermo_groups: _tp.List[int]
     ) -> None:
         """
         Set up potentials in the simulated system.
@@ -879,9 +888,9 @@ class TOMLPARSER(object):
         ----------
         timestep : float
             Timestep of the integrator. In unit of (ps).
-        temperatures : list(float)
+        temperatures : List[float]
             Temperatures of the integrator. In unit of (K).
-        thermo_groups : list(int)
+        thermo_groups : List[int]
             The thermostated groups.
         """
         if len(temperatures) == 0:

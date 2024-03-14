@@ -25,6 +25,7 @@ import h5py as _h5
 import numpy as _np
 import pickle as _pl
 import base64 as _bs
+import typing as _tp
 from somd import core as _mdcore
 from somd import utils as _mdutils
 from . import utils as _apputils
@@ -79,7 +80,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         append: bool = False,
         restart_file: bool = False,
         use_double: bool = False,
-        potential_list: list = None,
+        potential_list: _tp.List[int] = None,
     ) -> None:
         """
         Create a H5WRITER instance.
@@ -443,7 +444,7 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         wrap_positions: bool = False,
         format_str: str = '{:-24.15e}',
         append: bool = False,
-        potential_list: list = None,
+        potential_list: _tp.List[int] = None,
         energy_shift: float = 0.0,
     ) -> None:
         """

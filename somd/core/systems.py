@@ -21,6 +21,7 @@ The simulated system.
 """
 
 import numpy as _np
+import typing as _tp
 import mdtraj as _md
 from threading import Thread as _Thread
 from somd import utils as _mdutils
@@ -95,7 +96,7 @@ class MDSYSTEM(object):
         return system
 
     def update_potentials(
-        self, indices: list = None, perform_calculations: bool = True
+        self, indices: _tp.List[int] = None, perform_calculations: bool = True
     ) -> None:
         """
         Invoke the force calculators.
@@ -262,7 +263,7 @@ class MDSYSTEM(object):
         return self.__snapshot.lattice
 
     @lattice.setter
-    def lattice(self, l: list) -> None:
+    def lattice(self, l: _tp.List[float]) -> None:
         """
         Set lattice parameters of the cell.
 

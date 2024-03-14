@@ -22,6 +22,7 @@ The active learning workflow of building a NEP model.
 
 import os as _os
 import numpy as _np
+import typing as _tp
 import shutil as _sh
 import random as _rn
 from somd import apps as _mdapps
@@ -47,7 +48,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         Generator functions of potential calculators.
     reference_potentials : List[int]
         Indices of the reference potentials.
-    learning_parameters : dict
+    learning_parameters : Dict[str, Any]
         The parameters that define a learning process. Valid keys of this
         dictionary are:
         - n_potentials : int
@@ -115,13 +116,13 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         self,
         system: _mdcore.systems.MDSYSTEM,
         integrator: _mdcore.integrators.INTEGRATOR,
-        potential_generators: list,
-        reference_potentials: list,
-        learning_parameters: dict,
+        potential_generators: _tp.List[_tp.Callable],
+        reference_potentials: _tp.List[int],
+        learning_parameters: _tp.Dict[str, _tp.Any],
         nep_parameters: str = '',
         nep_command: str = 'nep',
         use_tabulating: bool = False,
-        post_step_objects: list = [],
+        post_step_objects: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
         output_prefix: str = '',
     ) -> None:
         """
@@ -543,7 +544,11 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         self.root.flush()
         _os.chdir(cwd)
 
-    def __train(self, n_iter: int, restart_files: list = None) -> None:
+    def __train(
+        self,
+        n_iter: int,
+        restart_files: _tp.List[str] = None
+    ) -> None:
         """
         Train the model.
 

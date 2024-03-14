@@ -21,7 +21,8 @@ The integrators.
 """
 
 import numpy as _np
-import types as _tp
+import types as _ts
+import typing as _tp
 from somd import utils as _mdutils
 from ._lib import NHCHAINS as _NHCHAINS
 from .systems import MDSYSTEM as _MDSYSTEM
@@ -49,7 +50,7 @@ class INTEGRATOR(object):
     splitting : List[dict]
         A list of dict that describe the splitting scheme. Valid keys
         of the dictionary are:
-        - 'operators' : List[string]
+        - 'operators' : List[str]
             Name of the operators. Valid values are:
             - 'V'  : Advance the velocities
             - 'R'  : Advance the positions
@@ -103,10 +104,10 @@ class INTEGRATOR(object):
     def __init__(
         self,
         timestep: float,
-        splitting: list = [{'operators': ['V', 'R', 'V']}],
-        temperatures: list = [300],
-        relaxation_times: list = [0.1],
-        thermo_groups: list = [0],
+        splitting: _tp.List[dict] = [{'operators': ['V', 'R', 'V']}],
+        temperatures: _tp.List[float] = [300.0],
+        relaxation_times: _tp.List[float] = [0.1],
+        thermo_groups: _tp.List[int] = [0],
         rng: _np.random.Generator = None,
     ) -> None:
         """
@@ -313,7 +314,7 @@ class INTEGRATOR(object):
         s += '    self.step += 1\n'
         self.__timesteps = _np.array(t, dtype=_np.double)
         exec(s, scope)
-        self.propagate = _tp.MethodType(scope['propagate'], self)
+        self.propagate = _ts.MethodType(scope['propagate'], self)
 
     def _randomize_nhchains_states(self) -> None:
         """
@@ -560,14 +561,14 @@ class INTEGRATOR(object):
         self.__step = s
 
     @property
-    def splitting(self) -> dict:
+    def splitting(self) -> _tp.Dict[str, _tp.Any]:
         """
         The splitting scheme of the integrator.
         """
         return self.__splitting
 
     @property
-    def splitting_whole(self) -> dict:
+    def splitting_whole(self) -> _tp.Dict[str, _tp.Any]:
         """
         The expanded splitting scheme of the integrator.
         """
@@ -602,7 +603,7 @@ class INTEGRATOR(object):
             raise AttributeError(message)
 
     @temperatures.setter
-    def temperatures(self, t: list) -> None:
+    def temperatures(self, t: _tp.List[float]) -> None:
         """
         Set the temperatures of the thermostats.
         """
@@ -628,7 +629,7 @@ class INTEGRATOR(object):
             raise AttributeError(message)
 
     @relaxation_times.setter
-    def relaxation_times(self, t: list) -> None:
+    def relaxation_times(self, t: _tp.List[float]) -> None:
         """
         Set the relaxation times of the thermostats.
         """
@@ -781,9 +782,9 @@ def cs4_integrator(timestep: float) -> INTEGRATOR:
 
 def baoab_integrator(
     timestep: float,
-    temperatures: list = [300],
-    relaxation_times: list = [0.1],
-    thermo_groups: list = [0],
+    temperatures: _tp.List[float] = [300.0],
+    relaxation_times: _tp.List[float] = [0.1],
+    thermo_groups: _tp.List[int] = [0],
     rng: _np.random.Generator = None,
 ) -> INTEGRATOR:
     """
@@ -822,9 +823,9 @@ def baoab_integrator(
 
 def obabo_integrator(
     timestep: float,
-    temperatures: list = [300],
-    relaxation_times: list = [0.1],
-    thermo_groups: list = [0],
+    temperatures: _tp.List[float] = [300.0],
+    relaxation_times: _tp.List[float] = [0.1],
+    thermo_groups: _tp.List[int] = [0],
     rng: _np.random.Generator = None,
 ) -> INTEGRATOR:
     """
@@ -862,9 +863,9 @@ def obabo_integrator(
 
 def gbaoab_integrator(
     timestep: float,
-    temperatures: list = [300],
-    relaxation_times: list = [0.1],
-    thermo_groups: list = [0],
+    temperatures: _tp.List[float] = [300.0],
+    relaxation_times: _tp.List[float] = [0.1],
+    thermo_groups: _tp.List[int] = [0],
     rng: _np.random.Generator = None,
 ) -> INTEGRATOR:
     """
@@ -918,9 +919,9 @@ def gbaoab_integrator(
 
 def gobabo_integrator(
     timestep: float,
-    temperatures: list = [300],
-    relaxation_times: list = [0.1],
-    thermo_groups: list = [0],
+    temperatures: _tp.List[float] = [300.0],
+    relaxation_times: _tp.List[float] = [0.1],
+    thermo_groups: _tp.List[int] = [0],
     rng: _np.random.Generator = None,
 ) -> INTEGRATOR:
     """
@@ -971,9 +972,9 @@ def gobabo_integrator(
 
 def nhc_integrator(
     timestep: float,
-    temperatures: list = [300],
-    relaxation_times: list = [0.1],
-    thermo_groups: list = [0],
+    temperatures: _tp.List[float] = [300.0],
+    relaxation_times: _tp.List[float] = [0.1],
+    thermo_groups: _tp.List[int] = [0],
     rng: _np.random.Generator = None,
 ) -> INTEGRATOR:
     """

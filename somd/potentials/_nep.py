@@ -52,9 +52,9 @@ class NEP(_mdcore.potential_base.POTENTIAL):
 
     def __init__(
         self,
-        atom_list: list,
+        atom_list: _tp.List[int],
         file_name: str,
-        atomic_symbols: str,
+        atomic_symbols: _tp.List[str],
         use_tabulating: bool = False,
     ) -> None:
         """

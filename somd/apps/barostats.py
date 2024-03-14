@@ -21,6 +21,7 @@ The barostats.
 """
 
 import numpy as _np
+import typing as _tp
 from somd import core as _mdcore
 from . import utils as _apputils
 
@@ -58,7 +59,10 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
     """
 
     def __init__(
-        self, pressures: list, beta: list, relaxation_time: float
+        self,
+        pressures: _tp.List[float],
+        beta: _tp.List[float],
+        relaxation_time: float
     ) -> None:
         """
         Create a BAROSTAT instance.
@@ -185,7 +189,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         return self.__pressures
 
     @pressures.setter
-    def pressures(self, p: list) -> None:
+    def pressures(self, p: _tp.List[float]) -> None:
         """
         Set the target pressures of the barostat. In unit of (kJ/mol/nm^3).
         """
@@ -199,7 +203,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         return self.__beta
 
     @beta.setter
-    def beta(self, b: list) -> _np.ndarray:
+    def beta(self, b: _tp.List[float]) -> _np.ndarray:
         """
         Set the isothermal compressibilities. In unit of (nm^3/(kJ/mol)).
         """

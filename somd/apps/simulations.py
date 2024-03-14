@@ -22,6 +22,7 @@ import os as _os
 import abc as _ab
 import h5py as _h5
 import copy as _cp
+import typing as _tp
 import contextlib as _cl
 from somd import _version
 from somd import apps as _mdapps
@@ -55,8 +56,8 @@ class SIMULATION(object):
         system: _mdcore.systems.MDSYSTEM,
         integrator: _mdcore.integrators.INTEGRATOR,
         barostat: _mdapps.barostats.BAROSTAT = None,
-        trajectories: list = [],
-        loggers: list = [],
+        trajectories: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
+        loggers: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
     ) -> None:
         """
         Create a SIMULATION instance.
@@ -258,8 +259,8 @@ class STAGEDSIMULATION(_ab.ABC):
         self,
         system: _mdcore.systems.MDSYSTEM,
         integrator: _mdcore.integrators.INTEGRATOR,
-        potential_generators: list,
-        post_step_objects: list = [],
+        potential_generators: _tp.List[_tp.Callable],
+        post_step_objects: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
         output_prefix: str = 'staged_simulation',
     ) -> None:
         """
@@ -397,7 +398,8 @@ class STAGEDSIMULATION(_ab.ABC):
 
     @_cl.contextmanager
     def _set_up_simulation(
-        self, potential_indices: list, extra_potentials: list = []
+        self, potential_indices: _tp.List[int],
+        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = []
     ) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.

@@ -131,7 +131,7 @@ cdef class CONSTRAINTS(object):
             - 'type' : int
                 Type of this constraint: 0 for distance, 1 for angle and
                 2 for torsion.
-            - 'indices' : List(int)
+            - 'indices' : List[int]
                 Indices of atoms involved in this constraint.
             - 'target' : float
                 Target value of the constraint.

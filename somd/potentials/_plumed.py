@@ -61,13 +61,13 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
 
     def __init__(
         self,
-        atom_list: list,
+        atom_list: _tp.List[int],
         file_name: str,
         timestep: float,
         temperature: float = None,
         restart: bool = False,
         output_prefix: str = None,
-        cv_names: list = [],
+        cv_names: _tp.List[_tp.Dict[str, str]] = [],
         extra_cv_potential_index: int = None,
     ) -> None:
         """
@@ -128,13 +128,13 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__stop_flag = _np.zeros(1, dtype=_np.int64)
         self.__step = 1
 
-    def __set_up_cvs(self, cv_names: list) -> None:
+    def __set_up_cvs(self, cv_names: _tp.List[_tp.Dict[str, str]]) -> None:
         """
         Set up collective variables data.
 
         Parameters
         ----------
-        cv_names : List[dict]
+        cv_names : List[Dict[str, str]]
             Names and components of the collective variables to save. For
             example:
             cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]

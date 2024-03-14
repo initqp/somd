@@ -65,9 +65,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
 
     def __init__(
         self,
-        atom_list: list,
+        atom_list: _tp.List[int],
         file_name: str,
-        atomic_types: list,
+        atomic_types: _tp.List[int],
         device: str = 'cpu',
         energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
         length_unit: float = 0.1,

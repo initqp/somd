@@ -21,6 +21,7 @@ The simulation data loggers.
 """
 
 import os as _os
+import typing as _tp
 from somd import core as _mdcore
 from . import utils as _apputils
 
@@ -44,6 +45,9 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         If append to the old trajectory.
     delimiter : str
         The delimiter to use.
+    potential_list : List[int]
+        Index of the potentials whose forces and virial should be write to
+        the force and virial array in the log file.
     format_str : str
         The ascii data format string. E.g.: '{:-10.5e}'.
     """
@@ -51,11 +55,11 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
     def __init__(
         self,
         file_name: str,
-        groups: list = None,
+        groups: _tp.List[int] = None,
         interval: int = 1,
         append: bool = False,
         delimiter: str = ' , ',
-        potential_list: list = None,
+        potential_list: _tp.List[int] = None,
         format_str: str = '{:-15.10e}',
     ) -> None:
         """

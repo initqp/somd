@@ -50,7 +50,7 @@ class ATOMGROUP(object):
     def __init__(
         self,
         snapshot: _SNAPSHOT,
-        atom_list: list,
+        atom_list: _tp.List[int],
         label: str = None,
         n_dof_handler: _tp.Callable = None,
     ) -> None:
@@ -203,7 +203,7 @@ class ATOMGROUP(object):
         v *= _np.sqrt(temperature / t)
         self.velocities += v
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> _tp.Dict[str, _tp.Any]:
         """
         Output information about this group to a dictionary.
         """
@@ -540,13 +540,13 @@ class ATOMGROUPS(list):
         self.update_n_dof()
         return g
 
-    def create_from_dict(self, group_dict: dict) -> None:
+    def create_from_dict(self, group_dict: _tp.Dict[str, _tp.Any]) -> None:
         """
         Create a new atom group and append it to the groups.
 
         Parameters
         ----------
-        group_dict : dict
+        group_dict : Dict[str, Any]
             The group to create. This dictionary contains four fields:
             - 'atom_list' : List[int]
                 IDs of the atoms in this group.
