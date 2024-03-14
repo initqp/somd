@@ -29,12 +29,14 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
            physics 150.15 (2019): 154122.
     """
 
-    def __init__(self,
-                 atom_list: list,
-                 atomic_types: list,
-                 method: str,
-                 total_charges: int = 0,
-                 atm: bool = False) -> None:
+    def __init__(
+        self,
+        atom_list: list,
+        atomic_types: list,
+        method: str,
+        total_charges: int = 0,
+        atm: bool = False,
+    ) -> None:
         """
         Create a DFTD4 instance.
         """
@@ -44,16 +46,19 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
             from dftd4.interface import DampingParam
             from dftd4.interface import DispersionModel
         except:
-            raise ImportError('You need to have the dftd4-python package ' +
-                              'installed to use the DFTD4 potential!')
+            raise ImportError(
+                'You need to have the dftd4-python package '
+                + 'installed to use the DFTD4 potential!'
+            )
         self.__conversion = _c.HARTREE / _c.BOHRRADIUS * -1.0
         pbc = _np.ones(3, dtype=_np.int_)
         lattice = _np.zeros((3, 3), dtype=_np.double)
         atomic_types = _np.array(atomic_types, dtype=_np.int_)
         positions = _np.zeros((atomic_types.shape[0], 3), dtype=_np.double)
         self.__param = DampingParam(method=method, atm=atm)
-        self.__model = DispersionModel(atomic_types, positions, total_charges,
-                                       lattice, pbc)
+        self.__model = DispersionModel(
+            atomic_types, positions, total_charges, lattice, pbc
+        )
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -64,8 +69,10 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
         system : somd.systems.MDSYSTEM
             The simulated system.
         """
-        self.__model.update(system.positions[self.atom_list] / _c.BOHRRADIUS,
-                            system.box / _c.BOHRRADIUS)
+        self.__model.update(
+            system.positions[self.atom_list] / _c.BOHRRADIUS,
+            system.box / _c.BOHRRADIUS,
+        )
         result = self.__model.get_dispersion(self.__param, grad=True)
         self.energy_potential[0] = result.get("energy") * _c.HARTREE
         self.forces[:] = result.get("gradient") * self.__conversion

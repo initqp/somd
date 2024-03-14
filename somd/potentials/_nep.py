@@ -50,16 +50,18 @@ class NEP(_mdcore.potential_base.POTENTIAL):
            Condensed Matter 34.12 (2022): 125902.
     """
 
-    def __init__(self,
-                 atom_list: list,
-                 file_name: str,
-                 atomic_symbols: str,
-                 use_tabulating: bool = False) -> None:
+    def __init__(
+        self,
+        atom_list: list,
+        file_name: str,
+        atomic_symbols: str,
+        use_tabulating: bool = False,
+    ) -> None:
         """
         Create a NEP instance.
         """
         super().__init__(atom_list)
-        if (use_tabulating):
+        if use_tabulating:
             from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
         else:
             from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
@@ -76,10 +78,12 @@ class NEP(_mdcore.potential_base.POTENTIAL):
             The simulated system.
         """
         self.virial[:] = 0.0
-        self.energy_potential[0] = \
-            self.__nep.calculate(system.box * 10,
-                                 system.positions[self.atom_list] * 10,
-                                 self.forces, self.virial)
+        self.energy_potential[0] = self.__nep.calculate(
+            system.box * 10,
+            system.positions[self.atom_list] * 10,
+            self.forces,
+            self.virial,
+        )
         self.virial[:] *= self.__conversion * 0.001
         self.forces[:] *= self.__conversion * 0.01
         self.energy_potential[0] *= self.__conversion * 0.001

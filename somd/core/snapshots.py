@@ -58,7 +58,7 @@ class SNAPSHOT(object):
         self.__forces = _np.zeros((self.n_atoms, 3), _np.double)
         self.__positions = _np.zeros((self.n_atoms, 3), _np.double)
         self.__velocities = _np.zeros((self.n_atoms, 3), _np.double)
-        if (has_mass):
+        if has_mass:
             self.__masses = _np.zeros((self.n_atoms, 1), _np.double)
         else:
             self.__masses = None
@@ -73,7 +73,7 @@ class SNAPSHOT(object):
         """
         Clone this snapshot.
         """
-        if (self.masses is None):
+        if self.masses is None:
             snapshot = SNAPSHOT(self.n_atoms)
         else:
             snapshot = SNAPSHOT(self.n_atoms, True)
@@ -155,14 +155,19 @@ class SNAPSHOT(object):
         Lattice parameters of the cell: [a, b, c, alpha, beta, gamma]. In units
         of nm (a, b, c) and degree (alpha, beta, gamma).
         """
+        # fmt: off
         result = _np.zeros(6, dtype=_np.double)
         result[:3] = _np.linalg.norm(self.box, axis=1)
-        result[3] = _np.arccos(self.box[1, :].dot(self.box[2, :]) /
-                               result[1] / result[2]) * 180.0 / _np.pi
-        result[4] = _np.arccos(self.box[0, :].dot(self.box[2, :]) /
-                               result[0] / result[2]) * 180.0 / _np.pi
-        result[5] = _np.arccos(self.box[1, :].dot(self.box[0, :]) /
-                               result[0] / result[1]) * 180.0 / _np.pi
+        result[3] = _np.arccos(
+            self.box[1, :].dot(self.box[2, :]) / result[1] / result[2]
+        ) * 180.0 / _np.pi
+        result[4] = _np.arccos(
+            self.box[0, :].dot(self.box[2, :]) / result[0] / result[2]
+        ) * 180.0 / _np.pi
+        result[5] = _np.arccos(
+            self.box[1, :].dot(self.box[0, :]) / result[0] / result[1]
+        ) * 180.0 / _np.pi
+        # fmt: on
         return result
 
     @lattice.setter
@@ -176,7 +181,7 @@ class SNAPSHOT(object):
             The lattice parameters: [a, b, c, alpha, beta, gamma]. In units of
             nm (a, b, c) and degree (alpha, beta, gamma).
         """
-        if (any(_np.array(l) < 1E-6)):
+        if any(_np.array(l) < 1e-6):
             message = 'Very small lattice parameters: {}!'.format(l)
             raise RuntimeError(message)
         self.box[0, 0] = l[0]
@@ -186,7 +191,10 @@ class SNAPSHOT(object):
         self.box[1, 1] = l[1] * _np.sin(l[5] / 180.0 * _np.pi)
         self.box[1, 2] = 0.0
         self.box[2, 0] = l[2] * _np.cos(l[4] / 180.0 * _np.pi)
-        self.box[2, 1] = (l[1] * l[2] * _np.cos(l[3] / 180.0 * _np.pi) -
-                          self.box[2, 0] * self.box[1, 0]) / self.box[1, 1]
-        self.box[2, 2] = _np.sqrt(l[2] ** 2 - self.box[2, 0] ** 2 -
-                                  self.box[2, 1] ** 2)
+        self.box[2, 1] = (
+            l[1] * l[2] * _np.cos(l[3] / 180.0 * _np.pi)
+            - self.box[2, 0] * self.box[1, 0]
+        ) / self.box[1, 1]
+        self.box[2, 2] = _np.sqrt(
+            l[2] ** 2 - self.box[2, 0] ** 2 - self.box[2, 1] ** 2
+        )

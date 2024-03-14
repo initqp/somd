@@ -29,9 +29,7 @@ from .groups import ATOMGROUPS as _ATOMGROUPS
 from .snapshots import SNAPSHOT as _SNAPSHOT
 from ._lib import CONSTRAINTS as _CONSTRAINTS
 
-__all__ = ['MDSYSTEM',
-           'create_system_from_pdb',
-           'create_system_from_poscar']
+__all__ = ['MDSYSTEM', 'create_system_from_pdb', 'create_system_from_poscar']
 
 
 class MDSYSTEM(object):
@@ -51,7 +49,7 @@ class MDSYSTEM(object):
         """
         Create a MDSYSTEM instance.
         """
-        if (label is None):
+        if label is None:
             self._label = 'SYSTEM_' + str(id(self))
         else:
             self._label = str(label)
@@ -96,9 +94,9 @@ class MDSYSTEM(object):
             system.constraints.append(constraint)
         return system
 
-    def update_potentials(self,
-                          indices: list = None,
-                          perform_calculations: bool = True) -> None:
+    def update_potentials(
+        self, indices: list = None, perform_calculations: bool = True
+    ) -> None:
         """
         Invoke the force calculators.
 
@@ -114,16 +112,17 @@ class MDSYSTEM(object):
         self.virial[:] = 0.0
         self.forces[:] = 0.0
         self.__energy_potential[0] = 0.0
-        if (indices is None):
+        if indices is None:
             l = range(0, len(self.potentials))
         else:
             l = indices
-        if (perform_calculations):
-            if (_mdutils.defaults.SIMUUPDATE):
+        if perform_calculations:
+            if _mdutils.defaults.SIMUUPDATE:
                 threads = []
                 for i in l:
-                    t = _Thread(target=self.__potentials[i].update,
-                                args=(self,))
+                    t = _Thread(
+                        target=self.__potentials[i].update, args=(self,)
+                    )
                     threads.append(t)
                     t.start()
                 for t in threads:
@@ -133,10 +132,10 @@ class MDSYSTEM(object):
                     self.__potentials[i].update(self)
         for i in l:
             self.virial[:] += self.__potentials[i].virial
-            self.forces[self.__potentials[i].atom_list] += \
-                self.__potentials[i].forces
-            self.__energy_potential[0] += \
-                self.__potentials[i].energy_potential[0]
+            f = self.__potentials[i].forces
+            self.forces[self.__potentials[i].atom_list] += f
+            e = self.__potentials[i].energy_potential[0]
+            self.__energy_potential[0] += e
 
     def find_segments(self) -> None:
         """
@@ -145,7 +144,7 @@ class MDSYSTEM(object):
         bound to the system. This method should be called after all the
         constraints have been added to the simulated system.
         """
-        if (len(self.constraints) == 0):
+        if len(self.constraints) == 0:
             return
         self.__segments.clear()
         top = _md.Topology()
@@ -156,11 +155,11 @@ class MDSYSTEM(object):
             top.add_atom(e.symbol + str(i), e, residue)
         atoms = list(top.atoms)
         for c in self.constraints:
-            for i in c['indices'][1:len(c['indices'])]:
+            for i in c['indices'][1:len(c['indices'])]:  # fmt: skip
                 top.add_bond(atoms[c['indices'][0]], atoms[i])
         molecules = top.find_molecules()
         for m in molecules:
-            if (len(m) != 1):
+            if len(m) != 1:
                 l = [atom.index for atom in list(m)]
                 self.__segments.append(_ATOMGROUP(self, l))
 
@@ -184,16 +183,18 @@ class MDSYSTEM(object):
         """
         Copy the current state of this system from another snapshot.
         """
-        if (self.n_atoms != f.n_atoms):
-            message = 'Mismatch of number of atoms between the target ' + \
-                      'snapshot and the system!'
+        if self.n_atoms != f.n_atoms:
+            message = (
+                'Mismatch of number of atoms between the target '
+                + 'snapshot and the system!'
+            )
             raise RuntimeError(message)
         self.box[:] = f.box[:]
         self.forces[:] = f.forces[:]
         self.virial[:] = f.virial[:]
         self.positions[:] = f.positions[:]
         self.velocities[:] = f.velocities[:]
-        if (f.masses is not None):
+        if f.masses is not None:
             self.masses[:] = f.masses[:]
 
     @property
@@ -349,18 +350,18 @@ def create_system_from_pdb(file_name: str) -> MDSYSTEM:
         Name of the PDB file.
     """
     pdb = _md.load_pdb(file_name)
-    if (pdb.n_atoms == 0):
-        raise RuntimeError('PDB file {} has no atom!'.format(file_name))
+    if pdb.n_atoms == 0:
+        raise RuntimeError('PDB file "{}" has no atom!'.format(file_name))
     else:
         s = MDSYSTEM(pdb.n_atoms)
-    if (pdb.unitcell_vectors.any() is None):
-        raise RuntimeError('PDB file {} has no cell data!'.format(file_name))
+    if pdb.unitcell_vectors.any() is None:
+        raise RuntimeError('PDB file "{}" has no cell data!'.format(file_name))
     else:
         try:
             s.box[:, :] = pdb.unitcell_vectors
         except:
-            message = 'Can not read unit cell data from file ' + file_name
-            _mdutils.warning.warn(message)
+            message = 'Can not read unit cell data from file "{:s}"!'
+            _mdutils.warning.warn(message.format(file_name))
     for i in range(0, pdb.n_atoms):
         s.atomic_types[i] = pdb.top.atom(i).element.number
         s.atomic_symbols.append(pdb.top.atom(i).element.symbol)
@@ -403,14 +404,15 @@ def create_system_from_poscar(file_name: str) -> MDSYSTEM:
             count += 1
     s.box[:] = box * scale_factor * 0.1
     for i in range(0, 3):
-        if (s.lattice[i] < _mdutils.defaults.LATTICETOL):
+        if s.lattice[i] < _mdutils.defaults.LATTICETOL:
             raise RuntimeError('Very small cell length in dim {:d}'.format(i))
     # read the positions
     position_type = fp.readline().strip().lower()
     for i in range(0, s.n_atoms):
-        s.positions[i, :] = 0.1 * \
-            _np.array(fp.readline().strip().split(), dtype=_np.double)
-    if (position_type == 'direct'):
+        s.positions[i, :] = (
+            _np.array(fp.readline().strip().split(), dtype=_np.double) * 0.1
+        )
+    if position_type == 'direct':
         s.positions[:] = (s.box.T.dot(s.positions)).T
     fp.close()
     return s

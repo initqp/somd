@@ -47,30 +47,38 @@ class ATOMGROUP(object):
         The update function number of DOF.
     """
 
-    def __init__(self,
-                 snapshot: _SNAPSHOT,
-                 atom_list: list,
-                 label: str = None,
-                 n_dof_handler: _tp.Callable = None) -> None:
+    def __init__(
+        self,
+        snapshot: _SNAPSHOT,
+        atom_list: list,
+        label: str = None,
+        n_dof_handler: _tp.Callable = None,
+    ) -> None:
         """
         Create an ATOMGROUP instance.
         """
-        if (label is None):
+        if label is None:
             self._label = 'GROUP_' + str(id(self))
         else:
             self._label = str(label)
         self.__atom_list = _np.sort(_np.array(atom_list, _np.int_))
-        if (self.n_atoms > snapshot.n_atoms):
-            message = 'Can not initialize group "{}" that contains ' + \
-                      '{:d} atoms from snapshot with {:d} atoms!'
-            message = message.format(self._label, self.__atom_list.size,
-                                     snapshot.n_atoms)
+        if self.n_atoms > snapshot.n_atoms:
+            message = (
+                'Can not initialize group "{}" that contains '
+                + '{:d} atoms from snapshot with {:d} atoms!'
+            )
+            message = message.format(
+                self._label, self.__atom_list.size, snapshot.n_atoms
+            )
             raise IndexError(message)
-        elif (self.__atom_list.max() >= snapshot.n_atoms):
-            message = 'Can not initialize group "{}" that contains ' + \
-                      'a maximum atomic ID of {:d} from with {:d} atoms!'
-            message = message.format(self._label, self.__atom_list.max(),
-                                     snapshot.n_atoms)
+        elif self.__atom_list.max() >= snapshot.n_atoms:
+            message = (
+                'Can not initialize group "{}" that contains a '
+                + 'maximum atomic ID of {:d} from with {:d} atoms!'
+            )
+            message = message.format(
+                self._label, self.__atom_list.max(), snapshot.n_atoms
+            )
             raise IndexError(message)
         else:
             self.__snapshot = snapshot
@@ -130,18 +138,17 @@ class ATOMGROUP(object):
         scale_after_removal : bool
             if scale velocities to keep the total kinetic energy unchanged.
         """
-        if (scale_after_removal):
+        if scale_after_removal:
             energy_old = self.energy_kinetic
         self.com_velocities = 0.0
-        if (scale_after_removal):
+        if scale_after_removal:
             energy_new = self.energy_kinetic
-            if (energy_new != 0):
+            if energy_new != 0:
                 self.velocities *= _np.sqrt(energy_old / energy_new)
 
-    def add_velocities_from_temperature(self,
-                                        temperature: float,
-                                        rng: _np.random.Generator = None
-                                        ) -> None:
+    def add_velocities_from_temperature(
+        self, temperature: float, rng: _np.random.Generator = None
+    ) -> None:
         """
         Add velocities to atoms in the group according to the given
         temperature.
@@ -153,15 +160,16 @@ class ATOMGROUP(object):
         rng : numpy.random.Generator
             The pseudorandom number generator instance.
         """
-        if (self.n_dof == 0):
+        if self.n_dof == 0:
             message = 'Number of DOF of group "{}" has not been calculated!'
             message = message.format(self._label)
             raise RuntimeError(message)
-        if (temperature == 0):
+        if temperature == 0:
             return
-        factors = _np.sqrt(temperature * _mdutils.constants.BOLTZCONST /
-                           self.masses)
-        if (rng is None):
+        factors = _np.sqrt(
+            temperature * _mdutils.constants.BOLTZCONST / self.masses
+        )
+        if rng is None:
             v = _np.random.standard_normal((self.n_atoms, 3)) * factors
         else:
             v = rng.standard_normal((self.n_atoms, 3)) * factors
@@ -187,8 +195,11 @@ class ATOMGROUP(object):
         except:
             _mdutils.warning.warn('Can not remove COM rotational motions!')
         # restore kinetic energies
-        t = (_np.square(v) * self.masses).sum() / \
-            _mdutils.constants.BOLTZCONST / self.n_dof
+        t = (
+            (_np.square(v) * self.masses).sum()
+            / _mdutils.constants.BOLTZCONST
+            / self.n_dof
+        )
         v *= _np.sqrt(temperature / t)
         self.velocities += v
 
@@ -231,11 +242,13 @@ class ATOMGROUP(object):
         energies with the internal DOFs.
         """
         self.__has_translations = bool(v)
-        if (self.__n_dof_handler is not None):
+        if self.__n_dof_handler is not None:
             self.__n_dof_handler()
         else:
-            message = 'Group "{:s}" is not bound with any system! ' + \
-                      'Setting the translational flag will be useless!'
+            message = (
+                'Group "{:s}" is not bound with any system! '
+                + 'Setting the translational flag will be useless!'
+            )
             _mdutils.warning.warn(message.format(self._label))
 
     @property
@@ -265,7 +278,7 @@ class ATOMGROUP(object):
         Set the degree of freedom of this group.
         """
         caller = _it.currentframe().f_back.f_code.co_name
-        if (caller == '__update_n_dof'):
+        if caller == '__update_n_dof':
             self.__n_dof = v
         else:
             raise RuntimeError('This attribute is handled interally!')
@@ -283,7 +296,7 @@ class ATOMGROUP(object):
         Set number of constraints that belongs to this group.
         """
         caller = _it.currentframe().f_back.f_code.co_name
-        if (caller == '__update_n_constrains'):
+        if caller == '__update_n_constrains':
             self.__n_constraints = v
         else:
             raise RuntimeError('This attribute is handled interally!')
@@ -342,15 +355,19 @@ class ATOMGROUP(object):
         """
         Temperature of this group. In unit of (K).
         """
-        return (self.energy_kinetic / _mdutils.constants.BOLTZCONST /
-                self.n_dof * 2)
+        # fmt: off
+        return (
+            self.energy_kinetic / _mdutils.constants.BOLTZCONST
+            / self.n_dof * 2
+        )
+        # fmt: on
 
     @property
     def com_positions(self) -> _np.ndarray:
         """
         Center of mass positions of this group.
         """
-        q = (self.positions * self.masses)
+        q = self.positions * self.masses
         return q.sum(axis=0) / self.masses.sum()
 
     @com_positions.setter
@@ -366,7 +383,7 @@ class ATOMGROUP(object):
         """
         Center of mass translational velocities of this group.
         """
-        v = (self.velocities * self.masses)
+        v = self.velocities * self.masses
         return v.sum(axis=0) / self.masses.sum()
 
     @com_velocities.setter
@@ -416,12 +433,17 @@ class ATOMGROUPS(list):
         Check the availability of the COM motion removers.
         """
         for i, group in enumerate(self):
-            flags = [((len(group & g) != 0) and (group != g))
-                     for g in self if (not g.has_translations)]
-            if (True in flags and (not group.has_translations)):
-                message = 'Atom group "{}" is overlapping with other atom ' + \
-                          'group(s) while all of them are binding with ' + \
-                          'COM motion removers!'
+            flags = [
+                ((len(group & g) != 0) and (group != g))
+                for g in self
+                if (not g.has_translations)
+            ]
+            if True in flags and (not group.has_translations):
+                message = (
+                    'Atom group "{}" is overlapping with other atom '
+                    + 'group(s) while all of them are binding with '
+                    + 'COM motion removers!'
+                )
                 raise RuntimeError(message.format(group._label))
 
     def __update_n_constrains(self) -> None:
@@ -433,13 +455,14 @@ class ATOMGROUPS(list):
             atom_set_group = set(group.atom_list.tolist())
             for constraint in self.__constraints:
                 atom_set_constraint = set(constraint['indices'])
-                if (atom_set_constraint.issubset(atom_set_group)):
+                if atom_set_constraint.issubset(atom_set_group):
                     group.n_constraints += 1
-                elif (atom_set_constraint.intersection(atom_set_group)):
-                    message = 'Can not compute number of constraints that ' + \
-                              'belongs to group "{:s}"! Because atoms in ' + \
-                              'constraint "{}" are only included partly ' + \
-                              'by this group!'
+                elif atom_set_constraint.intersection(atom_set_group):
+                    message = (
+                        'Can not compute number of constraints that belongs '
+                        + 'to group "{:s}"! Because atoms in constraint '
+                        + '"{}" are only included partly by this group!'
+                    )
                     message = message.format(group._label, constraint)
                     raise RuntimeError(message)
 
@@ -492,12 +515,13 @@ class ATOMGROUPS(list):
         group : somd.core.groups.ATOMGROUP
              The group to append.
         """
-        if (group.__class__.__name__ != 'ATOMGROUP'):
+        if group.__class__.__name__ != 'ATOMGROUP':
             message = 'Expect an object in type of `ATOMGROUP`!'
             raise RuntimeError(message)
-        if (group in self):
-            message = 'Group "{}" has already been added to the ' + \
-                      'to the atom groups!'
+        if group in self:
+            message = (
+                'Group "{}" has already been added to the to the atom groups!'
+            )
             _mdutils.warning.warn(message.format(group._label))
         else:
             super().append(group)
@@ -533,11 +557,14 @@ class ATOMGROUPS(list):
                 If the three translational COM DOFs of this group exchange
                 kinetic energies with the internal DOFs.
         """
-        if ('atom_list' not in group_dict.keys()):
+        if 'atom_list' not in group_dict.keys():
             raise KeyError('The "atom_list" is required to define a group !')
-        g = ATOMGROUP(self.__snapshot, group_dict['atom_list'],
-                      group_dict.get('label', 'GROUP_' + str(len(self))),
-                      self.update_n_dof)
+        g = ATOMGROUP(
+            self.__snapshot,
+            group_dict['atom_list'],
+            group_dict.get('label', 'GROUP_' + str(len(self))),
+            self.update_n_dof,
+        )
         g.has_translations = group_dict.get('has_translations', True)
         self.append(g)
 

@@ -26,19 +26,19 @@ https://physics.nist.gov/cuu/Constants/index.html
 HARTREE: float = 2625.4978694234683
 
 # Boltzmann Constant. In unit (kJ/mol/K).
-BOLTZCONST: float = 8.31446261815324E-3
+BOLTZCONST: float = 8.31446261815324e-3
 
 # Avogadro Number. In unit of (1).
-AVOGACONST: float = 6.0221367E23
+AVOGACONST: float = 6.0221367e23
 
 # Planck constant. In unit of (kJ/mol*ps).
 PLANKCONST: float = 0.399031002270895
 
 # Elementary charge. In unit of (C).
-ELECTCONST: float = 1.602176634E-19
+ELECTCONST: float = 1.602176634e-19
 
 # Bohr radius. In unit of (nm).
-BOHRRADIUS: float = 5.29177210903E-2
+BOHRRADIUS: float = 5.29177210903e-2
 
 # Speed of light in vacuum. In unit of (nm/ps).
 LIGHTSPEED: float = 299792.458

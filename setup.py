@@ -33,24 +33,43 @@ extensions = [
         'somd.core._lib',
         ['./somd/core/src/lib.pyx', './somd/core/src/math_utils.cxx'],
         include_dirs=['./somd/core/src'],
-        extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
-                            '-march=native'],
-        extra_link_args=['-fopenmp']),
+        extra_compile_args=[
+            '-std=c++11',
+            '-Wall',
+            '-fopenmp',
+            '-O4',
+            '-march=native',
+        ],
+        extra_link_args=['-fopenmp'],
+    ),
     Extension(
         'somd.potentials._nepwrapper',
         ['./somd/potentials/src/nep.pyx'],
         include_dirs=['./somd/potentials/src'],
-        extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
-                            '-march=native'],
-        extra_link_args=['-fopenmp']),
+        extra_compile_args=[
+            '-std=c++11',
+            '-Wall',
+            '-fopenmp',
+            '-O4',
+            '-march=native',
+        ],
+        extra_link_args=['-fopenmp'],
+    ),
     Extension(
         'somd.potentials._nepwrapper_t',
         ['./somd/potentials/src/nep_t.pyx'],
         include_dirs=['./somd/potentials/src'],
-        extra_compile_args=['-std=c++11', '-Wall', '-fopenmp', '-O4',
-                            '-march=native',
-                            '-DUSE_TABLE_FOR_RADIAL_FUNCTIONS'],
-        extra_link_args=['-fopenmp'])]
+        extra_compile_args=[
+            '-std=c++11',
+            '-Wall',
+            '-fopenmp',
+            '-O4',
+            '-march=native',
+            '-DUSE_TABLE_FOR_RADIAL_FUNCTIONS',
+        ],
+        extra_link_args=['-fopenmp'],
+    ),
+]
 
 metadata = dict(
     name='somd',

@@ -68,21 +68,23 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
     .. [1] https://mdtraj.org/1.9.7/hdf5_format.html
     """
 
-    def __init__(self,
-                 file_name: str,
-                 interval: int = 1,
-                 write_velocities: bool = False,
-                 write_forces: bool = False,
-                 write_virial: bool = False,
-                 wrap_positions: bool = False,
-                 append: bool = False,
-                 restart_file: bool = False,
-                 use_double: bool = False,
-                 potential_list: list = None) -> None:
+    def __init__(
+        self,
+        file_name: str,
+        interval: int = 1,
+        write_velocities: bool = False,
+        write_forces: bool = False,
+        write_virial: bool = False,
+        wrap_positions: bool = False,
+        append: bool = False,
+        restart_file: bool = False,
+        use_double: bool = False,
+        potential_list: list = None,
+    ) -> None:
         """
         Create a H5WRITER instance.
         """
-        if (restart_file):
+        if restart_file:
             self.__append = False
             self.__is_restart = True
             self.__use_double = True
@@ -116,24 +118,27 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         import time
         from somd import _version
+
         self.__root.attrs['conventionVersion'] = '1.1'
         self.__root.attrs['program'] = 'SOMD'
         self.__root.attrs['programVersion'] = str(_version.get_versions())
         self.__root.attrs['application'] = 'H5WRITER'
         self.__root.attrs['createdTime'] = time.ctime()
         self.__root.attrs['title'] = self.__file_name
-        if (self.__is_restart):
+        if self.__is_restart:
             self.__root.attrs['conventions'] = ['Pande', 'SOMDRESTART']
             self.__root.attrs['randomState'] = 'null'
         else:
             self.__root.attrs['conventions'] = 'Pande'
 
-    def __create_dataset(self,
-                         name: str,
-                         shape: tuple,
-                         max_shape: tuple,
-                         data_type: str,
-                         unit: str) -> None:
+    def __create_dataset(
+        self,
+        name: str,
+        shape: tuple,
+        max_shape: tuple,
+        data_type: str,
+        unit: str,
+    ) -> None:
         """
         Create a new data set.
 
@@ -150,75 +155,103 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         unit : str
             Unit of the data set.
         """
-        self.__root.create_dataset(name, shape, maxshape=max_shape,
-                                   dtype=data_type)
+        self.__root.create_dataset(
+            name, shape, maxshape=max_shape, dtype=data_type
+        )
         self.__root[name].attrs['units'] = unit
 
     def __dump_datasets(self) -> None:
         """
         Setup the required datasets.
         """
-        if (self.__use_double):
+        if self.__use_double:
             type_str = '>f8'
         else:
             type_str = '>f4'
         n_atoms = self.__system.n_atoms
         self.__create_dataset('steps', (0,), (None,), 'uint64', '1')
-        self.__create_dataset('potentialEnergy', (0,), (None,), type_str,
-                              'kilojoule/mole')
-        self.__create_dataset('cell_angles', (0, 3), (None, 3), type_str,
-                              'degrees')
-        self.__create_dataset('cell_lengths', (0, 3), (None, 3), type_str,
-                              'nanometers')
-        self.__create_dataset('box', (0, 3, 3), (None, 3, 3), type_str,
-                              'nanometers')
-        self.__create_dataset('coordinates', (0, n_atoms, 3),
-                              (None, n_atoms, 3), type_str, 'nanometers')
-        if (self.__write_velocities):
-            self.__create_dataset('velocities', (0, n_atoms, 3),
-                                  (None, n_atoms, 3), type_str,
-                                  'nanometers/picosecond')
-        if (self.__write_forces):
-            self.__create_dataset('forces', (0, n_atoms, 3),
-                                  (None, n_atoms, 3), type_str,
-                                  'kilojoule/mole/nanometers')
-        if (self.__write_virial):
-            self.__create_dataset('virial', (0, 3, 3), (None, 3, 3), type_str,
-                                  'kilojoule/mole')
-        if (self.__is_restart):
-            if (len(self.__nhchains) != 0):
+        self.__create_dataset(
+            'potentialEnergy', (0,), (None,), type_str, 'kilojoule/mole'
+        )
+        self.__create_dataset(
+            'cell_angles', (0, 3), (None, 3), type_str, 'degrees'
+        )
+        self.__create_dataset(
+            'cell_lengths', (0, 3), (None, 3), type_str, 'nanometers'
+        )
+        self.__create_dataset(
+            'box', (0, 3, 3), (None, 3, 3), type_str, 'nanometers'
+        )
+        self.__create_dataset(
+            'coordinates',
+            (0, n_atoms, 3),
+            (None, n_atoms, 3),
+            type_str,
+            'nanometers',
+        )
+        if self.__write_velocities:
+            self.__create_dataset(
+                'velocities',
+                (0, n_atoms, 3),
+                (None, n_atoms, 3),
+                type_str,
+                'nanometers/picosecond',
+            )
+        if self.__write_forces:
+            self.__create_dataset(
+                'forces',
+                (0, n_atoms, 3),
+                (None, n_atoms, 3),
+                type_str,
+                'kilojoule/mole/nanometers',
+            )
+        if self.__write_virial:
+            self.__create_dataset(
+                'virial', (0, 3, 3), (None, 3, 3), type_str, 'kilojoule/mole'
+            )
+        if self.__is_restart:
+            if len(self.__nhchains) != 0:
                 l_nhc = _mdutils.defaults.NHCLENGTH
                 n_nhc = len(self.__nhchains)
-                self.__create_dataset('nhc_positions', (1, n_nhc, l_nhc),
-                                      (1, n_nhc, l_nhc), type_str, '1')
-                self.__create_dataset('nhc_momentums', (1, n_nhc, l_nhc),
-                                      (1, n_nhc, l_nhc), type_str,
-                                      'kilojoule/mole*picosecond')
+                self.__create_dataset(
+                    'nhc_positions',
+                    (1, n_nhc, l_nhc),
+                    (1, n_nhc, l_nhc),
+                    type_str,
+                    '1',
+                )
+                self.__create_dataset(
+                    'nhc_momentums',
+                    (1, n_nhc, l_nhc),
+                    (1, n_nhc, l_nhc),
+                    type_str,
+                    'kilojoule/mole*picosecond',
+                )
 
     def __collect_data(self) -> None:
         """
         Collect system snapshot data.
         """
-        if (self.__wrap_positions):
+        if self.__wrap_positions:
             self.__positions = self.__system.positions_wrapped
         else:
             self.__positions = self.__system.positions
-        if (self.__potential_list is None):
+        if self.__potential_list is None:
             self.__energy_potential[0] = self.__system.energy_potential
         else:
             for i in self.__potential_list:
-                self.__energy_potential[0] += \
-                    self.__system.potentials[i].energy_potential
-        if (self.__write_forces and (self.__potential_list is None)):
+                e = self.__system.potentials[i].energy_potential
+                self.__energy_potential[0] += e
+        if self.__write_forces and (self.__potential_list is None):
             self.__forces = self.__system.forces
-        elif (self.__potential_list is not None):
+        elif self.__potential_list is not None:
             for i in self.__potential_list:
                 atom_list = self.__system.potentials[i].atom_list
-                self.__forces[atom_list, :] += \
-                    self.__system.potentials[i].forces
-        if (self.__write_virial and (self.__potential_list is None)):
+                f = self.__system.potentials[i].forces
+                self.__forces[atom_list, :] += f
+        if self.__write_virial and (self.__potential_list is None):
             self.__virial = self.__system.virial
-        elif (self.__potential_list is not None):
+        elif self.__potential_list is not None:
             for i in self.__potential_list:
                 self.__virial[:] += self.__system.potentials[i].virial
 
@@ -230,7 +263,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         n_atoms = self.__system.n_atoms
         # The step stands for the number of trajectory frame.
         step = self.__root['coordinates'].shape[0]
-        if (self.__is_restart and (step != 0)):
+        if self.__is_restart and (step != 0):
             step = 0
         else:
             self.__root['steps'].resize((step + 1,))
@@ -239,11 +272,11 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             self.__root['box'].resize((step + 1, 3, 3))
             self.__root['potentialEnergy'].resize((step + 1,))
             self.__root['coordinates'].resize((step + 1, n_atoms, 3))
-            if (self.__write_velocities):
+            if self.__write_velocities:
                 self.__root['velocities'].resize((step + 1, n_atoms, 3))
-            if (self.__write_forces):
+            if self.__write_forces:
                 self.__root['forces'].resize((step + 1, n_atoms, 3))
-            if (self.__write_virial):
+            if self.__write_virial:
                 self.__root['virial'].resize((step + 1, 3, 3))
         self.__root['steps'][step] = self.step
         l = self.__system.lattice
@@ -252,11 +285,11 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         self.__root['box'][step, :, :] = self.__system.box
         self.__root['coordinates'][step, :, :] = self.__positions
         self.__root['potentialEnergy'][step] = self.__energy_potential[0]
-        if (self.__write_velocities):
+        if self.__write_velocities:
             self.__root['velocities'][step, :, :] = self.__system.velocities
-        if (self.__write_forces):
+        if self.__write_forces:
             self.__root['forces'][step, :, :] = self.__forces
-        if (self.__write_virial):
+        if self.__write_virial:
             self.__root['virial'][step, :, :] = self.__virial
 
     def _write_nhc_data(self) -> None:
@@ -276,8 +309,9 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
         self.__root.attrs['randomState'] = st_str
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
@@ -286,9 +320,9 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         self.__nhchains = integrator._nhchains
         self.__energy_potential = _np.zeros((1,), dtype=_np.double)
         self.__positions = None
-        if (self.__write_forces):
+        if self.__write_forces:
             self.__forces = _np.zeros((self.__system.n_atoms, 3), _np.double)
-        if (self.__write_virial):
+        if self.__write_virial:
             self.__virial = _np.zeros((3, 3), _np.double)
 
     def initialize(self) -> None:
@@ -296,9 +330,9 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         Open the trajectory for writing.
         """
         super().initialize()
-        if (not _os.path.exists(self.file_name)):
+        if not _os.path.exists(self.file_name):
             self.__append = False
-        if (self.__append):
+        if self.__append:
             self.__root = _h5.File(self.file_name, 'a')
         else:
             _apputils.backup.back_up(self.file_name)
@@ -311,9 +345,9 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write to the trajectory immediately.
         """
-        if (not self.initialized):
+        if not self.initialized:
             self.initialize()
-        if (self.__is_restart):
+        if self.__is_restart:
             self._write_nhc_data()
             self._write_rng_state()
         self._write_snapshot()
@@ -324,14 +358,14 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write the trajectory according to the definded step interval.
         """
-        if (super().update()):
+        if super().update():
             self.write()
 
     def finalize(self) -> None:
         """
         Close this trajectory.
         """
-        if (self.__root is not None):
+        if self.__root is not None:
             self.__root.close()
 
     @property
@@ -353,7 +387,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Data type of the trajectory.
         """
-        if (self.__use_double):
+        if self.__use_double:
             return _np.double
         else:
             return _np.float
@@ -399,17 +433,19 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
     .. [1] https://github.com/libAtoms/extxyz
     """
 
-    def __init__(self,
-                 file_name: str,
-                 interval: int = 1,
-                 write_velocities: bool = True,
-                 write_forces: bool = True,
-                 write_virial: bool = True,
-                 wrap_positions: bool = False,
-                 format_str: str = '{:-24.15e}',
-                 append: bool = False,
-                 potential_list: list = None,
-                 energy_shift: float = 0.0) -> None:
+    def __init__(
+        self,
+        file_name: str,
+        interval: int = 1,
+        write_velocities: bool = True,
+        write_forces: bool = True,
+        write_virial: bool = True,
+        wrap_positions: bool = False,
+        format_str: str = '{:-24.15e}',
+        append: bool = False,
+        potential_list: list = None,
+        energy_shift: float = 0.0,
+    ) -> None:
         """
         Create an EXYZWRITER instance.
         """
@@ -421,15 +457,17 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         self.__write_velocities = write_velocities
         self.__wrap_positions = wrap_positions
         self.__potential_list = potential_list
-        self.__conversion = \
+        self.__conversion = (
             _mdutils.constants.AVOGACONST * _mdutils.constants.ELECTCONST
-        if (energy_shift is None):
+        )
+        if energy_shift is None:
             energy_shift = 0.0
         else:
             energy_shift = energy_shift / self.__conversion * 1000
         self.__energy_shift = _np.array([energy_shift], dtype=_np.double)
-        _np.set_printoptions(formatter={'float': format_str.format},
-                             linewidth=10000)
+        _np.set_printoptions(
+            formatter={'float': format_str.format}, linewidth=10000
+        )
         super().__init__(interval)
 
     def __del__(self) -> None:
@@ -442,47 +480,51 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Convert units of system data.
         """
-        if (self.__potential_list is None):
-            self.__energy_potential[0] = self.__system.energy_potential / \
-                self.__conversion * 1000
+        if self.__potential_list is None:
+            self.__energy_potential[0] = (
+                self.__system.energy_potential / self.__conversion * 1000
+            )
             self.__energy_potential[0] -= self.__energy_shift[0]
-            if (self.__write_forces):
-                self.__forces[:] = \
+            if self.__write_forces:
+                self.__forces[:] = (
                     self.__system.forces[:] / self.__conversion * 100
-            if (self.__write_virial):
-                self.__virial[:] = \
+                )
+            if self.__write_virial:
+                self.__virial[:] = (
                     self.__system.virial[:] / self.__conversion * 1000
+                )
         else:
             self.__energy_potential[0] = 0.0
             for i in self.__potential_list:
-                self.__energy_potential[0] += \
-                    self.__system.potentials[i].energy_potential
+                p = self.__system.potentials[i].energy_potential
+                self.__energy_potential[0] += p
             self.__energy_potential[0] /= self.__conversion * 0.001
             self.__energy_potential[0] -= self.__energy_shift[0]
-            if (self.__write_forces):
+            if self.__write_forces:
                 self.__forces[:] = 0
                 for i in self.__potential_list:
                     atom_list = self.__system.potentials[i].atom_list
-                    self.__forces[atom_list] += \
-                        self.__system.potentials[i].forces[:]
+                    f = self.__system.potentials[i].forces[:]
+                    self.__forces[atom_list] += f
                 self.__forces[:] /= self.__conversion * 0.01
-            if (self.__write_virial):
+            if self.__write_virial:
                 self.__virial[:] = 0
                 for i in self.__potential_list:
                     self.__virial[:] += self.__system.potentials[i].virial[:]
                 self.__virial[:] /= self.__conversion * 0.001
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
         super().bind_integrator(integrator)
         self.__system = integrator.system
         self.__energy_potential = _np.zeros((1,), dtype=_np.double)
-        if (self.__write_forces):
+        if self.__write_forces:
             self.__forces = _np.zeros((self.__system.n_atoms, 3), _np.double)
-        if (self.__write_virial):
+        if self.__write_virial:
             self.__virial = _np.zeros((3, 3), _np.double)
 
     def initialize(self) -> None:
@@ -490,9 +532,9 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         Open the trajectory for writing.
         """
         super().initialize()
-        if (not _os.path.exists(self.file_name)):
+        if not _os.path.exists(self.file_name):
             self.__append = False
-        if (self.__append):
+        if self.__append:
             self.__fp = open(self.file_name, 'a')
         else:
             _apputils.backup.back_up(self.file_name)
@@ -502,7 +544,7 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write to the trajectory immediately.
         """
-        if (not self.initialized):
+        if not self.initialized:
             self.initialize()
         self.__convert_data()
         print(self.__system.n_atoms, file=self.__fp)
@@ -510,29 +552,33 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         header = 'energy={} '.format(s.strip())
         s = format(self.__energy_shift)[1:-1]
         header += 'energy_shift={} pbc="T T T" '.format(s.strip())
-        if (self.__write_virial):
+        if self.__write_virial:
             s = format(self.__virial.reshape(-1))[1:-1]
             header += 'virial="{}" '.format(s)
         s = format(self.__system.box.reshape(-1) * 10)[1:-1]
         header += 'Lattice="{}" '.format(s)
         header += 'Properties=species:S:1:pos:R:3'
-        if (self.__write_velocities):
+        if self.__write_velocities:
             header += ':vel:R:3'
-        if (self.__write_forces):
+        if self.__write_forces:
             header += ':force:R:3'
         print(header, file=self.__fp)
-        if (self.__wrap_positions):
+        if self.__wrap_positions:
             p = self.__system.positions_wrapped
         else:
             p = self.__system.positions
         for i in range(0, self.__system.n_atoms):
-            print(self.__system.atomic_symbols[i] + ' ',
-                  file=self.__fp, end='')
+            print(
+                self.__system.atomic_symbols[i] + ' ', file=self.__fp, end=''
+            )
             print(format(p[i] * 10)[1:-1], file=self.__fp, end='')
-            if (self.__write_velocities):
-                print(format(self.__system.velocities[i] * 100)[1:-1],
-                      file=self.__fp, end='')
-            if (self.__write_forces):
+            if self.__write_velocities:
+                print(
+                    format(self.__system.velocities[i] * 100)[1:-1],
+                    file=self.__fp,
+                    end='',
+                )
+            if self.__write_forces:
                 print(format(self.__forces[i])[1:-1], file=self.__fp, end='')
             print('', file=self.__fp)
         self.__fp.flush()
@@ -541,14 +587,14 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write the trajectory according to the definded step interval.
         """
-        if (super().update()):
+        if super().update():
             self.write()
 
     def finalize(self) -> None:
         """
         Close this trajectory.
         """
-        if (self.__fp is not None):
+        if self.__fp is not None:
             self.__fp.close()
 
     @property
@@ -587,15 +633,17 @@ class H5READER(object):
     .. [1] https://mdtraj.org/1.9.7/hdf5_format.html
     """
 
-    def __init__(self,
-                 file_name: str,
-                 read_coordinates: bool = True,
-                 read_velocities: bool = True,
-                 read_forces: bool = True,
-                 read_virial: bool = True,
-                 read_cell: bool = True,
-                 read_nhc_data: bool = True,
-                 read_rng_state: bool = True) -> None:
+    def __init__(
+        self,
+        file_name: str,
+        read_coordinates: bool = True,
+        read_velocities: bool = True,
+        read_forces: bool = True,
+        read_virial: bool = True,
+        read_cell: bool = True,
+        read_nhc_data: bool = True,
+        read_rng_state: bool = True,
+    ) -> None:
         """
         Create a H5READER instance.
         """
@@ -610,7 +658,7 @@ class H5READER(object):
         self.__root = _h5.File(file_name, 'r')
         self.__check_attributes()
         self.__n_atoms = self.__root['coordinates'].shape[1]
-        if ('SOMDRESTART' in str(self.__root.attrs['conventions'])):
+        if 'SOMDRESTART' in str(self.__root.attrs['conventions']):
             self.__is_restart = True
         else:
             self.__is_restart = False
@@ -621,13 +669,12 @@ class H5READER(object):
         """
         Close the file on exit.
         """
-        if (self.__root is not None):
+        if self.__root is not None:
             self.__root.close()
 
-    def __check_attribute(self,
-                          name: str,
-                          value=None,
-                          die_on_fail: bool = True) -> None:
+    def __check_attribute(
+        self, name: str, value=None, die_on_fail: bool = True
+    ) -> None:
         """
         Check if a given attribute exists.
 
@@ -649,15 +696,17 @@ class H5READER(object):
         except:
             message = 'Attribute {} does not exist in file {}'
             message = message.format(name, self.__file_name)
-            if (die_on_fail):
+            if die_on_fail:
                 raise AttributeError(message)
             else:
                 _mdutils.warning.warn(message)
-        if (value is not None and value not in str(attr)):
-            message = ('Values of attribute {} in file {} do not contain ' +
-                       'the expected value {}')
+        if value is not None and value not in str(attr):
+            message = (
+                'Values of attribute {} in file {} do not contain '
+                + 'the expected value {}'
+            )
             message = message.format(name, self.__file_name, value)
-            if (die_on_fail):
+            if die_on_fail:
                 raise AttributeError(message)
             else:
                 _mdutils.warning.warn(message)
@@ -673,8 +722,9 @@ class H5READER(object):
         self.__check_attribute('title', die_on_fail=False)
         self.__check_attribute('application', die_on_fail=False)
 
-    def _read_snapshot(self,
-                       frame_index: int = -1) -> _mdcore.snapshots.SNAPSHOT:
+    def _read_snapshot(
+        self, frame_index: int = -1
+    ) -> _mdcore.snapshots.SNAPSHOT:
         """
         Read one frame from the trajectory as the
         `somd.core.snapshots.SNAPSHOT` instance. This method do not require an
@@ -687,56 +737,61 @@ class H5READER(object):
             negative, last frame of the trajectory will be read.
         """
         n_frames = self.__root['coordinates'].shape[0]
-        if (frame_index < 0):
+        if frame_index < 0:
             frame_index = n_frames - 1
-        elif (self.__is_restart and frame_index > 0):
-            raise RuntimeError('Could not load data from a non-zero frame ' +
-                               'of a restart file!')
+        elif self.__is_restart and frame_index > 0:
+            raise RuntimeError(
+                'Could not load data from a non-zero frame '
+                + 'of a restart file!'
+            )
         elif (not self.__is_restart) and (n_frames <= frame_index):
-            message = 'Could not load data from frame {:d} of a ' + \
-                      'trajectory with only {:d} frmaes!'
-            message = message.format(frame_index,
-                                     self.__root['coordinates'].shape[0])
+            message = (
+                'Could not load data from frame {:d} of a '
+                + 'trajectory with only {:d} frmaes!'
+            )
+            message = message.format(
+                frame_index, self.__root['coordinates'].shape[0]
+            )
             raise RuntimeError(message)
         snapshot = _mdcore.snapshots.SNAPSHOT(self.__n_atoms)
-        if (self.__read_coordinates):
-            if ('coordinates' in self.__root.keys()):
-                snapshot.positions[:, :] = \
-                    self.__root['coordinates'][frame_index]
-                if (self.__system is not None):
+        if self.__read_coordinates:
+            if 'coordinates' in self.__root.keys():
+                p = self.__root['coordinates'][frame_index]
+                snapshot.positions[:, :] = p
+                if self.__system is not None:
                     self.__system.positions[:] = snapshot.positions
             else:
                 message = 'Can not load coordinates from file "{:s}".'
                 _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_velocities):
-            if ('velocities' in self.__root.keys()):
-                snapshot.velocities[:, :] = \
-                    self.__root['velocities'][frame_index]
-                if (self.__system is not None):
+        if self.__read_velocities:
+            if 'velocities' in self.__root.keys():
+                v = self.__root['velocities'][frame_index]
+                snapshot.velocities[:, :] = v
+                if self.__system is not None:
                     self.__system.velocities[:] = snapshot.velocities
             else:
                 message = 'Can not load velocities from file "{:s}".'
                 _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_forces):
-            if ('forces' in self.__root.keys()):
+        if self.__read_forces:
+            if 'forces' in self.__root.keys():
                 snapshot.forces[:, :] = self.__root['forces'][frame_index]
-                if (self.__system is not None):
+                if self.__system is not None:
                     self.__system.forces[:] = snapshot.forces
             else:
                 message = 'Can not load forces from file "{:s}".'
                 _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_virial):
-            if ('virial' in self.__root.keys()):
+        if self.__read_virial:
+            if 'virial' in self.__root.keys():
                 snapshot.virial[:, :] = self.__root['virial'][frame_index]
-                if (self.__system is not None):
+                if self.__system is not None:
                     self.__system.virial[:] = snapshot.virial
             else:
                 message = 'Can not load virial from file "{:s}".'
                 _mdutils.warning.warn(message.format(self.file_name))
-        if (self.__read_cell):
-            if (str(self.__root.attrs['program']) == 'SOMD'):
+        if self.__read_cell:
+            if str(self.__root.attrs['program']) == 'SOMD':
                 snapshot.box[:] = self.__root['box'][frame_index][:]
-                if (self.__system is not None):
+                if self.__system is not None:
                     self.__system.box[:] = snapshot.box
             else:
                 try:
@@ -744,7 +799,7 @@ class H5READER(object):
                     tmp[3:6] = self.__root['cell_angles'][frame_index][:]
                     tmp[0:3] = self.__root['cell_lengths'][frame_index][:]
                     snapshot.lattice = tmp
-                    if (self.__system is not None):
+                    if self.__system is not None:
                         self.__system.lattice = tmp
                 except:
                     message = 'Can not load cell data from file "{:s}".'
@@ -755,49 +810,56 @@ class H5READER(object):
         """
         Read and set Nose-Hoover Chains data.
         """
-        if (not self.__is_restart):
+        if not self.__is_restart:
             message = 'Can not load NHCHAINS data from a non-restart file!'
             _mdutils.warning.warn(message)
             return
-        if (len(self.__nhchains) == 0):
-            message = 'NHCHAINS have not been bound to the reader! ' + \
-                      'NHCHAINS data will not be load!'
+        if len(self.__nhchains) == 0:
+            message = (
+                'NHCHAINS have not been bound to the reader! '
+                + 'NHCHAINS data will not be load!'
+            )
             _mdutils.warning.warn(message)
             return
-        elif ('nhc_positions' not in self.__root.keys()):
-            message = 'Can not load NHCHAINS data from a restart ' + \
-                      'file without NHCHAINS data!'
+        elif 'nhc_positions' not in self.__root.keys():
+            message = (
+                'Can not load NHCHAINS data from a restart '
+                + 'file without NHCHAINS data!'
+            )
             _mdutils.warning.warn(message)
             return
         n_nhc = self.__root['nhc_positions'].shape[1]
         n_nhc = min(len(self.__nhchains), n_nhc)
         for i in range(0, n_nhc):
-            self.__nhchains[i].positions = \
-                self.__root['nhc_positions'][0, i, :]
-            self.__nhchains[i].momentums = \
-                self.__root['nhc_momentums'][0, i, :]
+            p = self.__root['nhc_positions'][0, i, :]
+            self.__nhchains[i].positions = p
+            m = self.__root['nhc_momentums'][0, i, :]
+            self.__nhchains[i].momentums = m
 
     def _read_rng_state(self) -> None:
         """
         Read and set RNG data.
         """
-        if (not self.__is_restart):
+        if not self.__is_restart:
             message = 'Can not load RNG state from a non-restart file!'
             _mdutils.warning.warn(message)
             return
         st_str = self.__root.attrs['randomState']
         _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
-        if (integrator.system is None):
+        if integrator.system is None:
             raise RuntimeError('Integrator has not bind a system!')
-        if (self.__n_atoms != integrator.system.n_atoms):
-            raise RuntimeError('The atom number in the trajectory file not ' +
-                               'match atom number of the simulated system!')
+        if self.__n_atoms != integrator.system.n_atoms:
+            raise RuntimeError(
+                'The atom number in the trajectory file not '
+                + 'match atom number of the simulated system!'
+            )
         self.__integrator = integrator
         self.__system = integrator.system
         self.__nhchains = integrator._nhchains
@@ -812,13 +874,13 @@ class H5READER(object):
             The index of the frame to read data from. If the parameter is
             negative, last frame of the trajectory will be read.
         """
-        if (self.__integrator is None):
+        if self.__integrator is None:
             message = 'Must bind to an integrator before read!'
             raise RuntimeError(message)
         self._read_snapshot(frame_index)
-        if (self.__read_rng_state):
+        if self.__read_rng_state:
             self._read_rng_state()
-        if (self.__read_nhc_data):
+        if self.__read_nhc_data:
             self._read_nhc_data()
 
     @property

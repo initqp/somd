@@ -59,12 +59,14 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
            physical chemistry letters 7.12 (2016): 2197-2203.
     """
 
-    def __init__(self,
-                 atom_list: list,
-                 atomic_types: list,
-                 method: str,
-                 damping: str = 'ZeroDamping',
-                 atm: bool = False) -> None:
+    def __init__(
+        self,
+        atom_list: list,
+        atomic_types: list,
+        method: str,
+        damping: str = 'ZeroDamping',
+        atm: bool = False,
+    ) -> None:
         """
         Create a DFTD3 instance.
         """
@@ -78,23 +80,25 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
             from dftd3.interface import OptimizedPowerDampingParam
             from dftd3.interface import ModifiedRationalDampingParam
         except:
-            raise ImportError('You need to have the dftd3-python package ' +
-                              'installed to use the DFTD3 potential!')
+            raise ImportError(
+                'You need to have the dftd3-python package '
+                + 'installed to use the DFTD3 potential!'
+            )
         self.__conversion = _c.HARTREE / _c.BOHRRADIUS * -1.0
         pbc = _np.ones(3, dtype=_np.int_)
         lattice = _np.zeros((3, 3), dtype=_np.double)
         atomic_types = _np.array(atomic_types, dtype=_np.int_)
         positions = _np.zeros((atomic_types.shape[0], 3), dtype=_np.double)
         self.__model = DispersionModel(atomic_types, positions, lattice, pbc)
-        if (damping == 'ZeroDamping'):
+        if damping == 'ZeroDamping':
             self.__param = ZeroDampingParam(method=method, atm=atm)
-        elif (damping == 'RationalDamping'):
+        elif damping == 'RationalDamping':
             self.__param = RationalDampingParam(method=method, atm=atm)
-        elif (damping == 'ModifiedZeroDamping'):
+        elif damping == 'ModifiedZeroDamping':
             self.__param = ModifiedZeroDampingParam(method=method, atm=atm)
-        elif (damping == 'OptimizedPowerDamping'):
+        elif damping == 'OptimizedPowerDamping':
             self.__param = OptimizedPowerDampingParam(method=method, atm=atm)
-        elif (damping == 'ModifiedRationalDamping'):
+        elif damping == 'ModifiedRationalDamping':
             self.__param = ModifiedRationalDampingParam(method=method, atm=atm)
         else:
             raise RuntimeError('Unknown damping parameter type: ' + damping)
@@ -108,8 +112,10 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
         system : somd.systems.MDSYSTEM
             The simulated system.
         """
-        self.__model.update(system.positions[self.atom_list] / _c.BOHRRADIUS,
-                            system.box / _c.BOHRRADIUS)
+        self.__model.update(
+            system.positions[self.atom_list] / _c.BOHRRADIUS,
+            system.box / _c.BOHRRADIUS,
+        )
         result = self.__model.get_dispersion(self.__param, grad=True)
         self.energy_potential[0] = result.get("energy") * _c.HARTREE
         self.forces[:] = result.get("gradient") * self.__conversion

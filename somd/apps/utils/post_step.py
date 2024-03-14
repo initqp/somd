@@ -48,15 +48,16 @@ class POSTSTEPOBJ(_ab.ABC):
         # If initialized.
         self.__initialized = False
 
-    def bind_integrator(self,
-                        integrator: _mdcore.integrators.INTEGRATOR) -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
-        if (self.__integrator is not None):
+        if self.__integrator is not None:
             message = 'Rebinding an integrators to a post step object.'
             _mdutils.warning.warn(message)
-        if (integrator.system is None):
+        if integrator.system is None:
             raise RuntimeError('Integrator has not bind a system!')
         self.__integrator = integrator
 
@@ -64,7 +65,7 @@ class POSTSTEPOBJ(_ab.ABC):
         """
         Initialize the object.
         """
-        if (self.__integrator is None):
+        if self.__integrator is None:
             message = 'Must bind to an integrator before initialization!'
             raise RuntimeError(message)
         self.__initialized = True
@@ -80,7 +81,7 @@ class POSTSTEPOBJ(_ab.ABC):
         """
         Perform the post step task.
         """
-        if ((self.step % self.__interval) == 0):
+        if (self.step % self.__interval) == 0:
             return True
         else:
             return False
@@ -135,10 +136,12 @@ class POSTSTEPOBJWRAPPER(POSTSTEPOBJ):
         The step interval of invoking this object.
     """
 
-    def __init__(self,
-                 update_function: _tp.Callable,
-                 initialize_function: _tp.Callable = None,
-                 interval: int = 1):
+    def __init__(
+        self,
+        update_function: _tp.Callable,
+        initialize_function: _tp.Callable = None,
+        interval: int = 1,
+    ):
         """
         Create a POSTSTEPOBJWRAPPER instance.
         """
@@ -150,12 +153,12 @@ class POSTSTEPOBJWRAPPER(POSTSTEPOBJ):
         """
         Initialize the object.
         """
-        if (self.__initialize_function is not None):
+        if self.__initialize_function is not None:
             self.__initialize_function()
 
     def update(self) -> None:
         """
         Update the object.
         """
-        if (super().update()):
+        if super().update():
             self.__update_function(self.integrator)

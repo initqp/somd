@@ -40,15 +40,14 @@ def __find_max_backup_number(base_name: str, file_list: list) -> int:
     maximum = -2
     for fn in file_list:
         tmp = _re.split(base_name, fn)
-        if (len(tmp) > 1 and tmp[0] != '' and tmp[1] == ''):
+        if len(tmp) > 1 and tmp[0] != '' and tmp[1] == '':
             # backup files.
             prefix = _re.split(r'\.', tmp[0])
-            if (len(prefix) == 3 and prefix[0] == 'bck' and
-                    prefix[1].isdigit()):
+            if len(prefix) == 3 and prefix[0] == 'bck' and prefix[1].isdigit():
                 maximum = max(maximum, int(prefix[1]))
-        elif (len(tmp) > 1 and tmp[0] == '' and tmp[1] == ''):
+        elif len(tmp) > 1 and tmp[0] == '' and tmp[1] == '':
             # original file.
-            if (maximum == -2):
+            if maximum == -2:
                 maximum = -1
     return maximum
 
@@ -63,12 +62,11 @@ def back_up(file_name: str) -> None:
         Name of the file.
     """
     directory = _os.path.dirname(file_name)
-    if (directory == ''):
+    if directory == '':
         directory = '.'
     file_list = _os.listdir(directory)
     base_name = _os.path.basename(file_name)
     n = __find_max_backup_number(base_name, file_list)
-    if ((_os.path.exists(file_name) or
-         _os.path.islink(file_name)) and n != -2):
+    if (_os.path.exists(file_name) or _os.path.islink(file_name)) and n != -2:
         file_name_new = directory + '/' + 'bck.' + str(n + 1) + '.' + base_name
         _os.rename(file_name, file_name_new)

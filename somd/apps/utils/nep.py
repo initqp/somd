@@ -25,11 +25,13 @@ import re as _re
 import numpy as _np
 from somd import core as _mdcore
 
-__all__ = ['cat_exyz',
-           'get_loss',
-           'make_nep_in',
-           'get_potentials_msd',
-           'check_nep_parameters']
+__all__ = [
+    'cat_exyz',
+    'get_loss',
+    'make_nep_in',
+    'get_potentials_msd',
+    'check_nep_parameters',
+]
 
 
 def cat_exyz(set_in: list, set_out: str) -> None:
@@ -45,7 +47,7 @@ def cat_exyz(set_in: list, set_out: str) -> None:
     """
     fp = open(set_out, 'w')
     for fn in set_in:
-        if (fn is not None):
+        if fn is not None:
             fp_in = open(fn, 'r')
             for l in fp_in:
                 fp.write(l)
@@ -53,8 +55,9 @@ def cat_exyz(set_in: list, set_out: str) -> None:
     fp.close()
 
 
-def get_potentials_msd(potentials: list,
-                       system: _mdcore.systems.MDSYSTEM) -> float:
+def get_potentials_msd(
+    potentials: list, system: _mdcore.systems.MDSYSTEM
+) -> float:
     """
     Return the maximum standard deviation of the forces calculated by
     a list of potentials.
@@ -75,7 +78,7 @@ def get_potentials_msd(potentials: list,
     for i in range(0, system.n_atoms):
         for j in range(0, len(potentials)):
             tmp = _np.linalg.norm(potentials[j].forces[i] - mean[i])
-            sd[i] += tmp ** 2
+            sd[i] += tmp**2
         sd[i] /= len(potentials)
     return _np.max(_np.sqrt(sd))
 
@@ -121,17 +124,17 @@ def check_nep_parameters(nep_parameters: str, symbols: list) -> bool:
     parameters = nep_parameters.replace('\\n', '\n')
     for line in _re.split('\n', parameters):
         l = [i for i in line.strip().split(' ') if i != '']
-        if (l != [] and l[0].lower() == 'type'):
+        if l != [] and l[0].lower() == 'type':
             e_nep = l[2:]
-            if (len(e_nep) != int(l[1])):
+            if len(e_nep) != int(l[1]):
                 message = 'Wrong Number of elements in NEP parameters!'
                 raise RuntimeError(message)
             e_lack = [e for e in symbols if e not in e_nep]
             e_unknown = [e for e in e_nep if e not in symbols]
-            if (len(e_lack) != 0):
+            if len(e_lack) != 0:
                 message = 'Lack element {} in NEP parameters!'
                 raise RuntimeError(message.format(list(set(e_lack))))
-            if (len(e_unknown) != 0):
+            if len(e_unknown) != 0:
                 message = 'Unknown element {} in NEP parameters!'
                 raise RuntimeError(message.format(list(set(e_unknown))))
             write_symbols = False
@@ -152,7 +155,7 @@ def make_nep_in(nep_parameters: str, symbols: list = None) -> None:
         will not be written.
     """
     fp = open('nep.in', 'w')
-    if (symbols is not None):
+    if symbols is not None:
         symbols = list(set(symbols))
         symbols.sort()
         print('type {:d}'.format(len(symbols)), end='', file=fp)

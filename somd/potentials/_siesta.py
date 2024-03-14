@@ -84,17 +84,26 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
 
     # The options handled by this class.
     __needed_options__ = [
-        'AtomicCoordinatesAndAtomicSpecies', 'SystemName', 'SystemLabel',
-        'MD.TypeOfRun', 'LatticeConstant', 'NumberOfSpecies', 'LatticeVectors',
-        'NumberOfAtoms', 'AtomicCoordinatesFormat', 'ChemicalSpeciesLabel'
+        'AtomicCoordinatesAndAtomicSpecies',
+        'SystemName',
+        'SystemLabel',
+        'MD.TypeOfRun',
+        'LatticeConstant',
+        'NumberOfSpecies',
+        'LatticeVectors',
+        'NumberOfAtoms',
+        'AtomicCoordinatesFormat',
+        'ChemicalSpeciesLabel',
     ]
 
-    def __init__(self,
-                 atom_list: list,
-                 system: _mdcore.systems.MDSYSTEM,
-                 siesta_options: str,
-                 siesta_command: str = 'siesta',
-                 pseudopotential_dir: str = './') -> None:
+    def __init__(
+        self,
+        atom_list: list,
+        system: _mdcore.systems.MDSYSTEM,
+        siesta_options: str,
+        siesta_command: str = 'siesta',
+        pseudopotential_dir: str = './',
+    ) -> None:
         """
         Create a SIESTA instance.
         """
@@ -102,17 +111,23 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         self.__siesta_pid = 0
         self.__initialized = False
         pseudopotential_dir = _os.path.abspath(pseudopotential_dir)
-        self.__args = [atom_list, system.copy(), siesta_options,
-                       siesta_command, pseudopotential_dir]
+        self.__args = [
+            atom_list,
+            system.copy(),
+            siesta_options,
+            siesta_command,
+            pseudopotential_dir,
+        ]
         self.__create_working_directory(system, pseudopotential_dir)
         self.__create_siesta_input(atom_list, system, siesta_options)
         self.__submit_siesta_job(siesta_command)
-        self.__conversion = \
+        self.__conversion = (
             _mdutils.constants.AVOGACONST * _mdutils.constants.ELECTCONST
+        )
 
-    def __create_working_directory(self,
-                                   system: _mdcore.systems.MDSYSTEM,
-                                   pseudopotential_dir: str) -> None:
+    def __create_working_directory(
+        self, system: _mdcore.systems.MDSYSTEM, pseudopotential_dir: str
+    ) -> None:
         """
         Create a working directory for SIESTA and copy the pseudopotential
         files.
@@ -129,13 +144,13 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         pseudopotential_dir = pseudopotential_dir + '/'
         files = _os.listdir(pseudopotential_dir)
         for symbol in list(set(system.atomic_symbols)):
-            if ((symbol + '.psml') in files):
+            if (symbol + '.psml') in files:
                 fn = symbol + '.psml'
                 _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
-            elif ((symbol + '.psf') in files):
+            elif (symbol + '.psf') in files:
                 fn = symbol + '.psf'
                 _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
-            elif ((symbol + '.vps') in files):
+            elif (symbol + '.vps') in files:
                 fn = symbol + '.vps'
                 _sh.copyfile(pseudopotential_dir + fn, work_dir + '/' + fn)
             else:
@@ -144,11 +159,13 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
                 raise RuntimeError(message.format(symbol))
         self.__work_dir = work_dir
 
-    def __create_siesta_input(self,
-                              atom_list: list,
-                              system: _mdcore.systems.MDSYSTEM,
-                              siesta_options: str,
-                              label: str = 'somd_tmp') -> None:
+    def __create_siesta_input(
+        self,
+        atom_list: list,
+        system: _mdcore.systems.MDSYSTEM,
+        siesta_options: str,
+        label: str = 'somd_tmp',
+    ) -> None:
         """
         Create a SIESTA input file.
 
@@ -167,7 +184,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         option_list = _re.split(' |\t|\n|\r', siesta_options)
         option_list = [x.lower() for x in option_list]
         for option in self.__needed_options__:
-            if (option.lower in option_list):
+            if option.lower in option_list:
                 message = 'SIESTA option "{}" should not be specified!'
                 raise RuntimeError(message.format(option))
         # write the file.
@@ -197,12 +214,21 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         print('AtomicCoordinatesFormat  NotScaledCartesianAng', file=fp)
         print('%block AtomicCoordinatesAndAtomicSpecies', file=fp)
         for i in range(0, len(atom_list)):
-            print('{:20.10f}'.format(system.positions[atom_list[i], 0] * 10),
-                  end=' ', file=fp)
-            print('{:20.10f}'.format(system.positions[atom_list[i], 1] * 10),
-                  end=' ', file=fp)
-            print('{:20.10f}'.format(system.positions[atom_list[i], 2] * 10),
-                  end=' ', file=fp)
+            print(
+                '{:20.10f}'.format(system.positions[atom_list[i], 0] * 10),
+                end=' ',
+                file=fp,
+            )
+            print(
+                '{:20.10f}'.format(system.positions[atom_list[i], 1] * 10),
+                end=' ',
+                file=fp,
+            )
+            print(
+                '{:20.10f}'.format(system.positions[atom_list[i], 2] * 10),
+                end=' ',
+                file=fp,
+            )
             symbol = system.atomic_symbols[atom_list[i]]
             print(atomic_symbol_list.index(symbol) + 1, file=fp)
         print('%endblock AtomicCoordinatesAndAtomicSpecies', file=fp)
@@ -210,9 +236,9 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         print(siesta_options, file=fp)
         fp.close()
 
-    def __submit_siesta_job(self,
-                            siesta_command: str,
-                            label: str = 'somd_tmp') -> None:
+    def __submit_siesta_job(
+        self, siesta_command: str, label: str = 'somd_tmp'
+    ) -> None:
         """
         Submit the SIESTA job.
 
@@ -235,33 +261,39 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         _os.mkfifo(self.__pipe_f)
         # We should print the PID of the SIESTA subprocess here.
         # do not use proc.pid which is the PID of the invoked shell.
-        command = (siesta_command + ' ' + label + '.fdf > ' + label + '.out' +
-                   ' 2>' + label + '.err & echo $!')
+        # fmt: off
+        command = (
+            siesta_command + ' ' + label + '.fdf > ' + label + '.out 2> '
+            + label + '.err & echo $!'
+        )
         cwd = _os.getcwd()
         _os.chdir(self.__work_dir)
         proc = _sp.Popen(command, shell=True, stdout=_sp.PIPE)
         _os.chdir(cwd)
-        if (proc.wait(_mdutils.defaults.SIESTATIMEOUT) != 0):
+        if proc.wait(_mdutils.defaults.SIESTATIMEOUT) != 0:
             message = 'Error in setup SIESTA using command: ' + siesta_command
             raise RuntimeError(message)
         fp = self.__timeout_open(self.__pipe_c, 'w')
         print('wait', file=fp)
         fp.close()
         pid_str = proc.communicate()[0].decode('UTF8').strip()
-        if (not pid_str.isdigit()):
+        if not pid_str.isdigit():
             message = 'Unknown PID string: "{}"! Check your login shell!'
             raise RuntimeError(message.format(pid_str))
         else:
             self.__siesta_pid = int(pid_str)
         self.__initialized = True
+        # fmt: on
 
     @staticmethod
     def __timeout_open(file_name, mode: str, **kwargs) -> _io.TextIOWrapper:
         """
         Open a file with a given timeout.
         """
-        message = 'The SIESTA subprocess has been silent for more than ' + \
-                  '{} seconds!'.format(_mdutils.defaults.SIESTATIMEOUT)
+        message = (
+            'The SIESTA subprocess has been silent for more than '
+            + '{} seconds!'.format(_mdutils.defaults.SIESTATIMEOUT)
+        )
         command = 'raise TimeoutError("{}")'.format(message)
         _sg.signal(_sg.SIGALRM, lambda signum, frame: exec(command))
         _sg.alarm(_mdutils.defaults.SIESTATIMEOUT)
@@ -295,35 +327,42 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         # calculations or just died. Thus we check its PID when an open
         # attempt is failed. If SIESTA is alive, we should wait it longer,
         # otherwise an error should be thrown.
-        while (True):
+        while True:
             try:
                 fp = self.__timeout_open(self.__pipe_f, 'r')
             except TimeoutError as error:
-                if (not self.alive):
+                if not self.alive:
                     message = 'The SIESTA subprocess (PID: {}) is DIED!!!'
                     message = message.format(self.__siesta_pid)
                     raise RuntimeError(message) from error
             else:
                 break
         header = fp.readline()
-        if (header.strip() == 'error'):
+        if header.strip() == 'error':
             raise RuntimeError('SIESTA FATAL:' + fp.readline())
-        elif (header.strip() != 'begin_forces'):
+        elif header.strip() != 'begin_forces':
             raise RuntimeError('SIESTA FATAL: unexpected header:' + header)
-        self.energy_potential[0] = _np.double(fp.readline()) * \
-            self.__conversion * 0.001
+        self.energy_potential[0] = (
+            _np.double(fp.readline()) * self.__conversion * 0.001
+        )
+        # fmt: off
         for i in range(0, 3):
-            self.virial[i, :] = system.volume * self.__conversion * -1.0 * \
+            self.virial[i, :] = (
                 _np.array(fp.readline().split(), dtype=_np.double)
-        if (int(fp.readline().strip()) != self.n_atoms):
+                * system.volume * self.__conversion * -1.0
+            )
+        if int(fp.readline().strip()) != self.n_atoms:
             raise RuntimeError('SIESTA FATAL: atom number mismatch!')
         for i in range(0, self.n_atoms):
-            self.forces[self.atom_list[i], :] = self.__conversion * 0.01 * \
+            self.forces[self.atom_list[i], :] = (
                 _np.array(fp.readline().split(), dtype=_np.double)
+                * self.__conversion * 0.01
+            )
         tailer = fp.readline()
-        if (tailer.strip() != 'end_forces'):
+        if tailer.strip() != 'end_forces':
             raise RuntimeError('SIESTA FATAL: unexpected tailer:' + tailer)
         fp.close()
+        # fmt: on
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -331,8 +370,9 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         Return a generator of this potential.
         """
         if 'file_name' in kwargs.keys():
-            kwargs['pseudopotential_dir'] = \
-                _os.path.abspath(kwargs['pseudopotential_dir'])
+            kwargs['pseudopotential_dir'] = _os.path.abspath(
+                kwargs['pseudopotential_dir']
+            )
         else:
             args = list(args)
             args[-1] = _os.path.abspath(args[-1])
@@ -342,9 +382,9 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         """
         Clean up.
         """
-        if (self.__initialized):
+        if self.__initialized:
             super().finalize()
-            if (self.alive):
+            if self.alive:
                 fp = self.__timeout_open(self.__pipe_c, 'w')
                 print('quit', file=fp)
                 fp.close()
