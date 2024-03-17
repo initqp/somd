@@ -138,7 +138,7 @@ static inline void _d_angle_d_r(
         deriv[i + 6] = (
             (positions[idx_3 + i] - positions[idx_2 + i]) / r_32 * cos_angle -
             (positions[idx_1 + i] - positions[idx_2 + i]) / r_12
-        )/ r_32 / sin_angle;
+        ) / r_32 / sin_angle;
         deriv[i + 3] = -1.0 * deriv[i + 0] - deriv[i + 6];
     }
 }
