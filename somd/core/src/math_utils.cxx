@@ -24,89 +24,89 @@
 /* return length of a vector */
 double veclen(double *vec, int n_elem)
 {
-	int i = 0;
-	double result = 0.0;
+    int i = 0;
+    double result = 0.0;
 
-	for (i = 0; i < n_elem; i++)
-		result += vec[i] * vec[i];
-	return sqrt(result);
+    for (i = 0; i < n_elem; i++)
+        result += vec[i] * vec[i];
+    return sqrt(result);
 }
 
 /* return length^2 of a vector */
 double veclen2(double *vec, int n_elem)
 {
-	int i = 0;
-	double result = 0.0;
+    int i = 0;
+    double result = 0.0;
 
-	for (i = 0; i < n_elem; i++)
-		result += vec[i] * vec[i];
-	return result;
+    for (i = 0; i < n_elem; i++)
+        result += vec[i] * vec[i];
+    return result;
 }
 
 /* normalize a vector */
 void vecnorm(double *vec, int n_elem)
 {
-	int i = 0;
-	double len = 0.0;
+    int i = 0;
+    double len = 0.0;
 
-	len = veclen(vec, n_elem);
-	for (i = 0; i < n_elem; i++)
-		vec[i] /= len;
+    len = veclen(vec, n_elem);
+    for (i = 0; i < n_elem; i++)
+        vec[i] /= len;
 }
 
 /* multiply each element of a vector with factor. */
 void vecscale(double *vec, double factor, int n_elem)
 {
-	int i = 0;
+    int i = 0;
 
-	for (i = 0; i < n_elem; i++)
-		vec[i] *= factor;
+    for (i = 0; i < n_elem; i++)
+        vec[i] *= factor;
 }
 
 /* return v1 dot v2 */
 double vecdot(double *vec_1, double *vec_2, int n_elem)
 {
-	int i = 0;
-	double result = 0.0;
+    int i = 0;
+    double result = 0.0;
 
-	for (i = 0; i < n_elem; i++)
-		result += vec_1[i] * vec_2[i];
-	return result;
+    for (i = 0; i < n_elem; i++)
+        result += vec_1[i] * vec_2[i];
+    return result;
 }
 
 /* return ||v2 - v1|| */
 double vecdis(double *vec_1, double *vec_2, int n_elem)
 {
-	int i = 0;
-	double result = 0.0;
+    int i = 0;
+    double result = 0.0;
 
-	for (i = 0; i < n_elem; i++)
-		result += (vec_1[i] - vec_2[i]) * (vec_1[i] - vec_2[i]);
-	return sqrt(result);
+    for (i = 0; i < n_elem; i++)
+        result += (vec_1[i] - vec_2[i]) * (vec_1[i] - vec_2[i]);
+    return sqrt(result);
 }
 
 /* write (vec_1 + vec_2) to out */
 void vecadd(double *vec_1, double *vec_2, double *out, int n_elem)
 {
-	int i = 0;
+    int i = 0;
 
-	for (i = 0; i < n_elem; i++)
-		out[i] = vec_1[i] + vec_2[i];
+    for (i = 0; i < n_elem; i++)
+        out[i] = vec_1[i] + vec_2[i];
 }
 
 /* write (vec_1 - vec_2) to out */
 void vecsub(double *vec_1, double *vec_2, double *out, int n_elem)
 {
-	int i = 0;
+    int i = 0;
 
-	for (i = 0; i < n_elem; i++)
-		out[i] = vec_1[i] - vec_2[i];
+    for (i = 0; i < n_elem; i++)
+        out[i] = vec_1[i] - vec_2[i];
 }
 
 /* write (v1 x v2) to out */
 void veccross3(double vec_1[3], double vec_2[3], double out[3])
 {
-	out[0] = vec_1[1] * vec_2[2] - vec_2[1] * vec_1[2];
-	out[1] = vec_1[2] * vec_2[0] - vec_2[2] * vec_1[0];
-	out[2] = vec_1[0] * vec_2[1] - vec_2[0] * vec_1[1];
+    out[0] = vec_1[1] * vec_2[2] - vec_2[1] * vec_1[2];
+    out[1] = vec_1[2] * vec_2[0] - vec_2[2] * vec_1[0];
+    out[2] = vec_1[0] * vec_2[1] - vec_2[0] * vec_1[1];
 }
