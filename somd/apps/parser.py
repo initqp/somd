@@ -1234,6 +1234,11 @@ class TOMLPARSER(object):
                 potential_name = self.__potential_generators[i][0]
                 if potential_name not in excluded_names:
                     reference_potentials.append(i)
+            message = (
+                'Will use the following potentials as the reference '
+                + 'potentials: {}.'
+            )
+            _mdutils.warning.warn(message.format(reference_potentials))
         else:
             reference_potentials = table['reference_potentials']
         for i in reference_potentials:
