@@ -165,6 +165,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             type_str = '>f4'
         n_atoms = self.__system.n_atoms
         self.__create_dataset('steps', (0,), (None,), 'uint64', '1')
+        self.__create_dataset('randomState', (1,), (1,), 'S10000', '(none)')
         self.__create_dataset(
             'potentialEnergy', (0,), (None,), type_str, 'kilojoule/mole'
         )
@@ -298,7 +299,8 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         st = _np.random.get_state()
         st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
-        self.__root.attrs['randomState'] = st_str
+        self.__root['randomState'][0] = '\0' * 10000
+        self.__root['randomState'][0] = st_str
 
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
@@ -825,15 +827,18 @@ class H5READER(object):
         """
         Read and set RNG data.
         """
-        if 'randomState' not in self.__root.keys():
+        if 'randomState' in self.__root.keys():
+            st_str = self.__root['randomState'][0].strip()
+            _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
+        elif 'randomState' in self.__root.attrs.keys():
+            st_str = self.__root.attrs['randomState']
+            _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
+        else:
             message = (
                 'Can not load RNG data from a trajectory '
                 + 'file without RNG data!'
             )
             _mdutils.warning.warn(message)
-            return
-        st_str = self.__root.attrs['randomState']
-        _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
 
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
