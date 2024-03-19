@@ -87,7 +87,6 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         if restart_file:
             self.__append = False
-            self.__is_restart = True
             self.__use_double = True
             self.__write_forces = True
             self.__write_virial = True
@@ -96,7 +95,6 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             self.__potential_list = None
         else:
             self.__append = append
-            self.__is_restart = False
             self.__use_double = use_double
             self.__write_forces = write_forces
             self.__write_virial = write_virial
@@ -126,11 +124,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         self.__root.attrs['application'] = 'H5WRITER'
         self.__root.attrs['createdTime'] = time.ctime()
         self.__root.attrs['title'] = self.__file_name
-        if self.__is_restart:
-            self.__root.attrs['conventions'] = ['Pande', 'SOMDRESTART']
-            self.__root.attrs['randomState'] = 'null'
-        else:
-            self.__root.attrs['conventions'] = 'Pande'
+        self.__root.attrs['conventions'] = 'Pande'
 
     def __create_dataset(
         self,
@@ -210,24 +204,23 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             self.__create_dataset(
                 'virial', (0, 3, 3), (None, 3, 3), type_str, 'kilojoule/mole'
             )
-        if self.__is_restart:
-            if len(self.__nhchains) != 0:
-                l_nhc = _mdutils.defaults.NHCLENGTH
-                n_nhc = len(self.__nhchains)
-                self.__create_dataset(
-                    'nhc_positions',
-                    (1, n_nhc, l_nhc),
-                    (1, n_nhc, l_nhc),
-                    type_str,
-                    '1',
-                )
-                self.__create_dataset(
-                    'nhc_momentums',
-                    (1, n_nhc, l_nhc),
-                    (1, n_nhc, l_nhc),
-                    type_str,
-                    'kilojoule/mole*picosecond',
-                )
+        if len(self.integrator._nhchains) != 0:
+            l_nhc = _mdutils.defaults.NHCLENGTH
+            n_nhc = len(self.integrator._nhchains)
+            self.__create_dataset(
+                'nhc_positions',
+                (1, n_nhc, l_nhc),
+                (1, n_nhc, l_nhc),
+                type_str,
+                '1',
+            )
+            self.__create_dataset(
+                'nhc_momentums',
+                (1, n_nhc, l_nhc),
+                (1, n_nhc, l_nhc),
+                type_str,
+                'kilojoule/mole*picosecond',
+            )
 
     def __collect_data(self) -> None:
         """
@@ -264,21 +257,18 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         n_atoms = self.__system.n_atoms
         # The step stands for the number of trajectory frame.
         step = self.__root['coordinates'].shape[0]
-        if self.__is_restart and (step != 0):
-            step = 0
-        else:
-            self.__root['steps'].resize((step + 1,))
-            self.__root['cell_angles'].resize((step + 1, 3))
-            self.__root['cell_lengths'].resize((step + 1, 3))
-            self.__root['box'].resize((step + 1, 3, 3))
-            self.__root['potentialEnergy'].resize((step + 1,))
-            self.__root['coordinates'].resize((step + 1, n_atoms, 3))
-            if self.__write_velocities:
-                self.__root['velocities'].resize((step + 1, n_atoms, 3))
-            if self.__write_forces:
-                self.__root['forces'].resize((step + 1, n_atoms, 3))
-            if self.__write_virial:
-                self.__root['virial'].resize((step + 1, 3, 3))
+        self.__root['steps'].resize((step + 1,))
+        self.__root['cell_angles'].resize((step + 1, 3))
+        self.__root['cell_lengths'].resize((step + 1, 3))
+        self.__root['box'].resize((step + 1, 3, 3))
+        self.__root['potentialEnergy'].resize((step + 1,))
+        self.__root['coordinates'].resize((step + 1, n_atoms, 3))
+        if self.__write_velocities:
+            self.__root['velocities'].resize((step + 1, n_atoms, 3))
+        if self.__write_forces:
+            self.__root['forces'].resize((step + 1, n_atoms, 3))
+        if self.__write_virial:
+            self.__root['virial'].resize((step + 1, 3, 3))
         self.__root['steps'][step] = self.step
         l = self.__system.lattice
         self.__root['cell_angles'][step, :] = l[3:6]
@@ -297,8 +287,8 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write Nose-Hoover Chains data to the trajectory.
         """
-        for i in range(0, len(self.__nhchains)):
-            n = self.__nhchains[i]
+        for i in range(0, len(self.integrator._nhchains)):
+            n = self.integrator._nhchains[i]
             self.__root['nhc_positions'][0, i, :] = n.positions
             self.__root['nhc_momentums'][0, i, :] = n.momentums
 
@@ -318,7 +308,6 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         super().bind_integrator(integrator)
         self.__system = integrator.system
-        self.__nhchains = integrator._nhchains
         self.__energy_potential = _np.zeros((1,), dtype=_np.double)
         self.__positions = None
         if self.__write_forces:
@@ -348,11 +337,9 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         if not self.initialized:
             self.initialize()
-        if self.__is_restart:
-            self._write_nhc_data()
-            self._write_rng_state()
+        self._write_nhc_data()
+        self._write_rng_state()
         self._write_snapshot()
-        # This `steps` stands for simulation timesteps.
         self.__root.flush()
 
     def update(self) -> None:
@@ -375,13 +362,6 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         File name of this trajectory.
         """
         return self.__file_name
-
-    @property
-    def is_restart(self) -> bool:
-        """
-        If this is a restart file.
-        """
-        return self.__is_restart
 
     @property
     def dtype(self) -> type:
@@ -659,10 +639,6 @@ class H5READER(object):
         self.__root = _h5.File(file_name, 'r')
         self.__check_attributes()
         self.__n_atoms = self.__root['coordinates'].shape[1]
-        if 'SOMDRESTART' in str(self.__root.attrs['conventions']):
-            self.__is_restart = True
-        else:
-            self.__is_restart = False
         self.__integrator = None
         self.__system = None
 
@@ -740,12 +716,7 @@ class H5READER(object):
         n_frames = self.__root['coordinates'].shape[0]
         if frame_index < 0:
             frame_index = n_frames - 1
-        elif self.__is_restart and frame_index > 0:
-            raise RuntimeError(
-                'Could not load data from a non-zero frame '
-                + 'of a restart file!'
-            )
-        elif (not self.__is_restart) and (n_frames <= frame_index):
+        elif n_frames <= frame_index:
             message = (
                 'Could not load data from frame {:d} of a '
                 + 'trajectory with only {:d} frmaes!'
@@ -811,38 +782,54 @@ class H5READER(object):
         """
         Read and set Nose-Hoover Chains data.
         """
-        if not self.__is_restart:
-            message = 'Can not load NHCHAINS data from a non-restart file!'
-            _mdutils.warning.warn(message)
-            return
-        if len(self.__nhchains) == 0:
+        if 'nhc_positions' not in self.__root.keys():
             message = (
-                'NHCHAINS have not been bound to the reader! '
-                + 'NHCHAINS data will not be load!'
-            )
-            _mdutils.warning.warn(message)
-            return
-        elif 'nhc_positions' not in self.__root.keys():
-            message = (
-                'Can not load NHCHAINS data from a restart '
+                'Can not load NHCHAINS data from a trajectory '
                 + 'file without NHCHAINS data!'
             )
             _mdutils.warning.warn(message)
             return
-        n_nhc = self.__root['nhc_positions'].shape[1]
-        n_nhc = min(len(self.__nhchains), n_nhc)
-        for i in range(0, n_nhc):
+        elif (
+            len(self.integrator._nhchains)
+            != self.__root['nhc_positions'].shape[1]
+        ):
+            message = (
+                'Number of NHCHAINS mismatch between the reader and the '
+                + 'trajectory ({:d} v.s. {:d})! Will not read NHCHAINS data!'
+            ).format(
+                len(self.integrator._nhchains),
+                self.__root['nhc_positions'].shape[1],
+            )
+            _mdutils.warning.warn(message)
+            return
+        elif (
+            _mdutils.defaults.NHCLENGTH
+            != self.__root['nhc_positions'].shape[2]
+        ):
+            message = (
+                'Lenghts of NHCHAINS mismatch between the reader and the '
+                + 'trajectory ({:d} v.s. {:d})! Will not read NHCHAINS data!'
+            ).format(
+                _mdutils.defaults.NHCLENGTH,
+                self.__root['nhc_positions'].shape[2],
+            )
+            _mdutils.warning.warn(message)
+            return
+        for i in range(0, self.__root['nhc_positions'].shape[1]):
             p = self.__root['nhc_positions'][0, i, :]
-            self.__nhchains[i].positions = p
+            self.integrator._nhchains[i].positions = p
             m = self.__root['nhc_momentums'][0, i, :]
-            self.__nhchains[i].momentums = m
+            self.integrator._nhchains[i].momentums = m
 
     def _read_rng_state(self) -> None:
         """
         Read and set RNG data.
         """
-        if not self.__is_restart:
-            message = 'Can not load RNG state from a non-restart file!'
+        if 'randomState' not in self.__root.keys():
+            message = (
+                'Can not load RNG data from a trajectory '
+                + 'file without RNG data!'
+            )
             _mdutils.warning.warn(message)
             return
         st_str = self.__root.attrs['randomState']
@@ -863,7 +850,6 @@ class H5READER(object):
             )
         self.__integrator = integrator
         self.__system = integrator.system
-        self.__nhchains = integrator._nhchains
 
     def read(self, frame_index: int = -1) -> None:
         """
@@ -897,13 +883,6 @@ class H5READER(object):
         File name of this trajectory.
         """
         return self.__file_name
-
-    @property
-    def is_restart(self) -> bool:
-        """
-        If this is a restart file.
-        """
-        return self.__is_restart
 
     @property
     def integrator(self) -> _mdcore.integrators.INTEGRATOR:
