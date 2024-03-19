@@ -21,6 +21,7 @@ The barostats.
 """
 
 import numpy as _np
+import typing as _tp
 from somd import core as _mdcore
 from . import utils as _apputils
 
@@ -57,24 +58,28 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
            3684-3690.
     """
 
-    def __init__(self,
-                 pressures: list,
-                 beta: list,
-                 relaxation_time: float) -> None:
+    def __init__(
+        self,
+        pressures: _tp.List[float],
+        beta: _tp.List[float],
+        relaxation_time: float
+    ) -> None:
         """
         Create a BAROSTAT instance.
         """
-        if (len(pressures) != len(beta)):
-            message = 'Length of the pressure array should be the same as ' + \
-                      'beta array!'
+        if len(pressures) != len(beta):
+            message = (
+                'Length of the pressure array should '
+                + 'be the same as the beta array!'
+            )
             raise RuntimeError(message)
-        if (len(pressures) == 1):
+        if len(pressures) == 1:
             self.__pressures = _np.zeros(1, dtype=_np.double)
             self.__beta = _np.zeros(1, dtype=_np.double)
             self.__pressures[:] = pressures[:]
             self.__beta[:] = beta[:]
             self.__isotropic = True
-        elif (len(pressures) == 6):
+        elif len(pressures) == 6:
             self.__pressures = _np.zeros((3, 3), dtype=_np.double)
             self.__beta = _np.zeros((3, 3), dtype=_np.double)
             self.__pressures[0, 0] = pressures[0]
@@ -107,17 +112,24 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         Calculate the standard mu tensor in the Berendsen barostat.
         """
         mu = _np.eye(3, dtype=_np.double)
-        if (self.__isotropic):
+        # fmt: off
+        if self.__isotropic:
             p_hydro = self.__system.pressures.trace() / 3
-            mu *= 1.0 - self.__beta[0] * self.__dt / 3 / \
-                self.__relaxation_time * (self.__pressures[0] - p_hydro)
+            mu *= (
+                1.0 - self.__beta[0] * self.__dt / 3
+                / self.__relaxation_time * (self.__pressures[0] - p_hydro)
+            )
         else:
-            mu -= self.__beta * self.__dt / 3 / self.__relaxation_time * \
-                (self.__pressures - self.__system.pressures)
+            mu -= (
+                self.__beta * self.__dt / 3 / self.__relaxation_time
+                * (self.__pressures - self.__system.pressures)
+            )
+        # fmt: on
         return mu
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
@@ -130,7 +142,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         Initialize the barostat.
         """
         super().initialize()
-        if (len(self.__system.segments) > 0):
+        if len(self.__system.segments) > 0:
             atom_list = list(range(0, self.__system.n_atoms))
             for seg in self.__system.segments:
                 for x in seg.atom_list:
@@ -141,16 +153,17 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         """
         Perform the pressure controlling.
         """
-        if (not self.initialized):
+        if not self.initialized:
             self.initialize()
         super().update()
         mu = self.__calc_mu_deterministic()
         self.__system.box[:] = mu.dot(self.__system.box.T).T
-        if (len(self.__system.segments) > 0):
+        if len(self.__system.segments) > 0:
             for seg in self.__system.segments:
                 seg.com_positions = mu.dot(seg.com_positions.T).T
-            self.__system.positions[self.__single_atoms, :] = \
-                mu.dot(self.__system.positions[self.__single_atoms].T).T
+            self.__system.positions[self.__single_atoms, :] = mu.dot(
+                self.__system.positions[self.__single_atoms].T
+            ).T
         else:
             self.__system.positions[:] = mu.dot(self.__system.positions.T).T
 
@@ -176,7 +189,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         return self.__pressures
 
     @pressures.setter
-    def pressures(self, p: list) -> None:
+    def pressures(self, p: _tp.List[float]) -> None:
         """
         Set the target pressures of the barostat. In unit of (kJ/mol/nm^3).
         """
@@ -190,7 +203,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         return self.__beta
 
     @beta.setter
-    def beta(self, b: list) -> _np.ndarray:
+    def beta(self, b: _tp.List[float]) -> _np.ndarray:
         """
         Set the isothermal compressibilities. In unit of (nm^3/(kJ/mol)).
         """

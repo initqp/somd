@@ -159,24 +159,38 @@ Mesh.Cutoff            300 Ry
 """
 
 system = somd.core.systems.create_system_from_poscar('H2O.POSCAR')
-g = {'atom_list': list(range(0, system.n_atoms)), 'has_translations': False}
+g = {
+    'atom_list': list(range(0, system.n_atoms)),
+    'has_translations': False
+}
 system.groups.create_from_dict(g)
 system.groups[0].add_velocities_from_temperature(300)
-potential = somd.potentials.SIESTA(range(0, system.n_atoms), system,
-                                   siesta_options, siesta_command)
+potential = somd.potentials.SIESTA(
+    range(0, system.n_atoms),
+    system,
+    siesta_options,
+    siesta_command
+)
 system.potentials.append(potential)
 
-integrator = somd.core.integrators.baoab_integrator(0.0005,
-                                                    temperatures=[300],
-                                                    relaxation_times=[0.1],
-                                                    thermo_groups=[0])
-trajectory = somd.apps.trajectories.H5WRITER('traj.h5', write_forces=False,
-                                             interval=10)
+integrator = somd.core.integrators.baoab_integrator(
+    0.0005,
+    temperatures=[300],
+    relaxation_times=[0.1],
+    thermo_groups=[0]
+)
+trajectory = somd.apps.trajectories.H5WRITER(
+    'traj.h5',
+    write_forces=False,
+    interval=10
+)
 logger = somd.apps.loggers.DEFAULTCSVLOGGER('data.csv', interval=10)
-simulation = somd.apps.simulations.SIMULATION(system=system,
-                                              integrator=integrator,
-                                              trajectories=[trajectory],
-                                              loggers=[logger])
+simulation = somd.apps.simulations.SIMULATION(
+    system=system,
+    integrator=integrator,
+    trajectories=[trajectory],
+    loggers=[logger]
+)
 
 simulation.run(500)
 ```
@@ -198,18 +212,8 @@ tutorials is considered as an efficient way to get familiar with SOMD.
 - Q: There are millions of MD packages out there, why do you need another one?
 
   A: Because I write it for fine. If you are seeking for unity, you may want to
-  use some mainstream packages like i-Pi, ASE, Tinker or even CP2K. Each of
-  them provides excellent functionalities.
-
-- Q: Will SOMD support other ab-initio packages, like VASP?
-
-  A: Maybe. But I can not afford a VASP license, it is way luxurious for me.
-
-- Q: Are you riding on the wave of machine learning potentials?
-
-  A: I am. And I'm tired of pretending I'm not. 🤡
+  use some mainstream packages like i-Pi, ASE, Tinker or even CP2K.
 
 - Q: How to cite the code?
 
-  A: You do not have to. But if your publisher forces you to do so, you may
-  cite the GitHub repo directly.
+  A: You don't need to. It's a toy.

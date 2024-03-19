@@ -63,16 +63,18 @@ class MACE(_mdcore.potential_base.POTENTIAL):
            2205.06643
     """
 
-    def __init__(self,
-                 atom_list: list,
-                 file_name: str,
-                 atomic_types: list,
-                 device: str = 'cpu',
-                 energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
-                 length_unit: float = 0.1,
-                 model_dtype: str = 'float64',
-                 calculate_virial: bool = True,
-                 charge_cv_expr: _tp.Callable = None) -> None:
+    def __init__(
+        self,
+        atom_list: _tp.List[int],
+        file_name: str,
+        atomic_types: _tp.List[int],
+        device: str = 'cpu',
+        energy_unit: float = _c.AVOGACONST * _c.ELECTCONST * 0.001,
+        length_unit: float = 0.1,
+        model_dtype: str = 'float64',
+        calculate_virial: bool = True,
+        charge_cv_expr: _tp.Callable = None,
+    ) -> None:
         """
         Create a MACE instance.
         """
@@ -96,30 +98,32 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             import mace
             import mace.data
             import mace.tools
-            self.__mace = mace
+            self.__mace = mace  # fmt: skip
             self.__torch = torch
         except:
-            raise ImportError('You need to have the mace package ' +
-                              '(https://github.com/ACEsuit/mace) ' +
-                              'installed to use the MACE potential!')
+            raise ImportError(
+                'You need to have the mace package '
+                + '(https://github.com/ACEsuit/mace) '
+                + 'installed to use the MACE potential!'
+            )
         model = torch.load(f=file_name, map_location=device)
         defuault_dtype = next(model.parameters()).dtype
-        if (model_dtype is None):
+        if model_dtype is None:
             dtype = defuault_dtype
-        elif (model_dtype in ['float32', 'float']):
+        elif model_dtype in ['float32', 'float']:
             dtype = torch.float32
-        elif (model_dtype in ['float64', 'double']):
+        elif model_dtype in ['float64', 'double']:
             dtype = torch.float64
         else:
             message = 'Unknown model dtype: {}!'
             raise RuntimeError(message.format(model_dtype))
-        if (dtype != defuault_dtype):
+        if dtype != defuault_dtype:
             message = 'Model dtype has been convert from {} to {} as required.'
             _warn(message.format(defuault_dtype, dtype))
-        if (dtype == torch.float64):
+        if dtype == torch.float64:
             self.__model = model.to(device).double()
             self.__dtype = 'float64'
-        elif (dtype == torch.float32):
+        elif dtype == torch.float32:
             self.__model = model.to(device).float()
             self.__dtype = 'float32'
         else:
@@ -128,35 +132,38 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         mace.tools.torch_tools.set_default_dtype(self.__dtype)
         self.__r_max = float(model.r_max.cpu().numpy())
         self.__z_table = mace.tools.utils.AtomicNumberTable(
-            [int(z) for z in model.atomic_numbers])
+            [int(z) for z in model.atomic_numbers]
+        )
         for parameter in self.__model.parameters():
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
         self.__grad_outputs = [self.__torch.ones(1).to(self.__device)]
-        if (model._get_name() in ['EnergyChargesMACE', 'AtomicChargesMACE']):
-            if (charge_cv_expr is not None):
+        if model._get_name() in ['EnergyChargesMACE', 'AtomicChargesMACE']:
+            if charge_cv_expr is not None:
                 self.__is_charge_model = True
-                if (model._get_name() == 'AtomicChargesMACE'):
+                if model._get_name() == 'AtomicChargesMACE':
                     self.__charge_only = True
                 self.__charge_cv_expr = charge_cv_expr
                 self.__extra_cv_values = _np.zeros((2, 1), dtype=_np.double)
-                self.__extra_cv_gradients = _np.zeros((2, len(atom_list), 3),
-                                                      dtype=_np.double)
-                message = 'Total charge gradients will NOT be calculated ' + \
-                          'inside SOMD!'
+                self.__extra_cv_gradients = _np.zeros(
+                    (2, len(atom_list), 3), dtype=_np.double
+                )
+                message = 'Total charge gradients will NOT be calculated!'
                 _warn(message)
             else:
-                message = 'Your MACE model is a charge model, but no ' + \
-                          'charge CV expersion was given! Will not ' + \
-                          'calculate charge CV!'
+                message = (
+                    'Your MACE model is a charge model, but no charge CV '
+                    + 'expersion was given! Will not calculate charge CV!'
+                )
                 _warn(message)
         else:
-            if (charge_cv_expr is not None):
-                message = 'Your MACE model is not a charge model, but a ' + \
-                          'charge CV expersion was given! Will not ' + \
-                          'calculate charge CV!'
+            if charge_cv_expr is not None:
+                message = (
+                    'Your MACE model is not a charge model, but a charge CV '
+                    + 'expersion was given! Will not calculate charge CV!'
+                )
                 _warn(message)
-        if (self.__charge_only and self.__calculate_virial):
+        if self.__charge_only and self.__calculate_virial:
             message = 'Can not calculate virial for a charge-only model!'
             raise RuntimeError(message)
 
@@ -185,16 +192,24 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             virials_weight=0.0,
             config_type='Default',
             pbc=self.__input_pbc,
-            cell=system.box / self.__length_unit)
+            cell=system.box / self.__length_unit,
+        )
         data_set = self.__mace.data.AtomicData.from_config(
-            configure, z_table=self.__z_table, cutoff=self.__r_max)
+            configure, z_table=self.__z_table, cutoff=self.__r_max
+        )
         data_loader = self.__mace.tools.torch_geometric.dataloader.DataLoader(
-            dataset=[data_set], batch_size=1, shuffle=False, drop_last=False)
+            dataset=[data_set], batch_size=1, shuffle=False, drop_last=False
+        )
         batch = next(iter(data_loader)).to(self.__device).to_dict()
-        outputs = self.__model(batch, training=False, compute_force=False,
-                               compute_virials=False, compute_stress=False,
-                               compute_displacement=self.__calculate_virial)
-        if (self.__is_charge_model):
+        outputs = self.__model(
+            batch,
+            training=False,
+            compute_force=False,
+            compute_virials=False,
+            compute_stress=False,
+            compute_displacement=self.__calculate_virial,
+        )
+        if self.__is_charge_model:
             charge_cv_value = [self.__charge_cv_expr(outputs['charges'])]
             charge_cv_value = self.__torch.stack(charge_cv_value, dim=-1)
             charge_cv_gradients = self.__torch.autograd.grad(
@@ -203,17 +218,19 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 grad_outputs=self.__grad_outputs,
                 retain_graph=True,
                 create_graph=False,
-                allow_unused=True)
+                allow_unused=True,
+            )
             charge_cv_gradients = charge_cv_gradients[0]
-        if (not self.__charge_only):
-            if (self.__calculate_virial):
+        if not self.__charge_only:
+            if self.__calculate_virial:
                 forces, virial = self.__torch.autograd.grad(
                     outputs=[outputs['energy']],
                     inputs=[batch['positions'], outputs['displacement']],
                     grad_outputs=self.__grad_outputs,
                     retain_graph=False,
                     create_graph=False,
-                    allow_unused=True)
+                    allow_unused=True,
+                )
             else:
                 forces = self.__torch.autograd.grad(
                     outputs=[outputs['energy']],
@@ -221,21 +238,22 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                     grad_outputs=self.__grad_outputs,
                     retain_graph=False,
                     create_graph=False,
-                    allow_unused=True)
+                    allow_unused=True,
+                )
                 forces = forces[0]
-            if (self.__calculate_virial and (virial is None)):
+            if self.__calculate_virial and (virial is None):
                 raise RuntimeError('Can not calculate virial!')
-            if (forces is None):
+            if forces is None:
                 raise RuntimeError('Can not calculate forces!')
-        if (not self.__charge_only):
+        if not self.__charge_only:
             energy = outputs['energy'].detach().cpu().numpy()
             self.energy_potential[0] = energy * self.__energy_unit
             forces = forces.detach().cpu().numpy() * -1
             self.forces[:] = forces * self.__energy_unit / self.__length_unit
-        if (self.__calculate_virial):
+        if self.__calculate_virial:
             virial = virial.detach().cpu().numpy() * -1
             self.virial[:] = virial * self.__energy_unit
-        if (self.__is_charge_model):
+        if self.__is_charge_model:
             charge_cv_value = charge_cv_value.detach().cpu().numpy()
             self.__extra_cv_values[0, :] = charge_cv_value
             gradients = charge_cv_gradients.detach().cpu().numpy()
@@ -260,7 +278,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         """
         Name of the charge CV.
         """
-        if (self.__is_charge_model):
+        if self.__is_charge_model:
             return ['CHARGECV', 'TOTALCHARGE']
         else:
             return None

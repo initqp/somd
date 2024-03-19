@@ -31,7 +31,7 @@ NHCNRESPA: int = 4
 GEODESICKR: int = 5
 
 # Tolerance for determining lattice parameters.
-LATTICETOL: float = 1E-7
+LATTICETOL: float = 1e-7
 
 # If simultaneously update potentials.
 SIMUUPDATE: bool = False

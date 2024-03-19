@@ -1,4 +1,3 @@
-#
 # SOMD is an ab-initio molecular dynamics package designed for the SIESTA code.
 # Copyright (C) 2023 github.com/initqp
 #
@@ -23,7 +22,9 @@ import os as _os
 import abc as _ab
 import h5py as _h5
 import copy as _cp
+import typing as _tp
 import contextlib as _cl
+from somd import _version
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd import utils as _mdutils
@@ -50,12 +51,14 @@ class SIMULATION(object):
         A list of simulation data loggers.
     """
 
-    def __init__(self,
-                 system: _mdcore.systems.MDSYSTEM,
-                 integrator: _mdcore.integrators.INTEGRATOR,
-                 barostat: _mdapps.barostats.BAROSTAT = None,
-                 trajectories: list = [],
-                 loggers: list = []) -> None:
+    def __init__(
+        self,
+        system: _mdcore.systems.MDSYSTEM,
+        integrator: _mdcore.integrators.INTEGRATOR,
+        barostat: _mdapps.barostats.BAROSTAT = None,
+        trajectories: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
+        loggers: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
+    ) -> None:
         """
         Create a SIMULATION instance.
         """
@@ -68,15 +71,15 @@ class SIMULATION(object):
         self.__post_step_objects = []
         self.__n_dof = [g.n_dof for g in self.system.groups]
         # Check the groups.
-        if (len(system.groups) == 0):
+        if len(system.groups) == 0:
             raise RuntimeError('No group has been bound to the system!')
         # Check the potentials.
-        if (len(system.potentials) == 0):
+        if len(system.potentials) == 0:
             raise RuntimeError('No potential has been bound to the system!')
         # Bind the system with the integrator.
         integrator.bind_system(system)
         # Bind the barostat to the system.
-        if (barostat is not None):
+        if barostat is not None:
             self.__post_step_objects.append(barostat)
         # Bind the trajectory writers to the system.
         for t in trajectories:
@@ -112,9 +115,9 @@ class SIMULATION(object):
         potential_list = []
         for i in range(0, len(self.system.potentials)):
             p = self.system.potentials[i]
-            if (p.__class__.__name__ != 'PLUMED'):
+            if p.__class__.__name__ != 'PLUMED':
                 potential_list.append(i)
-        if (not self.__read_force):
+        if not self.__read_force:
             self.system.update_potentials(potential_list)
         # Initialize post step objects.
         for obj in self.__post_step_objects:
@@ -127,7 +130,7 @@ class SIMULATION(object):
         Update internal states of the system and the integrator.
         """
         n_dof = [g.n_dof for g in self.system.groups]
-        if (n_dof != self.__n_dof):
+        if n_dof != self.__n_dof:
             self.integrator.bind_system(self.system)
 
     def run(self, n_steps: int) -> None:
@@ -140,7 +143,7 @@ class SIMULATION(object):
             The number of step to run.
         """
         # Initialize only once.
-        if (not self.__initialized):
+        if not self.__initialized:
             self._initialize()
         self._update_internal_states()
         # IKUZO!
@@ -161,11 +164,9 @@ class SIMULATION(object):
         t.write()
         del t
 
-    def restart_from(self,
-                     file_name: str,
-                     frame: int = -1,
-                     read_step: bool = True,
-                     **kwargs) -> None:
+    def restart_from(
+        self, file_name: str, frame: int = -1, read_step: bool = True, **kwargs
+    ) -> None:
         """
         Restart the simulation from a SOMD HDF5 restart file.
 
@@ -182,23 +183,23 @@ class SIMULATION(object):
         t = _mdapps.trajectories.H5READER(file_name, **kwargs)
         t.bind_integrator(self.__integrator)
         # Read data.
-        if (frame == -1):
+        if frame == -1:
             frame = t.n_frames - 1
-        if ('forces' in t.root.keys()):
-            if ('read_forces' not in kwargs):
+        if 'forces' in t.root.keys():
+            if 'read_forces' not in kwargs:
                 self.__read_force = True
-            elif ('read_forces' in kwargs and kwargs['read_forces']):
+            elif 'read_forces' in kwargs and kwargs['read_forces']:
                 self.__read_force = True
         t.read(frame)
         # Read time step.
-        if (read_step):
-            if ('steps' in t.root.keys()):
+        if read_step:
+            if 'steps' in t.root.keys():
                 frame = t.root['steps'][frame]
             else:
                 frame = 0
             self.__integrator.step = int(frame)
             for p in self.__system.potentials:
-                if (p.__class__.__name__ == 'PLUMED'):
+                if p.__class__.__name__ == 'PLUMED':
                     p.step = frame + 1
         del t
 
@@ -254,12 +255,14 @@ class STAGEDSIMULATION(_ab.ABC):
         Prefix of the output file.
     """
 
-    def __init__(self,
-                 system: _mdcore.systems.MDSYSTEM,
-                 integrator: _mdcore.integrators.INTEGRATOR,
-                 potential_generators: list,
-                 post_step_objects: list = [],
-                 output_prefix: str = 'staged_simulation') -> None:
+    def __init__(
+        self,
+        system: _mdcore.systems.MDSYSTEM,
+        integrator: _mdcore.integrators.INTEGRATOR,
+        potential_generators: _tp.List[_tp.Callable],
+        post_step_objects: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
+        output_prefix: str = 'staged_simulation',
+    ) -> None:
         """
         Create a STAGEDSIMULATION instance.
         """
@@ -276,15 +279,14 @@ class STAGEDSIMULATION(_ab.ABC):
         """
         Dump attributes to the output file.
         """
-        import time
-        from somd import _version
         self.__root.attrs['program'] = 'SOMD'
         self.__root.attrs['version'] = str(_version.get_versions())
-        self.__root.attrs['created_time'] = time.ctime()
+        self.__root.attrs['created_time'] = __import__('time').ctime()
         self.__root.attrs['title'] = self.__output_prefix + '.h5'
         self.__root.attrs['root_directory'] = _os.getcwd()
-        self.__root.attrs['working_directory'] = \
+        self.__root.attrs['working_directory'] = (
             _os.getcwd() + '/' + self.__output_prefix + '.dir'
+        )
 
     def __dump_groups(self) -> None:
         """
@@ -300,35 +302,41 @@ class STAGEDSIMULATION(_ab.ABC):
         """
         title = self.__output_prefix + '.h5'
         directory = self.__output_prefix + '.dir'
-        if (_os.path.exists(title)):
+        if _os.path.exists(title):
             self.__is_restart = True
-            if (not _os.path.isdir(directory)):
-                message = 'Can not find directory {:s}! SOMD will back up ' + \
-                          'the file {:s} and run the required simulation ' + \
-                          'from scratch!'
+            if not _os.path.isdir(directory):
+                message = (
+                    'Can not find directory {:s}! SOMD will back up '
+                    + 'the file {:s} and run the required simulation '
+                    + 'from scratch!'
+                )
                 _mdutils.warning.warn(message.format(directory, title))
                 self.__is_restart = False
                 _apputils.backup.back_up(title)
                 _os.mkdir(directory)
             else:
-                message = 'Found directory {:s}! SOMD will restart the ' + \
-                          'required simulation from the break point!'
+                message = (
+                    'Found directory {:s}! SOMD will restart the '
+                    + 'required simulation from the break point!'
+                )
                 _mdutils.warning.warn(message.format(directory))
         else:
-            if (_os.path.isdir(directory)):
-                message = 'Can not find file {:s}! SOMD will back up the ' + \
-                          'directory {:s} and run the required simulation ' + \
-                          'from scratch!'
+            if _os.path.isdir(directory):
+                message = (
+                    'Can not find file {:s}! SOMD will back up the '
+                    + 'directory {:s} and run the required simulation '
+                    + 'from scratch!'
+                )
                 _mdutils.warning.warn(message.format(title, directory))
                 _apputils.backup.back_up(directory)
             _os.mkdir(directory)
             self.__is_restart = False
         self.__root = _h5.File(title, 'a')
-        if (self.__is_restart):
+        if self.__is_restart:
             group = self.__root['/iteration_data/' + str(self.n_iter)]
             working_dir = group.attrs['working_directory']
-            if (not _os.path.isdir(working_dir)):
-                if (_os.path.exists(working_dir)):
+            if not _os.path.isdir(working_dir):
+                if _os.path.exists(working_dir):
                     _os.remove(working_dir)
                 _os.mkdir(working_dir)
         else:
@@ -340,27 +348,32 @@ class STAGEDSIMULATION(_ab.ABC):
         Check the initialization state of the post step objects.
         """
         for obj in self.__post_step_objects:
-            if (obj.initialized):
-                message = 'Post step objects that are passed to the ' + \
-                          'STAGEDSIMULATION wrapper must be uninitialized!'
+            if obj.initialized:
+                message = (
+                    'Post step objects that are passed to the '
+                    + 'STAGEDSIMULATION wrapper must be uninitialized!'
+                )
                 raise RuntimeError(message)
 
     def __check_system(self) -> None:
         """
         Check the state of the system object.
         """
-        if (len(self.__system.potentials) != 0):
-            message = 'The system object that is passed to the ' + \
-                      'STAGEDSIMULATION wrapper should not contain ' + \
-                      'potential calculators!'
+        if len(self.__system.potentials) != 0:
+            message = (
+                'The system object that is passed to the STAGEDSIMULATION '
+                + 'wrapper should not contain potential calculators!'
+            )
             raise RuntimeError(message)
 
-    def _create_dataset(self,
-                        path: str,
-                        shape: tuple,
-                        max_shape: tuple,
-                        data_type: str,
-                        unit: str = None) -> None:
+    def _create_dataset(
+        self,
+        path: str,
+        shape: tuple,
+        max_shape: tuple,
+        data_type: str,
+        unit: str = None,
+    ) -> None:
         """
         Create a new data set.
 
@@ -377,15 +390,17 @@ class STAGEDSIMULATION(_ab.ABC):
         unit : str
             Unit of the data set.
         """
-        self.__root.create_dataset(path, shape, maxshape=max_shape,
-                                   dtype=data_type)
-        if (unit is not None):
+        self.__root.create_dataset(
+            path, shape, maxshape=max_shape, dtype=data_type
+        )
+        if unit is not None:
             self.__root[path].attrs['units'] = unit
 
     @_cl.contextmanager
-    def _set_up_simulation(self,
-                           potential_indices: list,
-                           extra_potentials: list = []) -> SIMULATION:
+    def _set_up_simulation(
+        self, potential_indices: _tp.List[int],
+        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = []
+    ) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.
 
@@ -407,7 +422,7 @@ class STAGEDSIMULATION(_ab.ABC):
             system.potentials.append(p)
         barostat = None
         for index, obj in enumerate(self.__post_step_objects):
-            if (obj.__class__ == _mdapps.barostats.BAROSTAT):
+            if obj.__class__ == _mdapps.barostats.BAROSTAT:
                 barostat = post_step_objects.pop(index)
         simulation = SIMULATION(system, integrator, barostat)
         for obj in post_step_objects:
@@ -421,8 +436,11 @@ class STAGEDSIMULATION(_ab.ABC):
         """
         Initialize the directory of one simulation iteration.
         """
-        iter_dir = self.__root.attrs['working_directory'] + \
-            '/iteration_' + str(self.n_iter)
+        iter_dir = (
+            self.__root.attrs['working_directory']
+            + '/iteration_'
+            + str(self.n_iter)
+        )
         group = self.__root['/iteration_data/' + str(self.n_iter)]
         group.attrs['working_directory'] = iter_dir
         group.attrs['initialized'] = False
@@ -471,7 +489,7 @@ class STAGEDSIMULATION(_ab.ABC):
         """
         Number of the total simulation iteration.
         """
-        return (len(self.__root['/iteration_data']) - 1)
+        return len(self.__root['/iteration_data']) - 1
 
     @property
     def is_restart(self) -> bool:

@@ -59,36 +59,46 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
            670-673.
     """
 
-    def __init__(self,
-                 atom_list: list,
-                 file_name: str,
-                 timestep: float,
-                 temperature: float = None,
-                 restart: bool = False,
-                 output_prefix: str = None,
-                 cv_names: list = [],
-                 extra_cv_potential_index: int = None) -> None:
+    def __init__(
+        self,
+        atom_list: _tp.List[int],
+        file_name: str,
+        timestep: float,
+        temperature: float = None,
+        restart: bool = False,
+        output_prefix: str = None,
+        cv_names: _tp.List[_tp.Dict[str, str]] = [],
+        extra_cv_potential_index: int = None,
+    ) -> None:
         """
         Create a PLUMED instance.
         """
         super().__init__(atom_list)
-        self.__args = [atom_list, _os.path.abspath(file_name), timestep,
-                       temperature, restart, output_prefix, cv_names]
+        self.__args = [
+            atom_list,
+            _os.path.abspath(file_name),
+            timestep,
+            temperature,
+            restart,
+            output_prefix,
+            cv_names,
+        ]
         _os.environ['PLUMED_LOAD_NODEEPBIND'] = 'yes'
         _os.environ['PLUMED_TYPESAFE_IGNORE'] = 'yes'
         # treat PLUMED as a local dependency
         try:
             import plumed
-            _mdutils.warning.warn('PLUMED kernel outputs begin:')
+            _mdutils.warning.warn('PLUMED kernel outputs begin:')  # fmt: skip
             self.__plumed = plumed.Plumed()
             _mdutils.warning.warn('PLUMED kernel outputs end.')
         except:
-            raise ImportError('you need to have both the PLUMED python ' +
-                              'wrapper and PLUMED_KERNEL installed to use ' +
-                              'the PLUMED functionality!')
-        if (output_prefix is None):
+            raise ImportError(
+                'you need to have both the PLUMED python wrapper and '
+                + 'PLUMED_KERNEL installed to use the PLUMED functionality!'
+            )
+        if output_prefix is None:
             log_file = _os.path.basename(file_name) + '.log'
-        elif (output_prefix == ''):
+        elif output_prefix == '':
             log_file = _os.devnull
         else:
             log_file = output_prefix + '.log'
@@ -103,10 +113,10 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd('setPlumedDat', file_name)
         self.__plumed.cmd('setNatoms', len(atom_list))
         self.__plumed.cmd('setLogFile', log_file)
-        if (temperature is not None):
+        if temperature is not None:
             kb_T = temperature * _mdutils.constants.BOLTZCONST
             self.__plumed.cmd('setKbT', kb_T)
-        if (extra_cv_potential_index is not None):
+        if extra_cv_potential_index is not None:
             self.__extra_cv_checked = False
             self.__extra_cv_index = extra_cv_potential_index
         else:
@@ -118,13 +128,13 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__stop_flag = _np.zeros(1, dtype=_np.int64)
         self.__step = 1
 
-    def __set_up_cvs(self, cv_names: list) -> None:
+    def __set_up_cvs(self, cv_names: _tp.List[_tp.Dict[str, str]]) -> None:
         """
         Set up collective variables data.
 
         Parameters
         ----------
-        cv_names : List[dict]
+        cv_names : List[Dict[str, str]]
             Names and components of the collective variables to save. For
             example:
             cv_names = [{'d1': 'x'}, {'d1': 'y'}, {'d2': ''}]
@@ -132,14 +142,15 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__cv_values = []
         self.__cv_names = cv_names
         for cv in cv_names:
-            if (len(cv.items()) != 1):
-                message = 'Each element of the CV list should contains ' + \
-                          'one item!'
+            if len(cv.items()) != 1:
+                message = (
+                    'Each element of the CV list should contains one item!'
+                )
                 raise RuntimeError(message)
             name = list(cv.keys())[0]
-            if (type(cv[name]) is str):
+            if type(cv[name]) is str:
                 data = _np.zeros(1, dtype=_np.double)
-                if (cv[name] == ''):
+                if cv[name] == '':
                     command = 'setMemoryForData ' + name
                 else:
                     command = 'setMemoryForData ' + name + '.' + cv[name]
@@ -159,15 +170,17 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
             The simulated system.
         """
         potential = system.potentials[self.__extra_cv_index]
-        if (not hasattr(potential, 'extra_cv_names')):
+        if not hasattr(potential, 'extra_cv_names'):
             message = 'Potential {:d} can not be used to calculate extra CV!'
             raise RuntimeError(message.format(self.__extra_cv_index))
-        if (potential.extra_cv_names is None):
+        if potential.extra_cv_names is None:
             message = 'Potential {:d} can not be used to calculate extra CV!'
             raise RuntimeError(message.format(self.__extra_cv_index))
-        if (potential.atom_list.tolist() != self.atom_list.tolist()):
-            message = 'The extra CV calculator (potential {:d}) and the ' + \
-                      'PLUMED interface act on different atoms!'
+        if potential.atom_list.tolist() != self.atom_list.tolist():
+            message = (
+                'The extra CV calculator (potential {:d}) and the '
+                + 'PLUMED interface act on different atoms!'
+            )
             raise RuntimeError(message.format(self.__extra_cv_index))
 
     def __set_up_extra_cvs(self, system: _mdcore.systems.MDSYSTEM):
@@ -204,8 +217,8 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         """
         self.forces[:] = 0.0
         self.virial[:] = 0.0
-        if (self.__extra_cv_index is not None):
-            if (not self.__extra_cv_checked):
+        if self.__extra_cv_index is not None:
+            if not self.__extra_cv_checked:
                 self.__set_up_extra_cvs(system)
             n_extra_cvs = len(self.__extra_cv_values)
             potential = system.potentials[self.__extra_cv_index]
@@ -221,7 +234,7 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
         self.__plumed.cmd('prepareCalc')
         self.__plumed.cmd('performCalc')
         self.__plumed.cmd('getBias', self.energy_potential)
-        if (self.__extra_cv_index is not None):
+        if self.__extra_cv_index is not None:
             potential = system.potentials[self.__extra_cv_index]
             for i in range(0, len(self.__extra_cv_values)):
                 cv_forces = self.__extra_cv_forces[i]

@@ -31,7 +31,11 @@ cdef extern from "NEP_CPU/src/nep.h" nogil:
         NEP3() except +
         NEP3(string potential_filename) except +
         void init_from_file(string potential_filename, bool is_rank_0) except +
-        void compute(vector[int] types, vector[double] box, \
-            vector[double] positions, vector[double] potentials, \
-            vector[double] forces, vector[double] virial)
-
+        void compute(
+            vector[int] types,
+            vector[double] box,
+            vector[double] positions,
+            vector[double] potentials,
+            vector[double] forces,
+            vector[double] virial
+        )

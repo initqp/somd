@@ -27,77 +27,87 @@
 class RATTLE
 {
 protected:
-	// Number of constraints.
-	int n_constraints;
-	// Max number of RATTLE iterations.
-	int max_cycles;
-	// If exits when fails.
-	bool die_on_fail;
-	// Type of constraints.
-	std::vector<int> types;
-	// Target value of each constraint.
-	std::vector<double> targets;
-	// Tolerances of the RATTLE iterations.
-	std::vector<double> tolerances;
-	// Indices of atoms in each constraint.
-	std::vector<std::vector<int>> indices;
+    // Number of constraints.
+    int n_constraints;
+    // Max number of RATTLE iterations.
+    int max_cycles;
+    // If exits when fails.
+    bool die_on_fail;
+    // Type of constraints.
+    std::vector<int> types;
+    // Target value of each constraint.
+    std::vector<double> targets;
+    // Tolerances of the RATTLE iterations.
+    std::vector<double> tolerances;
+    // Indices of atoms in each constraint.
+    std::vector<std::vector<int>> indices;
 
-	// Name of the constraints.
-	const char type_str[3][10] = {"distance", "angle", "torsion"};
-	// Required atom numbers of each type of constraints.
-	int n_atoms_req[NCONSTTYPES] = {2, 3, 4};
-	// Positions at next timestep.
-	//    size : <n_atom * 3>
-	std::vector<double> positions_t1;
-	// Values of CVs at this and next timestep.
-	//    size : <2 * <n_constraints>>
-	std::vector<std::vector<double>> values;
-	// Derivatives about positions of CVs at this and next timestep.
-	//    size : <2 * <n_constraints * <n_atom_per_constraint * 3>>>
-	std::vector<std::vector<std::vector<double>>> deriv;
-	// Calculate CV values at this and next timestep.
-	void calculate_geometry_variables(double *positions, int t);
-	// Calculate derivatives about positions of CVs at this and next
-	// timestep.
-	void calculate_geometry_variables_derivatives(double *positions, int t);
+    // Name of the constraints.
+    const char type_str[3][10] = {"distance", "angle", "torsion"};
+    // Required atom numbers of each type of constraints.
+    int n_atoms_req[NCONSTTYPES] = {2, 3, 4};
+    // Positions at next timestep.
+    //    size : <n_atom * 3>
+    std::vector<double> positions_t1;
+    // Values of CVs at this and next timestep.
+    //    size : <2 * <n_constraints>>
+    std::vector<std::vector<double>> values;
+    // Derivatives about positions of CVs at this and next timestep.
+    //    size : <2 * <n_constraints * <n_atom_per_constraint * 3>>>
+    std::vector<std::vector<std::vector<double>>> deriv;
+    // Calculate CV values at this and next timestep.
+    void calculate_geometry_variables(double *positions, int t);
+    // Calculate derivatives about positions of CVs at this and next
+    // timestep.
+    void calculate_geometry_variables_derivatives(double *positions, int t);
 public:
-	// The constructor.
-	RATTLE(void);
-	// The destructor.
-	~RATTLE(void);
-	// Get number of constraints.
-	int const &get_n_constraints(void) const;
-	// Get max_cycles.
-	int const &get_max_cycles(void) const;
-	// Get die on file.
-	bool const &get_die_on_fail(void) const;
-	// Get type of a constraint.
-	std::vector<int> const &get_types(void) const;
-	// Get target value of a constraint.
-	std::vector<double> const &get_targets(void) const;
-	// Get RATTLE tolerance of a constraint.
-	std::vector<double> const &get_tolerances(void) const;
-	// Get atom indices of a constraint.
-	std::vector<std::vector<int>> const &get_indices(void) const;
-	// Set max_cycles.
-	void set_max_cycles(int v);
-	// Set die_on_fail
-	void set_die_on_fail(bool v);
-	// Check if a constraint is valid.
-	void check(int tp, std::vector<int> &idx, double tg, double tol);
-	// Append one constraint.
-	void append(int tp, std::vector<int> &idx, double tg, double tol);
-	// Delete one constraint.
-	void pop(int idx);
-	// Delete all constraints.
-	void clear(void);
+    // The constructor.
+    RATTLE(void);
+    // The destructor.
+    ~RATTLE(void);
+    // Get number of constraints.
+    int const &get_n_constraints(void) const;
+    // Get max_cycles.
+    int const &get_max_cycles(void) const;
+    // Get die on file.
+    bool const &get_die_on_fail(void) const;
+    // Get type of a constraint.
+    std::vector<int> const &get_types(void) const;
+    // Get target value of a constraint.
+    std::vector<double> const &get_targets(void) const;
+    // Get RATTLE tolerance of a constraint.
+    std::vector<double> const &get_tolerances(void) const;
+    // Get atom indices of a constraint.
+    std::vector<std::vector<int>> const &get_indices(void) const;
+    // Set max_cycles.
+    void set_max_cycles(int v);
+    // Set die_on_fail
+    void set_die_on_fail(bool v);
+    // Check if a constraint is valid.
+    void check(int tp, std::vector<int> &idx, double tg, double tol);
+    // Append one constraint.
+    void append(int tp, std::vector<int> &idx, double tg, double tol);
+    // Delete one constraint.
+    void pop(int idx);
+    // Delete all constraints.
+    void clear(void);
 
-	// Perform the upper part of RATTLE, with the timestep of dt.
-	void rattle_constrain_q(double *positions, double *velo, \
-		double *mass, double dt, int n_atoms);
-	// Perform the lower part of RATTLE, with the timestep of dt.
-	void rattle_constrain_p(double *positions, double *velo, \
-		double *mass, double dt, int n_atoms);
+    // Perform the upper part of RATTLE, with the timestep of dt.
+    void rattle_constrain_q(
+        double *positions,
+        double *velo,
+        double *mass,
+        double dt,
+        int n_atoms
+    );
+    // Perform the lower part of RATTLE, with the timestep of dt.
+    void rattle_constrain_p(
+        double *positions,
+        double *velo,
+        double *mass,
+        double dt,
+        int n_atoms
+    );
 }; //class RATTLE
 
 #endif /* _RATTLE_H_ */

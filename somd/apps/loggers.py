@@ -21,6 +21,7 @@ The simulation data loggers.
 """
 
 import os as _os
+import typing as _tp
 from somd import core as _mdcore
 from . import utils as _apputils
 
@@ -44,18 +45,23 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         If append to the old trajectory.
     delimiter : str
         The delimiter to use.
+    potential_list : List[int]
+        Index of the potentials whose forces and virial should be write to
+        the force and virial array in the log file.
     format_str : str
         The ascii data format string. E.g.: '{:-10.5e}'.
     """
 
-    def __init__(self,
-                 file_name: str,
-                 groups: list = None,
-                 interval: int = 1,
-                 append: bool = False,
-                 delimiter: str = ' , ',
-                 potential_list: list = None,
-                 format_str: str = '{:-15.10e}') -> None:
+    def __init__(
+        self,
+        file_name: str,
+        groups: _tp.List[int] = None,
+        interval: int = 1,
+        append: bool = False,
+        delimiter: str = ' , ',
+        potential_list: _tp.List[int] = None,
+        format_str: str = '{:-15.10e}',
+    ) -> None:
         """
         Create a DEFAULTCSVLOGGER instance.
         """
@@ -72,7 +78,7 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         """
         Close the file on exit.
         """
-        if (self.__fp is not None):
+        if self.__fp is not None:
             self.__fp.close()
 
     def __write_file_header(self) -> None:
@@ -90,23 +96,24 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         for i in self.__groups:
             header += ' group {} kinetic energy (kJ/mol),'.format(i)
             header += ' group {} temperature (K),'.format(i)
-        if (self.integrator is not None):
+        if self.integrator is not None:
             header += ' effective energy correction (kJ/mol),'
         header += ' volume (nm^3)'
         print(header, file=self.__fp)
 
-    def bind_integrator(self, integrator: _mdcore.integrators.INTEGRATOR) \
-            -> None:
+    def bind_integrator(
+        self, integrator: _mdcore.integrators.INTEGRATOR
+    ) -> None:
         """
         Bind an integrator.
         """
         super().bind_integrator(integrator)
         self.__system = integrator.system
-        if (self.__groups is None):
+        if self.__groups is None:
             self.__groups = list(range(0, len(self.__system.groups)))
-        if (len(self.__groups) > len(self.__system.groups)):
+        if len(self.__groups) > len(self.__system.groups):
             raise IndexError('Too many groups!')
-        if (max(self.__groups) >= len(self.__system.groups)):
+        if max(self.__groups) >= len(self.__system.groups):
             raise IndexError('Invalid group: {}'.format(max(self.__groups)))
 
     def initialize(self) -> None:
@@ -114,9 +121,9 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         Open the file for writing.
         """
         super().initialize()
-        if (not _os.path.exists(self.file_name)):
+        if not _os.path.exists(self.file_name):
             self.__append = False
-        if (self.__append):
+        if self.__append:
             self.__fp = open(self.file_name, 'a')
         else:
             _apputils.backup.back_up(self.file_name)
@@ -127,43 +134,75 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write to the log file immediately.
         """
-        if (not self.initialized):
+        if not self.initialized:
             self.initialize()
-        if (self.__potential_list is None):
+        if self.__potential_list is None:
             energy_potential = self.__system.energy_potential
         else:
             energy_potential = 0
             for i in self.__potential_list:
-                energy_potential += \
-                    self.__system.potentials[i].energy_potential[0]
+                p = self.__system.potentials[i].energy_potential[0]
+                energy_potential += p
         print(self.step, file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(energy_potential),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[0, 0]),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[1, 1]),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[2, 2]),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[0, 1]),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[0, 2]),
-              file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.pressures[1, 2]),
-              file=self.__fp, end=self.__delimiter)
+        print(
+            self.__format_str.format(energy_potential),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[0, 0]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[1, 1]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[2, 2]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[0, 1]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[0, 2]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
+        print(
+            self.__format_str.format(self.__system.pressures[1, 2]),
+            file=self.__fp,
+            end=self.__delimiter,
+        )
         for i in self.__groups:
-            print(self.__format_str.format(
-                self.__system.groups[i].energy_kinetic),
-                file=self.__fp, end=self.__delimiter)
-            print(self.__format_str.format(
-                self.__system.groups[i].temperature),
-                file=self.__fp, end=self.__delimiter)
-        if (self.integrator is not None):
-            print(self.__format_str.format(
-                self.integrator.energy_effective),
-                file=self.__fp, end=self.__delimiter)
-        print(self.__format_str.format(self.__system.volume),
-              file=self.__fp, end='')
+            print(
+                self.__format_str.format(
+                    self.__system.groups[i].energy_kinetic
+                ),
+                file=self.__fp,
+                end=self.__delimiter,
+            )
+            print(
+                self.__format_str.format(self.__system.groups[i].temperature),
+                file=self.__fp,
+                end=self.__delimiter,
+            )
+        if self.integrator is not None:
+            print(
+                self.__format_str.format(self.integrator.energy_effective),
+                file=self.__fp,
+                end=self.__delimiter,
+            )
+        print(
+            self.__format_str.format(self.__system.volume),
+            file=self.__fp,
+            end='',
+        )
         print('', file=self.__fp)
         self.__fp.flush()
 
@@ -171,7 +210,7 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write the log file according to the defined step interval.
         """
-        if (super().update()):
+        if super().update():
             self.write()
 
     @property
