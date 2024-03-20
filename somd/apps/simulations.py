@@ -65,7 +65,6 @@ class SIMULATION(object):
         self.__system = system
         self.__loggers = loggers
         self.__integrator = integrator
-        self.__restarted = False
         self.__read_force = False
         self.__initialized = False
         self.__post_step_objects = []
@@ -179,7 +178,6 @@ class SIMULATION(object):
         read_step : bool
             If inherit the simulation step from the restart file.
         """
-        self.__restarted = True
         t = _mdapps.trajectories.H5READER(file_name, **kwargs)
         t.bind_integrator(self.__integrator)
         # Read data.
@@ -398,8 +396,9 @@ class STAGEDSIMULATION(_ab.ABC):
 
     @_cl.contextmanager
     def _set_up_simulation(
-        self, potential_indices: _tp.List[int],
-        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = []
+        self,
+        potential_indices: _tp.List[int],
+        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = [],
     ) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.

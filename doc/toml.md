@@ -1005,23 +1005,6 @@ could define multiple trajectory writers.
             potential_list = [0, 1]
     ```
 
-- **`is_restart_file`**:
-
-    **If Mandatory**: no
-
-    **Type**: `bool`
-
-    **Default Value**: `false`
-
-    **Dependency**: `format = "h5"`
-
-    **Descriptions**: If this is a restart file writer. If this key is set to
-    `true`, only settings of the `prefix` and `interval` key will be kept,
-    and settings of other keys will be ignored.
-
-    **Notes**: The restart file only contains one frame, and will be named
-    `prefix.restart.h5`.
-
 - **`use_float64`**:
 
     **If Mandatory**: no
@@ -1084,10 +1067,6 @@ could define multiple trajectory writers.
         prefix = "train"
         write_forces = true
         potential_list = [0, 1]
-[[trajectory]]
-        format = "h5"
-        interval = 100
-        is_restart_file = true
 ```
 
 ## The `[[logger]]` array. <a name="logger"></a>

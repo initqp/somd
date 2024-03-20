@@ -6,7 +6,7 @@ import numpy.testing as _nt
 
 DECIMAL_D = 14
 
-_np.random.seed(1)
+somd.utils.rng = somd.utils._rng.LEGACYRNG(1)
 
 
 def test_run_1():
@@ -27,7 +27,7 @@ def test_run_1():
 
 
 def test_run_2():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
@@ -63,7 +63,7 @@ def test_restart_1():
 
 
 def test_restart_2():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},

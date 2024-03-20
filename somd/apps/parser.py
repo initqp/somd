@@ -21,7 +21,6 @@ A simple TOML input paser.
 """
 
 import os as _os
-import numpy as _np
 import typing as _tp
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
@@ -73,6 +72,7 @@ class TOMLPARSER(object):
         'seed': __value__([int], False, None),
         'label': __value__([str], False, None),
         'restart_from': __value__([str], False, None),
+        '_legacy_rng': __value__([bool], False, None),
     }
     __parameters__['system'] = {
         'structure': __value__([str], True, None),
@@ -143,7 +143,6 @@ class TOMLPARSER(object):
         'potential_list': __value__([list], False, None),
         'use_float64': __value__([bool], False, __dep__('format', ['h5'])),
         'energy_shift': __value__([float], False, __dep__('format', ['exyz'])),
-        'is_restart_file': __value__([bool], False, __dep__('format', ['h5'])),
     }
     __parameters__['logger'] = {
         'format': __value__([str], False, None),
@@ -420,8 +419,12 @@ class TOMLPARSER(object):
             table['restart_from'] = None
         else:
             table = self.__normalize_table(self.__root['run'], 'run')
+            if table['_legacy_rng'] is not None:
+                message = 'Legacy RNG should be used for testing only!'
+                _mdutils.warning.warn(message)
+                _mdutils.rng = _mdutils._rng.LEGACYRNG()
             if table['seed'] is not None:
-                _np.random.seed(table['seed'])
+                _mdutils.rng.seed(table['seed'])
             if table['label'] is None:
                 label = _os.path.splitext(self.__file_name)[0]
                 table['label'] = _os.path.basename(label)
@@ -835,7 +838,7 @@ class TOMLPARSER(object):
         inp: _tp.Dict[str, _tp.Any],
         index: int,
         timestep: float,
-        temperature: float
+        temperature: float,
     ) -> _tp.Callable:
         """
         Parse one potential with given index.
@@ -879,7 +882,7 @@ class TOMLPARSER(object):
         self,
         timestep: float,
         temperatures: _tp.List[float],
-        thermo_groups: _tp.List[int]
+        thermo_groups: _tp.List[int],
     ) -> None:
         """
         Set up potentials in the simulated system.
@@ -1070,19 +1073,6 @@ class TOMLPARSER(object):
         """
         Check trajectory settings.
         """
-        has_restart_flag = False
-        for trajectory in self.__trajectories:
-            if hasattr(trajectory, 'is_restart') and trajectory.is_restart:
-                has_restart_flag = True
-                break
-        if not has_restart_flag:
-            self.__trajectories.append(
-                _mdapps.trajectories.H5WRITER(
-                    self.__root['run']['label'] + '.restart.h5',
-                    interval=10,
-                    restart_file=True,
-                )
-            )
         if self.__root['active_learning'] is not None:
             self.__trajectories = []
             message = (
@@ -1122,10 +1112,7 @@ class TOMLPARSER(object):
                 else:
                     interval = table['interval']
                 if trajectory_format == 'h5':
-                    if table['is_restart_file']:
-                        file_name = prefix + '.restart.h5'
-                    else:
-                        file_name = prefix + '.trajectory.h5'
+                    file_name = prefix + '.trajectory.h5'
                     writer = _mdapps.trajectories.H5WRITER(
                         file_name,
                         interval=interval,
@@ -1134,7 +1121,6 @@ class TOMLPARSER(object):
                         write_forces=bool(table['write_forces']),
                         wrap_positions=bool(table['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
-                        restart_file=bool(table['is_restart_file']),
                         use_double=bool(table['use_float64']),
                         potential_list=table['potential_list'],
                     )

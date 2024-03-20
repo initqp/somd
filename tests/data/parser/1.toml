@@ -48,5 +48,6 @@
 [run]
 	seed = 1
 	label = "C2H6"
+	_legacy_rng = true
 	restart_from = "data/active_learning/traj.h5"
 	n_steps = 500

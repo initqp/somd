@@ -62,7 +62,7 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         self,
         pressures: _tp.List[float],
         beta: _tp.List[float],
-        relaxation_time: float
+        relaxation_time: float,
     ) -> None:
         """
         Create a BAROSTAT instance.
