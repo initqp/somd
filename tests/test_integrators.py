@@ -259,6 +259,44 @@ def test_gbaoab_copy_system():
     _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
 
 
+def test_gbaoab_seeding():
+    somd.utils.rng.seed(1)
+    system = _h.get_harmonic_system()
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
+         {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
+         {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
+    system.constraints.appends(c)
+    integrator = somd.core.integrators.gbaoab_integrator(
+        0.0005, relaxation_times=[0.01])
+    integrator.bind_system(system)
+    integrator.propagate()
+    system = _h.get_harmonic_system()
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
+         {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
+         {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
+    system.constraints.appends(c)
+    integrator.bind_system(system)
+    integrator.propagate()
+    result = _np.loadtxt('data/integrators/integrators_gbaoab.dat')
+    try:
+        _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
+        _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
+    except:
+        pass
+    else:
+        raise AssertionError
+    system = _h.get_harmonic_system()
+    c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
+         {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
+         {'type': 2, 'indices': [0, 1, 2, 3], 'target': 0, 'tolerance': 1E-14}]
+    system.constraints.appends(c)
+    integrator.bind_system(system)
+    somd.utils.rng.seed(1)
+    integrator.propagate()
+    _nt.assert_almost_equal(system.positions, result[0:4], DECIMAL_D)
+    _nt.assert_almost_equal(system.velocities, result[4:8], DECIMAL_D)
+
+
 def test_bdp():
     somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
