@@ -170,7 +170,7 @@ class ATOMGROUP(object):
             temperature * _mdutils.constants.BOLTZCONST / self.masses
         )
         if rng is None:
-            v = _np.random.standard_normal((self.n_atoms, 3)) * factors
+            v = _mdutils.rng.standard_normal((self.n_atoms, 3)) * factors
         else:
             v = rng.standard_normal((self.n_atoms, 3)) * factors
         # remove COM translational motions

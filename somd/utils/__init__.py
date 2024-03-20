@@ -20,6 +20,10 @@
 Common utils.
 """
 
+from . import _rng
 from . import warning
 from . import defaults
 from . import constants
+
+# The global RNG in SOMD.
+rng = _rng.RNG()

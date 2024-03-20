@@ -23,8 +23,6 @@ The trajectory writters.
 import os as _os
 import h5py as _h5
 import numpy as _np
-import pickle as _pl
-import base64 as _bs
 import typing as _tp
 from somd import core as _mdcore
 from somd import utils as _mdutils
@@ -297,10 +295,8 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         """
         Write RNG data to the trajectory.
         """
-        st = _np.random.get_state()
-        st_str = _bs.b64encode(_pl.dumps(st)).decode('utf-8')
         self.__root['randomState'][0] = '\0' * 10000
-        self.__root['randomState'][0] = st_str
+        self.__root['randomState'][0] = _mdutils.rng.state_string
 
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
@@ -828,11 +824,11 @@ class H5READER(object):
         Read and set RNG data.
         """
         if 'randomState' in self.__root.keys():
-            st_str = self.__root['randomState'][0].strip()
-            _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
+            random_state = self.__root['randomState'][0].strip()
+            _mdutils.rng.set_state_from_string(random_state)
         elif 'randomState' in self.__root.attrs.keys():
-            st_str = self.__root.attrs['randomState']
-            _np.random.set_state(_pl.loads(_bs.b64decode(st_str)))
+            random_state = self.__root.attrs['randomState']
+            _mdutils.rng.set_state_from_string(random_state)
         else:
             message = (
                 'Can not load RNG data from a trajectory '

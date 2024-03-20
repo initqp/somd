@@ -700,8 +700,8 @@ class INTEGRATOR(object):
             self.__gamma = self.__rng.standard_gamma
             self.__randn = self.__rng.standard_normal
         else:
-            self.__gamma = _np.random.standard_gamma
-            self.__randn = _np.random.standard_normal
+            self.__gamma = _mdutils.rng.standard_gamma
+            self.__randn = _mdutils.rng.standard_normal
 
 
 def vv_integrator(timestep: float) -> INTEGRATOR:

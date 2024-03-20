@@ -21,7 +21,6 @@ A simple TOML input paser.
 """
 
 import os as _os
-import numpy as _np
 import typing as _tp
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
@@ -73,6 +72,7 @@ class TOMLPARSER(object):
         'seed': __value__([int], False, None),
         'label': __value__([str], False, None),
         'restart_from': __value__([str], False, None),
+        '_legacy_rng': __value__([bool], False, None),
     }
     __parameters__['system'] = {
         'structure': __value__([str], True, None),
@@ -419,8 +419,12 @@ class TOMLPARSER(object):
             table['restart_from'] = None
         else:
             table = self.__normalize_table(self.__root['run'], 'run')
+            if table['_legacy_rng'] is not None:
+                message = 'Legacy RNG should be used for testing only!'
+                _mdutils.warning.warn(message)
+                _mdutils.rng = _mdutils._rng.LEGACYRNG()
             if table['seed'] is not None:
-                _np.random.seed(table['seed'])
+                _mdutils.rng.seed(table['seed'])
             if table['label'] is None:
                 label = _os.path.splitext(self.__file_name)[0]
                 table['label'] = _os.path.basename(label)
@@ -834,7 +838,7 @@ class TOMLPARSER(object):
         inp: _tp.Dict[str, _tp.Any],
         index: int,
         timestep: float,
-        temperature: float
+        temperature: float,
     ) -> _tp.Callable:
         """
         Parse one potential with given index.
@@ -878,7 +882,7 @@ class TOMLPARSER(object):
         self,
         timestep: float,
         temperatures: _tp.List[float],
-        thermo_groups: _tp.List[int]
+        thermo_groups: _tp.List[int],
     ) -> None:
         """
         Set up potentials in the simulated system.
