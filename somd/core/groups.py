@@ -146,9 +146,7 @@ class ATOMGROUP(object):
             if energy_new != 0:
                 self.velocities *= _np.sqrt(energy_old / energy_new)
 
-    def add_velocities_from_temperature(
-        self, temperature: float, rng: _np.random.Generator = None
-    ) -> None:
+    def add_velocities_from_temperature(self, temperature: float) -> None:
         """
         Add velocities to atoms in the group according to the given
         temperature.
@@ -157,8 +155,6 @@ class ATOMGROUP(object):
         ----------
         temperature : float
             The initial temperature. In unit of (K).
-        rng : numpy.random.Generator
-            The pseudorandom number generator instance.
         """
         if self.n_dof == 0:
             message = 'Number of DOF of group "{}" has not been calculated!'
@@ -169,10 +165,7 @@ class ATOMGROUP(object):
         factors = _np.sqrt(
             temperature * _mdutils.constants.BOLTZCONST / self.masses
         )
-        if rng is None:
-            v = _mdutils.rng.standard_normal((self.n_atoms, 3)) * factors
-        else:
-            v = rng.standard_normal((self.n_atoms, 3)) * factors
+        v = _mdutils.rng.standard_normal((self.n_atoms, 3)) * factors
         # remove COM translational motions
         v -= (v * self.masses).sum(axis=0) / self.masses.sum()
         # remove COM rotational motions
