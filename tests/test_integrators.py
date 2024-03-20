@@ -6,7 +6,7 @@ import numpy.testing as _nt
 DECIMAL_F = 7
 DECIMAL_D = 14
 
-_np.random.seed(1)
+somd.utils.rng = somd.utils._rng.LEGACYRNG(1)
 
 
 def test_splitting():
@@ -169,7 +169,7 @@ def test_nhc_copy_integrator_rev_1():
 
 
 def test_obabo():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     integrator = somd.core.integrators.obabo_integrator(
         0.001, relaxation_times=[0.01])
@@ -181,7 +181,7 @@ def test_obabo():
 
 
 def test_baoab():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     integrator = somd.core.integrators.obabo_integrator(
         0.001, relaxation_times=[0.01])
@@ -193,7 +193,7 @@ def test_baoab():
 
 
 def test_gobabo():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},
@@ -209,7 +209,7 @@ def test_gobabo():
 
 
 def test_gbaoab():
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
     system = _h.get_harmonic_system()
     c = [{'type': 0, 'indices': [0, 1], 'target': 1.0, 'tolerance': 1E-14},
          {'type': 1, 'indices': [0, 1, 2], 'target': 1.57, 'tolerance': 1E-14},

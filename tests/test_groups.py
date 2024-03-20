@@ -6,6 +6,8 @@ import numpy.testing as _nt
 DECIMAL_F = 7
 DECIMAL_D = 14
 
+somd.utils.rng = somd.utils._rng.LEGACYRNG(1)
+
 
 def test_operators():
     system = _h.get_harmonic_system()
@@ -122,7 +124,7 @@ def test_initlization():
     _nt.assert_almost_equal(system.groups[0].temperature, result, DECIMAL_D)
     result = _np.zeros(3, dtype=_np.double)
     _nt.assert_almost_equal(system.groups[0].com_velocities, result, DECIMAL_D)
-    _np.random.seed(1)
+    somd.utils.rng.seed(1)
 
 
 def test_com():

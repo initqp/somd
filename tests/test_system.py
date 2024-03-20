@@ -6,7 +6,7 @@ import numpy.testing as _nt
 DECIMAL_F = 7
 DECIMAL_D = 14
 
-_np.random.seed(1)
+somd.utils.rng = somd.utils._rng.LEGACYRNG(1)
 
 
 def test_pdb():
