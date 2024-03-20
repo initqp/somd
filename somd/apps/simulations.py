@@ -396,8 +396,9 @@ class STAGEDSIMULATION(_ab.ABC):
 
     @_cl.contextmanager
     def _set_up_simulation(
-        self, potential_indices: _tp.List[int],
-        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = []
+        self,
+        potential_indices: _tp.List[int],
+        extra_potentials: _tp.List[_mdcore.potential_base.POTENTIAL] = [],
     ) -> SIMULATION:
         """
         Set up a simulation protocol using the given data.

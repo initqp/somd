@@ -58,7 +58,7 @@ def cat_exyz(set_in: _tp.List[str], set_out: str) -> None:
 
 def get_potentials_msd(
     potentials: _tp.List[_mdcore.potential_base.POTENTIAL],
-    system: _mdcore.systems.MDSYSTEM
+    system: _mdcore.systems.MDSYSTEM,
 ) -> float:
     """
     Return the maximum standard deviation of the forces calculated by

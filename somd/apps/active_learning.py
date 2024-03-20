@@ -545,9 +545,7 @@ class ACTIVELEARNING(_mdapps.simulations.STAGEDSIMULATION):
         _os.chdir(cwd)
 
     def __train(
-        self,
-        n_iter: int,
-        restart_files: _tp.List[str] = None
+        self, n_iter: int, restart_files: _tp.List[str] = None
     ) -> None:
         """
         Train the model.
