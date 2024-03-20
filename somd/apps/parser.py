@@ -1111,13 +1111,17 @@ class TOMLPARSER(object):
                     interval = 1
                 else:
                     interval = table['interval']
+                if table['write_velocities'] is None:
+                    write_velocities_h5 = True
+                else:
+                    write_velocities_h5 = table['write_velocities']
                 if trajectory_format == 'h5':
                     file_name = prefix + '.trajectory.h5'
                     writer = _mdapps.trajectories.H5WRITER(
                         file_name,
                         interval=interval,
                         write_virial=True,
-                        write_velocities=bool(table['write_velocities']),
+                        write_velocities=write_velocities_h5,
                         write_forces=bool(table['write_forces']),
                         wrap_positions=bool(table['wrap_positions']),
                         append=bool(self.__root['run']['restart_from']),
