@@ -952,7 +952,7 @@ could define multiple trajectory writers.
 
     **Type**: `bool`
 
-    **Default Value**: `false`
+    **Default Value**: `true` for `h5` trajectories, `false` for `exyz` trajectories
 
     **Descriptions**: If record velocities in the trajectory file.
 
