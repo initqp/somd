@@ -131,6 +131,7 @@ class SIMULATION(object):
         n_dof = [g.n_dof for g in self.system.groups]
         if n_dof != self.__n_dof:
             self.integrator.bind_system(self.system)
+            self.__n_dof = n_dof
 
     def run(self, n_steps: int) -> None:
         """

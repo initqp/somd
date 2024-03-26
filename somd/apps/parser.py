@@ -387,12 +387,12 @@ class TOMLPARSER(object):
                 'label': label,
             }
             self.__system.groups.create_from_dict(d)
+            self.__root['group'].append(d)
             message = (
-                'An atom group that corresponds to the whole '
+                'An atom group ("{:s}") that corresponds to the whole '
                 + 'system has been append the group list.'
             )
-            self.__root['group'].append(d)
-            _mdutils.warning.warn(message)
+            _mdutils.warning.warn(message.format(label))
         # The user has not defined the group without translations.
         # Check if there is any group that is corresponding to the whole group.
         if no_translations_flag is False:
@@ -513,6 +513,11 @@ class TOMLPARSER(object):
                 'label': 'GROUP0',
             }
             self.__system.groups.create_from_dict(table)
+            message = (
+                'An atom group ("{:s}") that corresponds to the whole '
+                + 'system has been append the group list.'
+            )
+            _mdutils.warning.warn(message.format('GROUP0'))
         else:
             for index, table in enumerate(self.__root['group']):
                 table = self.__normalize_table(table, 'group')
