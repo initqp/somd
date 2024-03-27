@@ -148,24 +148,30 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 self.__extra_cv_gradients = _np.zeros(
                     (2, len(atom_list), 3), dtype=_np.double
                 )
-                message = 'Total charge gradients will NOT be calculated!'
-                _warn(message)
+                message = (
+                    'Total charge gradients will NOT be calculated ' +
+                    'for charge MACE model "{:s}")!'
+                )
+                _warn(message.format(file_name))
             else:
                 message = (
-                    'Your MACE model is a charge model, but no charge CV '
-                    + 'expersion was given! Will not calculate charge CV!'
+                    'Your MACE model "{:s}" is a charge model, but no charge '
+                    + 'CV expersion was given! Will not calculate charge CV!'
                 )
-                _warn(message)
+                _warn(message.format(file_name))
         else:
             if charge_cv_expr is not None:
                 message = (
-                    'Your MACE model is not a charge model, but a charge CV '
-                    + 'expersion was given! Will not calculate charge CV!'
+                    'Your MACE model "{:s}" is not a charge model, but a '
+                    + 'charge CV expersion was given! Will not calculate '
+                    + 'charge CV!'
                 )
-                _warn(message)
+                _warn(message.format(file_name))
         if self.__charge_only and self.__calculate_virial:
-            message = 'Can not calculate virial for a charge-only model!'
-            raise RuntimeError(message)
+            message = (
+                'Can not calculate virial for a charge-only model "{:s}"!'
+            )
+            raise RuntimeError(message.format(file_name))
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
