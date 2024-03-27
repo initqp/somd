@@ -150,7 +150,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 )
                 message = (
                     'Total charge gradients will NOT be calculated ' +
-                    'for charge MACE model "{:s}")!'
+                    'for charge MACE model "{:s}"!'
                 )
                 _warn(message.format(file_name))
             else:
