@@ -23,6 +23,7 @@ import abc as _ab
 import h5py as _h5
 import copy as _cp
 import typing as _tp
+import datetime as _dt
 import contextlib as _cl
 from somd import _version
 from somd import apps as _mdapps
@@ -149,6 +150,34 @@ class SIMULATION(object):
         # IKUZO!
         for i in range(0, n_steps):
             self._loop()
+
+    def run_for_clock_time(self, time: int, restart_file: str = None):
+        """
+        Run the simulation by integrating time steps until a fixed amount of
+        clock time has elapsed. This is useful when you have a limited amount
+        of computer time available, and want to run the longest simulation
+        possible in that time. This method will continue taking time steps
+        until the specified clock time has elapsed, then return. It also can
+        automatically write out a restart file before returning, so you can
+        later resume the simulation. This function was stolen from OpenMM.
+
+        Parameters
+        ----------
+        time : int
+            the amount of time to run for. In unit of seconds.
+        restart_file : str
+            if specified, a checkpoint file will be written at the end of the
+            simulation.
+        """
+        # Initialize only once.
+        if not self.__initialized:
+            self._initialize()
+        self._update_internal_states()
+        end_time = _dt.datetime.now() + _dt.timedelta(seconds=time)
+        while (_dt.datetime.now() < end_time):
+            self._loop()
+        if restart_file is not None:
+            self.dump_restart(restart_file)
 
     def dump_restart(self, file_name: str) -> None:
         """

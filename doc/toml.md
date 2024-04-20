@@ -1152,13 +1152,34 @@ pressure tensors, etc.
 
 - **`n_steps`**:
 
-    **If Mandatory**: yes
+    **If Mandatory**: no
 
     **Type**: `int`
 
     **Default Value**: None
 
     **Descriptions**: Number of the simulation steps to run.
+
+    **Notes**: Either this key or the `n_seconds` key should be defined.
+
+- **`n_seconds`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Unit**: Second
+
+    **Default Value**: None
+
+    **Descriptions**: Length of time to run. This is useful when you have a
+    limited amount of computer time available, and want to run the longest
+    simulation possible in that time. This method will continue taking time
+    steps until the specified clock time has elapsed, then exit. It also
+    automatically writes out a restart file (named `system_label.restart.h5`)
+    before exiting.
+
+    **Notes**: Either this key or the `n_steps` key should be defined.
 
 - **`seed`**:
 

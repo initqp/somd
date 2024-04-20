@@ -68,7 +68,8 @@ class TOMLPARSER(object):
     # Valid key-value pairs of each table.
     __parameters__ = dict()
     __parameters__['run'] = {
-        'n_steps': __value__([int], True, None),
+        'n_steps': __value__([int], False, None),
+        'n_seconds': __value__([int], False, None),
         'seed': __value__([int], False, None),
         'label': __value__([str], False, None),
         'restart_from': __value__([str], False, None),
@@ -419,6 +420,12 @@ class TOMLPARSER(object):
             table['restart_from'] = None
         else:
             table = self.__normalize_table(self.__root['run'], 'run')
+            if table['n_steps'] is None and table['n_seconds'] is None:
+                message = (
+                    'Either the `n_steps` key or `n_seconds` key of the '
+                    + '[run] table should be given!'
+                )
+                raise RuntimeError(message)
             if table['_legacy_rng'] is not None:
                 message = 'Legacy RNG should be used for testing only!'
                 _mdutils.warning.warn(message)
@@ -1286,9 +1293,16 @@ class TOMLPARSER(object):
         """
         if self.__root['active_learning'] is not None:
             n_steps = self.__root['active_learning']['n_iterations']
+            self.__simulation.run(n_steps)
         else:
-            n_steps = self.__root['run']['n_steps']
-        self.__simulation.run(n_steps)
+            if self.__root['run']['n_steps'] is not None:
+                n_steps = self.__root['run']['n_steps']
+                self.__simulation.run(n_steps)
+            else:
+                n_seconds = self.__root['run']['n_seconds']
+                self.__simulation.run_for_clock_time(
+                    n_seconds, self.__root['run']['label'] + '.restart.h5'
+                )
 
     @property
     def file_name(self) -> str:
