@@ -422,8 +422,16 @@ class TOMLPARSER(object):
             table = self.__normalize_table(self.__root['run'], 'run')
             if table['n_steps'] is None and table['n_seconds'] is None:
                 message = (
-                    'Either the `n_steps` key or `n_seconds` key of the '
+                    'Either the `n_steps` key or the `n_seconds` key of the '
                     + '[run] table should be given!'
+                )
+                raise RuntimeError(message)
+            elif (
+                table['n_steps'] is not None and table['n_seconds'] is not None
+            ):
+                message = (
+                    'The `n_steps` key and the `n_seconds` key of the '
+                    + '[run] table should not be given at the same time!'
                 )
                 raise RuntimeError(message)
             if table['_legacy_rng'] is not None:
