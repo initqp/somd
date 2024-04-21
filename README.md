@@ -209,11 +209,6 @@ Tutorials of SOMD could be found
 tutorials is considered as an efficient way to get familiar with SOMD.
 
 ## FAQ
-- Q: There are millions of MD packages out there, why do you need another one?
-
-  A: Because I write it for fine. If you are seeking for unity, you may want to
-  use some mainstream packages like i-Pi, ASE, Tinker or even CP2K.
-
 - Q: How to cite the code?
 
-  A: You don't need to. It's a toy.
+  A: You don't. It's a toy.
