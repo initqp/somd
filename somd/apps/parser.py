@@ -104,7 +104,7 @@ class TOMLPARSER(object):
             [int], False, __dep__('type', ['dftd4', 'tblite'])
         ),
         'total_spins': __value__([int], False, __dep__('type', ['tblite'])),
-        '_pbc': __value__([int], False, __dep__('type', ['tblite'])),
+        '_pbc': __value__([bool], False, __dep__('type', ['tblite'])),
         'file_name': __value__(
             [str], True, __dep__('type', ['plumed', 'nep', 'mace'])
         ),
