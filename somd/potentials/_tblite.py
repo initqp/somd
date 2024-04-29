@@ -38,9 +38,9 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         Name of the Hamiltonian. Valid names are:
         - 'GFN2-xTB' [2]
         - 'GFN1-xTB' [3]
-    total_charges : int
+    total_charge : int
         Total charges of the atoms included by this potential.
-    total_spins : int
+    total_spin : int
         Total spins (N_alpha - N_beta) of the atoms included by this potential.
     pbc : bool
         If enable PBC.
@@ -65,8 +65,8 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         atom_list: _tp.List[int],
         atomic_types: _tp.List[int],
         method: str = 'GFN1-xTB',
-        total_charges: int = 0,
-        total_spins: int = 0,
+        total_charge: int = 0,
+        total_spin: int = 0,
         pbc: int = True
     ) -> None:
         """
@@ -106,8 +106,8 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
             method,
             atomic_types,
             positions,
-            total_charges,
-            total_spins,
+            total_charge,
+            total_spin,
             lattice,
             pbc
         )

@@ -18,7 +18,7 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
         Types of atoms included by this potential.
     method : str
         Name of the claculation method.
-    total_charges : int
+    total_charge : int
         Total charges of the atoms included by this potential.
     atm : bool
         If use the three-body correction.
@@ -35,7 +35,7 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
         atom_list: _tp.List[int],
         atomic_types: _tp.List[int],
         method: str,
-        total_charges: int = 0,
+        total_charge: int = 0,
         atm: bool = False,
     ) -> None:
         """
@@ -58,7 +58,7 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
         positions = _np.zeros((atomic_types.shape[0], 3), dtype=_np.double)
         self.__param = DampingParam(method=method, atm=atm)
         self.__model = DispersionModel(
-            atomic_types, positions, total_charges, lattice, pbc
+            atomic_types, positions, total_charge, lattice, pbc
         )
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
