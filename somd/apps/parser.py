@@ -104,6 +104,7 @@ class TOMLPARSER(object):
             [int], False, __dep__('type', ['dftd4', 'tblite'])
         ),
         'total_spin': __value__([int], False, __dep__('type', ['tblite'])),
+        '_pbc': __value__([int], False, __dep__('type', ['tblite'])),
         'file_name': __value__(
             [str], True, __dep__('type', ['plumed', 'nep', 'mace'])
         ),
@@ -758,6 +759,10 @@ class TOMLPARSER(object):
             total_spin = 0
         else:
             total_spin = inp['total_spin']
+        if inp['_pbc'] is None:
+            pbc = True
+        else:
+            pbc = inp['_pbc']
         atom_types = self.__system.atomic_types[atom_list]
         return _potentials.TBLITE.generator(
             atom_list,
@@ -765,6 +770,7 @@ class TOMLPARSER(object):
             inp['functional'],
             total_charge,
             total_spin,
+            pbc
         )
 
     def __parse_potential_nep(

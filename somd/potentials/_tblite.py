@@ -42,6 +42,8 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         Total charges of the atoms included by this potential.
     spin : int
         Total spin (N_alpha - N_beta) of the atoms included by this potential.
+    pbc : bool
+        If enable PBC.
 
     References
     ----------
@@ -65,6 +67,7 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         method: str = 'GFN1-xTB',
         total_charges: int = 0,
         spin: int = 0,
+        pbc: int = True
     ) -> None:
         """
         Creat a TBLITE instance.
@@ -88,10 +91,17 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
                 + 'installed to use the tight binding potential!'
             )
         self.__conversion = _c.HARTREE / _c.BOHRRADIUS * -1.0
-        pbc = _np.ones(3, dtype=_np.int_)
-        lattice = _np.zeros((3, 3), dtype=_np.double)
+        if pbc:
+            pbc = _np.ones(3, dtype=_np.int_)
+        else:
+            pbc = _np.zeros(3, dtype=_np.int_)
+        lattice = _np.ones((3, 3), dtype=_np.double)
         atomic_types = _np.array(atomic_types, dtype=_np.int_)
-        positions = _np.zeros((atomic_types.shape[0], 3), dtype=_np.double)
+        positions = _np.ones(
+            (atomic_types.shape[0], 3), dtype=_np.double
+        ) * _np.arange(0, atomic_types.shape[0]).reshape(
+            atomic_types.shape[0], 1
+        )
         self.__calculator = Calculator(
             method, atomic_types, positions, total_charges, spin, lattice, pbc
         )
