@@ -103,7 +103,7 @@ class TOMLPARSER(object):
         'total_charge': __value__(
             [int], False, __dep__('type', ['dftd4', 'tblite'])
         ),
-        'total_spin': __value__([int], False, __dep__('type', ['tblite'])),
+        'total_spins': __value__([int], False, __dep__('type', ['tblite'])),
         '_pbc': __value__([int], False, __dep__('type', ['tblite'])),
         'file_name': __value__(
             [str], True, __dep__('type', ['plumed', 'nep', 'mace'])
@@ -755,10 +755,10 @@ class TOMLPARSER(object):
             total_charge = 0
         else:
             total_charge = inp['total_charge']
-        if inp['total_spin'] is None:
-            total_spin = 0
+        if inp['total_spins'] is None:
+            total_spins = 0
         else:
-            total_spin = inp['total_spin']
+            total_spins = inp['total_spins']
         if inp['_pbc'] is None:
             pbc = True
         else:
@@ -769,7 +769,7 @@ class TOMLPARSER(object):
             atom_types,
             inp['functional'],
             total_charge,
-            total_spin,
+            total_spins,
             pbc
         )
 

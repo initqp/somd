@@ -40,8 +40,8 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         - 'GFN1-xTB' [3]
     total_charges : int
         Total charges of the atoms included by this potential.
-    spin : int
-        Total spin (N_alpha - N_beta) of the atoms included by this potential.
+    total_spins : int
+        Total spins (N_alpha - N_beta) of the atoms included by this potential.
     pbc : bool
         If enable PBC.
 
@@ -66,7 +66,7 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         atomic_types: _tp.List[int],
         method: str = 'GFN1-xTB',
         total_charges: int = 0,
-        spin: int = 0,
+        total_spins: int = 0,
         pbc: int = True
     ) -> None:
         """
@@ -103,7 +103,13 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
             atomic_types.shape[0], 1
         )
         self.__calculator = Calculator(
-            method, atomic_types, positions, total_charges, spin, lattice, pbc
+            method,
+            atomic_types,
+            positions,
+            total_charges,
+            total_spins,
+            lattice,
+            pbc
         )
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:

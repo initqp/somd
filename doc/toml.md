@@ -404,7 +404,7 @@ to be present.
 
     **Descriptions**: The net charge of the simulated system.
 
-- **`total_spin`**:
+- **`total_spins`**:
 
     **If Mandatory**: no
 
