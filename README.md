@@ -70,10 +70,10 @@ SOMD by the following steps.
     [this page](https://gitlab.com/siesta-project/siesta/-/issues/29) for
     details). The usage of the ELPA library could be found in the SIESTA
     documentation.
-6.  If you would like to use DFTD3, DFTD4 and PLUMED with SOMD, you should also
-    install the corresponding packages:
+6.  If you would like to use DFTD3, DFTD4, TBLite and PLUMED with SOMD, you
+    should also install the corresponding packages:
     ```bash
-    conda install dftd3-python dftd4-python py-plumed -c conda-forge
+    conda install dftd3-python dftd4-python tblite-python py-plumed -c conda-forge
     ```
     or
     ```bash

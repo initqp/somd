@@ -249,7 +249,7 @@ to be present.
 
     **Type**: `str`
 
-    **Valid Values**: `"siesta"`, `"dftd3"`, `"dftd4"`, `"nep"`, `"mace"` or `"plumed"`
+    **Valid Values**: `"siesta"`, `"dftd3"`, `"dftd4"`, `"tblite"`, `"nep"`, `"mace"` or `"plumed"`
 
     **Default Value**: None
 
@@ -257,6 +257,7 @@ to be present.
     - **`"siesta"`**: The SIESTA ab-initio potential.
     - **`"dftd3"`**: Grimme's DFTD3 dispersion corrections.
     - **`"dftd4"`**: Grimme's DFTD4 dispersion corrections.
+    - **`"tblite"`**: The tight binding potential calculated with the TBLite code.
     - **`"nep"`**: The neuroevolution potential.
     - **`"mace"`**: The E(3)-equivariant potentials based on the Atomic Cluster
       Expansion.
@@ -359,10 +360,11 @@ to be present.
 
     **Default Value**: None
 
-    **Dependency**: `type = "dftd3"` or `type = "dftd4"`
+    **Dependency**: `type = "dftd3"`, `type = "dftd4"` or `type = "tblite"`
 
     **Descriptions**: Name of the functional which is invoked in the DFT
-    calculations.
+    calculations. For the `"tblite"` potential, this key is the calculation
+    level, should be one of `"GFN2-xTB"`, `"GFN1-xTB"` and `"IPEA1-xTB"`.
 
 - **`atm`**
 
@@ -398,9 +400,24 @@ to be present.
 
     **Default Value**: `0`
 
-    **Dependency**: `type = "dftd4"`
+    **Dependency**: `type = "dftd4"` or `type = "tblite"`
 
     **Descriptions**: The net charge of the simulated system.
+
+- **`total_spin`**:
+
+    **If Mandatory**: no
+
+    **Type**: `int`
+
+    **Unit**: a.u.
+
+    **Default Value**: `0`
+
+    **Dependency**: `type = "tblite"`
+
+    **Descriptions**: The net spin ($N_{alpha} - N_{beta}$) of the simulated
+    system.
 
 - **`file_name`**:
 

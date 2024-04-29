@@ -25,5 +25,6 @@ from ._fake import *
 from ._mace import *
 from ._dftd3 import *
 from ._dftd4 import *
+from ._tblite import *
 from ._siesta import *
 from ._plumed import *

@@ -96,11 +96,14 @@ class TOMLPARSER(object):
             [str], False, __dep__('type', ['siesta'])
         ),
         'functional': __value__(
-            [str], True, __dep__('type', ['dftd3', 'dftd4'])
+            [str], True, __dep__('type', ['dftd3', 'dftd4', 'tblite'])
         ),
         'damping': __value__([str], False, __dep__('type', ['dftd3'])),
         'atm': __value__([bool], False, __dep__('type', ['dftd3', 'dftd4'])),
-        'total_charge': __value__([int], False, __dep__('type', ['dftd4'])),
+        'total_charge': __value__(
+            [int], False, __dep__('type', ['dftd4', 'tblite'])
+        ),
+        'total_spin': __value__([int], False, __dep__('type', ['tblite'])),
         'file_name': __value__(
             [str], True, __dep__('type', ['plumed', 'nep', 'mace'])
         ),
@@ -734,6 +737,36 @@ class TOMLPARSER(object):
             bool(inp['atm']),
         )
 
+    def __parse_potential_tblite(
+        self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
+    ) -> _tp.Callable:
+        """
+        Parse the TBLite potential options.
+
+        Parameters
+        ----------
+        inp: Dict[str, Any]
+            The dictionary that defines the TBLite potential.
+        atom_list : List[int]
+            The atom list.
+        """
+        if inp['total_charge'] is None:
+            total_charge = 0
+        else:
+            total_charge = inp['total_charge']
+        if inp['total_spin'] is None:
+            total_spin = 0
+        else:
+            total_spin = inp['total_spin']
+        atom_types = self.__system.atomic_types[atom_list]
+        return _potentials.TBLITE.generator(
+            atom_list,
+            atom_types,
+            inp['functional'],
+            total_charge,
+            total_spin,
+        )
+
     def __parse_potential_nep(
         self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
     ) -> _tp.Callable:
@@ -885,6 +918,8 @@ class TOMLPARSER(object):
             generator = self.__parse_potential_dftd3(inp, atom_list)
         elif potential_type == 'dftd4':
             generator = self.__parse_potential_dftd4(inp, atom_list)
+        elif potential_type == 'tblite':
+            generator = self.__parse_potential_tblite(inp, atom_list)
         elif potential_type == 'nep':
             generator = self.__parse_potential_nep(inp, atom_list)
         elif potential_type == 'mace':
