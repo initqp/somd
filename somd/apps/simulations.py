@@ -102,8 +102,15 @@ class SIMULATION(object):
         The simulation loop.
         """
         self.__integrator.propagate()
+
         for obj in self.__post_step_objects:
             obj.update()
+
+        for i in self.__plumed_indices:
+            if self.system.potentials[i].stop_flag:
+                message = 'PLUMED stop criterion meet. Exiting now ...'
+                _mdutils.warning.warn(message)
+                exit()
 
     def _initialize(self) -> None:
         """
@@ -127,12 +134,19 @@ class SIMULATION(object):
 
     def _update_internal_states(self) -> None:
         """
-        Update internal states of the system and the integrator.
+        Update internal states of the system and the integrator, and deal with
+        PLUMED instances.
         """
         n_dof = [g.n_dof for g in self.system.groups]
         if n_dof != self.__n_dof:
             self.integrator.bind_system(self.system)
             self.__n_dof = n_dof
+
+        self.__plumed_indices = []
+        for i in range(0, len(self.system.potentials)):
+            p = self.system.potentials[i]
+            if p.__class__.__name__ == 'PLUMED':
+                self.__plumed_indices.append(i)
 
     def run(self, n_steps: int) -> None:
         """
