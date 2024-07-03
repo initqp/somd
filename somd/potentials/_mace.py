@@ -52,9 +52,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         Data type of the model.
     calculate_virial : bool
         If calculate the virial tensor.
-    charge_cv_expr : Callable
-        Expression of the charge CV. This option will only work when your MACE
-        model is a charge model.
 
     References
     ----------
@@ -73,7 +70,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         length_unit: float = 0.1,
         model_dtype: str = 'float64',
         calculate_virial: bool = True,
-        charge_cv_expr: _tp.Callable = None,
     ) -> None:
         """
         Create a MACE instance.
@@ -82,10 +78,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         self.__energy_unit = energy_unit
         self.__length_unit = length_unit
         self.__calculate_virial = calculate_virial
-        self.__charge_only = False
-        self.__is_charge_model = False
-        self.__extra_cv_values = None
-        self.__extra_cv_gradients = None
         self.__atomic_types = _np.array(atomic_types, dtype=int).reshape(-1)
         self.__input_pbc = _np.array([True] * 3, dtype=bool)
         self.__input_forces = _np.zeros((len(atom_list), 3), dtype=float)
@@ -138,40 +130,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
         self.__grad_outputs = [self.__torch.ones(1).to(self.__device)]
-        if model._get_name() in ['EnergyChargesMACE', 'AtomicChargesMACE']:
-            if charge_cv_expr is not None:
-                self.__is_charge_model = True
-                if model._get_name() == 'AtomicChargesMACE':
-                    self.__charge_only = True
-                self.__charge_cv_expr = charge_cv_expr
-                self.__extra_cv_values = _np.zeros((2, 1), dtype=_np.double)
-                self.__extra_cv_gradients = _np.zeros(
-                    (2, len(atom_list), 3), dtype=_np.double
-                )
-                message = (
-                    'Total charge gradients will NOT be calculated ' +
-                    'for charge MACE model "{:s}"!'
-                )
-                _warn(message.format(file_name))
-            else:
-                message = (
-                    'Your MACE model "{:s}" is a charge model, but no charge '
-                    + 'CV expersion was given! Will not calculate charge CV!'
-                )
-                _warn(message.format(file_name))
-        else:
-            if charge_cv_expr is not None:
-                message = (
-                    'Your MACE model "{:s}" is not a charge model, but a '
-                    + 'charge CV expersion was given! Will not calculate '
-                    + 'charge CV!'
-                )
-                _warn(message.format(file_name))
-        if self.__charge_only and self.__calculate_virial:
-            message = (
-                'Can not calculate virial for a charge-only model "{:s}"!'
-            )
-            raise RuntimeError(message.format(file_name))
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
@@ -215,57 +173,36 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             compute_stress=False,
             compute_displacement=self.__calculate_virial,
         )
-        if self.__is_charge_model:
-            charge_cv_value = [self.__charge_cv_expr(outputs['charges'])]
-            charge_cv_value = self.__torch.stack(charge_cv_value, dim=-1)
-            charge_cv_gradients = self.__torch.autograd.grad(
-                outputs=[charge_cv_value],
-                inputs=[batch['positions']],
+        if self.__calculate_virial:
+            forces, virial = self.__torch.autograd.grad(
+                outputs=[outputs['energy']],
+                inputs=[batch['positions'], outputs['displacement']],
                 grad_outputs=self.__grad_outputs,
-                retain_graph=True,
+                retain_graph=False,
                 create_graph=False,
                 allow_unused=True,
             )
-            charge_cv_gradients = charge_cv_gradients[0]
-        if not self.__charge_only:
-            if self.__calculate_virial:
-                forces, virial = self.__torch.autograd.grad(
-                    outputs=[outputs['energy']],
-                    inputs=[batch['positions'], outputs['displacement']],
-                    grad_outputs=self.__grad_outputs,
-                    retain_graph=False,
-                    create_graph=False,
-                    allow_unused=True,
-                )
-            else:
-                forces = self.__torch.autograd.grad(
-                    outputs=[outputs['energy']],
-                    inputs=[batch['positions']],
-                    grad_outputs=self.__grad_outputs,
-                    retain_graph=False,
-                    create_graph=False,
-                    allow_unused=True,
-                )
-                forces = forces[0]
-            if self.__calculate_virial and (virial is None):
-                raise RuntimeError('Can not calculate virial!')
-            if forces is None:
-                raise RuntimeError('Can not calculate forces!')
-        if not self.__charge_only:
-            energy = outputs['energy'].detach().cpu().numpy()
-            self.energy_potential[0] = energy * self.__energy_unit
-            forces = forces.detach().cpu().numpy() * -1
-            self.forces[:] = forces * self.__energy_unit / self.__length_unit
+        else:
+            forces = self.__torch.autograd.grad(
+                outputs=[outputs['energy']],
+                inputs=[batch['positions']],
+                grad_outputs=self.__grad_outputs,
+                retain_graph=False,
+                create_graph=False,
+                allow_unused=True,
+            )
+            forces = forces[0]
+        if self.__calculate_virial and (virial is None):
+            raise RuntimeError('Can not calculate virial!')
+        if forces is None:
+            raise RuntimeError('Can not calculate forces!')
+        energy = outputs['energy'].detach().cpu().numpy()
+        self.energy_potential[0] = energy * self.__energy_unit
+        forces = forces.detach().cpu().numpy() * -1
+        self.forces[:] = forces * self.__energy_unit / self.__length_unit
         if self.__calculate_virial:
             virial = virial.detach().cpu().numpy() * -1
             self.virial[:] = virial * self.__energy_unit
-        if self.__is_charge_model:
-            charge_cv_value = charge_cv_value.detach().cpu().numpy()
-            self.__extra_cv_values[0, :] = charge_cv_value
-            gradients = charge_cv_gradients.detach().cpu().numpy()
-            self.__extra_cv_gradients[0, :] = gradients / self.__length_unit
-            total_charge = outputs['total_charge'].detach().cpu().numpy()
-            self.__extra_cv_values[1, :] = total_charge
 
     @classmethod
     def generator(cls, *args, **kwargs) -> _tp.Callable:
@@ -278,27 +215,3 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             args = list(args)
             args[1] = _os.path.abspath(args[1])
         return lambda x=tuple(args), y=kwargs: cls(*x, **y)
-
-    @property
-    def extra_cv_names(self) -> bool:
-        """
-        Name of the charge CV.
-        """
-        if self.__is_charge_model:
-            return ['CHARGECV', 'TOTALCHARGE']
-        else:
-            return None
-
-    @property
-    def extra_cv_values(self) -> _np.ndarray:
-        """
-        The charge CV.
-        """
-        return self.__extra_cv_values
-
-    @property
-    def extra_cv_gradients(self) -> _np.ndarray:
-        """
-        Gradients of the charge CV.
-        """
-        return self.__extra_cv_gradients
