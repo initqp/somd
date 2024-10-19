@@ -22,6 +22,7 @@ Classes for setting up atom groups.
 
 import numpy as _np
 import typing as _tp
+import mdtraj as _md
 import inspect as _it
 from somd import utils as _mdutils
 from .snapshots import SNAPSHOT as _SNAPSHOT
@@ -396,17 +397,16 @@ class ATOMGROUPS(list):
     ----------
     snapshot : somd.snapshots.SNAPSHOT
         The snapshot of the simulated system.
-    constraints : somd._lib.CONSTRAINTS
-        The constraints that are bound to the system.
     """
 
-    def __init__(self, snapshot: _SNAPSHOT, constraints: _CONSTRAINTS) -> None:
+    def __init__(self, snapshot: _SNAPSHOT) -> None:
         """
         Create an ATOMGROUPS instance.
         """
         super().__init__([])
+        self.__segments = []
         self.__snapshot = snapshot
-        self.__constraints = constraints
+        self.__constraints = _CONSTRAINTS(self.__snapshot, self.update_states)
 
     def __setitem__(self, index: int, item: ATOMGROUP) -> None:
         """
@@ -459,7 +459,7 @@ class ATOMGROUPS(list):
                     message = message.format(group._label, constraint)
                     raise RuntimeError(message)
 
-    def __update_n_dof(self) -> list:
+    def __update_n_dof(self) -> _tp.List[int]:
         """
         Calculate number of degree of freedoms of each atom groups.
         """
@@ -561,8 +561,58 @@ class ATOMGROUPS(list):
         g.has_translations = group_dict.get('has_translations', True)
         self.append(g)
 
-    def update_n_dof(self) -> list:
+    def find_segments(self) -> _tp.List[ATOMGROUP]:
+        """
+        Find atom segments (atoms connected by constraints) in this system.
+        Each segment is representated by an atomic group, which will not be
+        bound to the system. This method should be called after all the
+        constraints have been added to the simulated system.
+        """
+        if len(self.constraints) == 0:
+            return
+        self.__segments.clear()
+        top = _md.Topology()
+        unk = top.add_chain()
+        residue = top.add_residue('UNK', unk)
+        for i in range(0, self.__snapshot.n_atoms):
+            e = _md.element.Element.getByAtomicNumber(1)
+            top.add_atom(e.symbol + str(i), e, residue)
+        atoms = list(top.atoms)
+        for c in self.constraints:
+            for i in c['indices'][1:len(c['indices'])]:  # fmt: skip
+                top.add_bond(atoms[c['indices'][0]], atoms[i])
+        molecules = top.find_molecules()
+        for m in molecules:
+            if len(m) != 1:
+                l = [atom.index for atom in list(m)]
+                self.__segments.append(ATOMGROUP(self.__snapshot, l))
+
+        return self.__segments
+
+    def update_n_dof(self) -> _tp.List[int]:
         """
         Calculate number of degree of freedoms of each atom groups.
         """
         return self.__update_n_dof()
+
+    def update_states(self) -> None:
+        """
+        Update internal state. This method should be called after any
+        modifications related to groups/constraints.
+        """
+        self.update_n_dof()
+        self.find_segments()
+
+    @property
+    def constraints(self) -> _CONSTRAINTS:
+        """
+        Constraints that belong to this system.
+        """
+        return self.__constraints
+
+    @property
+    def segments(self) -> _tp.List[ATOMGROUP]:
+        """
+        Atomic segments (atoms connected by constraints) in this system.
+        """
+        return self.__segments

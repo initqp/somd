@@ -68,9 +68,7 @@ class MDSYSTEM(object):
         self.__snapshot = _SNAPSHOT(n_atoms, True)
         self.__types = _np.zeros((n_atoms, 1), _np.int_)
         self.__energy_potential = _np.zeros((1), _np.double)
-        self.__constraints = _CONSTRAINTS(self.snapshot, self.update_states)
-        self.__groups = _ATOMGROUPS(self.snapshot, self.constraints)
-        self.__segments = []
+        self.__groups = _ATOMGROUPS(self.snapshot)
         self.__potentials = []
         self.__atomic_symbols = []
 
@@ -91,8 +89,8 @@ class MDSYSTEM(object):
         system.atomic_symbols[:] = self.atomic_symbols[:]
         for group in self.groups:
             system.groups.create_from_dict(group.to_dict())
-        for constraint in self.constraints:
-            system.constraints.append(constraint)
+        for constraint in self.groups.constraints:
+            system.groups.constraints.append(constraint)
         return system
 
     def update_potentials(
@@ -137,40 +135,6 @@ class MDSYSTEM(object):
             self.forces[self.__potentials[i].atom_list] += f
             e = self.__potentials[i].energy_potential[0]
             self.__energy_potential[0] += e
-
-    def find_segments(self) -> None:
-        """
-        Find atom segments (atoms connected by constraints) in this system.
-        Each segment is representated by an atomic group, which will not be
-        bound to the system. This method should be called after all the
-        constraints have been added to the simulated system.
-        """
-        if len(self.constraints) == 0:
-            return
-        self.__segments.clear()
-        top = _md.Topology()
-        unk = top.add_chain()
-        residue = top.add_residue('UNK', unk)
-        for i in range(0, len(self.atomic_types)):
-            e = _md.element.Element.getByAtomicNumber(self.atomic_types[i, 0])
-            top.add_atom(e.symbol + str(i), e, residue)
-        atoms = list(top.atoms)
-        for c in self.constraints:
-            for i in c['indices'][1:len(c['indices'])]:  # fmt: skip
-                top.add_bond(atoms[c['indices'][0]], atoms[i])
-        molecules = top.find_molecules()
-        for m in molecules:
-            if len(m) != 1:
-                l = [atom.index for atom in list(m)]
-                self.__segments.append(_ATOMGROUP(self, l))
-
-    def update_states(self) -> None:
-        """
-        Update internal state. This method should be called after any
-        modifications related to groups/constraints.
-        """
-        self.groups.update_n_dof()
-        self.find_segments()
 
     @property
     def snapshot(self) -> _SNAPSHOT:
@@ -313,18 +277,18 @@ class MDSYSTEM(object):
         return self.__groups
 
     @property
-    def segments(self) -> list:
+    def segments(self) -> _tp.List[_ATOMGROUP]:
         """
         Atomic segments (atoms connected by constraints) in this system.
         """
-        return self.__segments
+        return self.__groups.segments
 
     @property
     def constraints(self) -> _CONSTRAINTS:
         """
         Constraints that belong to this system.
         """
-        return self.__constraints
+        return self.__groups.constraints
 
     @property
     def volume(self) -> _np.float64:

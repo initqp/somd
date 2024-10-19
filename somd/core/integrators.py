@@ -356,14 +356,14 @@ class INTEGRATOR(object):
         Perform RATTLE position constraints.
         """
         dt = self.__timesteps[dt_index]
-        self.__system.constraints.rattle_constrain_q(dt)
+        self.__system.groups.constraints.rattle_constrain_q(dt)
 
     def _operator_CV(self, dt_index: int) -> None:
         """
         Perform RATTLE velocity constraints.
         """
         dt = self.__timesteps[dt_index]
-        self.__system.constraints.rattle_constrain_p(dt)
+        self.__system.groups.constraints.rattle_constrain_p(dt)
         self.__remove_com_motions()
 
     def _operator_F(self, dt_index: int) -> None:

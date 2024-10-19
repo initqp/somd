@@ -142,9 +142,9 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         Initialize the barostat.
         """
         super().initialize()
-        if len(self.__system.segments) > 0:
+        if len(self.__system.groups.segments) > 0:
             atom_list = list(range(0, self.__system.n_atoms))
-            for seg in self.__system.segments:
+            for seg in self.__system.groups.segments:
                 for x in seg.atom_list:
                     atom_list.remove(x)
             self.__single_atoms = _np.array(atom_list, dtype=_np.int_)
@@ -158,8 +158,8 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         super().update()
         mu = self.__calc_mu_deterministic()
         self.__system.box[:] = mu.dot(self.__system.box.T).T
-        if len(self.__system.segments) > 0:
-            for seg in self.__system.segments:
+        if len(self.__system.groups.segments) > 0:
+            for seg in self.__system.groups.segments:
                 seg.com_positions = mu.dot(seg.com_positions.T).T
             self.__system.positions[self.__single_atoms, :] = mu.dot(
                 self.__system.positions[self.__single_atoms].T
