@@ -136,6 +136,43 @@ class MDSYSTEM(object):
             e = self.__potentials[i].energy_potential[0]
             self.__energy_potential[0] += e
 
+    def summary(self) -> str:
+        """
+        Show information about the system.
+        """
+        box = self.box.squeeze().tolist()
+        segments = [s.atom_list.tolist() for s in self.segments]
+        type_list = self.atomic_types.squeeze().tolist()
+        mass_map = {
+            t: self.masses[type_list.index(t)][0] for t in set(type_list)
+        }
+        summary_g = self.groups.summary().replace('\n', '\n┃  ').strip()
+        summary_c = self.constraints.summary().replace('\n', '\n┃  ').strip()
+        summary_p = ''
+        for p in self.potentials:
+            summary_p += p.summary().replace('\n', '\n┃  ').strip() + '\n'
+
+        result = 'MDSYSTEM\n'
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ n_atomic_types: {}\n'.format(len(set(type_list)))
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ atomic_types: {}\n'.format(type_list)
+        result += '┣━ atomic_masses: {}\n'.format(mass_map)
+        result += '┣━ n_potentials: {}\n'.format(len(self.potentials))
+        result += '┣━ n_atom_groups: {}\n'.format(len(self.groups))
+        result += '┣━ n_constraints: {}\n'.format(len(self.constraints))
+        result += '┣━ n_segments: {}\n'.format(len(self.segments))
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ segments: {}\n'.format(segments)
+            result += '┣━ initial box vector: {}\n'.format(box)
+        result += '┣━ ' + summary_g + '\n'
+        if len(self.constraints) > 0:
+            result += '┣━ ' + summary_c + '\n'
+        result += '┣━ ' + summary_p
+        result += '┗━ END'
+
+        return result
+
     @property
     def snapshot(self) -> _SNAPSHOT:
         """

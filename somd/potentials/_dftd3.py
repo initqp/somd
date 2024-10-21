@@ -19,6 +19,7 @@
 import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
+from somd.utils import defaults as _d
 from somd.utils import constants as _c
 
 __all__ = ['DFTD3']
@@ -85,6 +86,8 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
                 'You need to have the dftd3-python package '
                 + 'installed to use the DFTD3 potential!'
             )
+        self.__atm = atm
+        self.__method = method
         self.__conversion = _c.HARTREE / _c.BOHRRADIUS * -1.0
         pbc = _np.ones(3, dtype=_np.int_)
         lattice = _np.zeros((3, 3), dtype=_np.double)
@@ -103,6 +106,21 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
             self.__param = ModifiedRationalDampingParam(method=method, atm=atm)
         else:
             raise RuntimeError('Unknown damping parameter type: ' + damping)
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ method: {}\n'.format(self.__method)
+        result += '┣━ parameter: {}\n'.format(self.__param.__class__.__name__)
+        result += '┣━ atm: {}\n'.format(self.__atm)
+        if _d.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

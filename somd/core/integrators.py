@@ -517,6 +517,35 @@ class INTEGRATOR(object):
         # fmt: on
         return integrator
 
+    def summary(self) -> str:
+        """
+        Show information about this integrator.
+        """
+        splitting = self.__splitting_whole['operators']
+        splitting_t = self.__splitting_whole['timesteps']
+
+        result = 'INTEGRATOR\n'
+        result += '┣━ timestep: {}\n'.format(self.__timestep)
+        result += '┣━ operators: {}\n'.format(splitting)
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ operator_timesteps: {}\n'.format(splitting_t)
+        result += '┣━ is_stochastic: {}\n'.format(self._is_stochastic)
+        result += '┣━ is_nve: {}\n'.format(self._is_nve)
+        if not self._is_nve:
+            result += '┣━ temperatures: {}\n'.format(self.temperatures)
+            result += '┣━ thermo_groups: {}\n'.format(self.thermo_groups)
+        if _mdutils.defaults.VERBOSE:
+            if 'N' in self.__splitting_whole['operators']:
+                for i, nhc in enumerate(self._nhchains):
+                    result += '┣━ NHC {}: '.format(i)
+                    result += 'temperature {}, '.format(nhc.temperature)
+                    result += 'tau: {}, '.format(nhc.tau)
+                    result += 'length: {}, '.format(nhc.length)
+                    result += 'n_dof: {}, '.format(nhc.n_dof)
+                    result += 'n_respa: {}\n'.format(nhc.n_respa)
+        result += '┗━ END'
+        return result
+
     @property
     def system(self) -> str:
         """

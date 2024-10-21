@@ -305,6 +305,23 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
             _sg.alarm(0)
         return result
 
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        options = '┃  ' + self.__args[2].strip().replace('\n', '\n┃  ').strip()
+
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ options: \n{}'.format(options + '\n┃\n')
+        result += '┣━ command: {}\n'.format(self.__args[3])
+        result += '┣━ working_directory: {}\n'.format(self.__work_dir)
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
+
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
         Update this potential.

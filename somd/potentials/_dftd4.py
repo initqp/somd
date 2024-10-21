@@ -1,6 +1,25 @@
+#
+# SOMD is an ab-initio molecular dynamics package designed for the SIESTA code.
+# Copyright (C) 2023 github.com/initqp
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
 import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
+from somd.utils import defaults as _d
 from somd.utils import constants as _c
 
 __all__ = ['DFTD4']
@@ -51,6 +70,10 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
                 'You need to have the dftd4-python package '
                 + 'installed to use the DFTD4 potential!'
             )
+
+        self.__atm = atm
+        self.__method = method
+        self.__charge = total_charge
         self.__conversion = _c.HARTREE / _c.BOHRRADIUS * -1.0
         pbc = _np.ones(3, dtype=_np.int_)
         lattice = _np.zeros((3, 3), dtype=_np.double)
@@ -60,6 +83,22 @@ class DFTD4(_mdcore.potential_base.POTENTIAL):
         self.__model = DispersionModel(
             atomic_types, positions, total_charge, lattice, pbc
         )
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ method: {}\n'.format(self.__method)
+        result += '┣━ total_charge: {}\n'.format(self.__charge)
+        result += '┣━ parameter: {}\n'.format(self.__param.__class__.__name__)
+        result += '┣━ atm: {}\n'.format(self.__atm)
+        if _d.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

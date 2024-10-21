@@ -85,6 +85,23 @@ cdef class CONSTRAINTS(object):
             c['tolerance'] = self.__cxx_obj_ptr.get_tolerances()[idx]
             return c
 
+    def summary(self) -> str:
+        """
+        Show information about the constraints.
+        """
+        result = 'CONSTRAINTS\n'
+        result += '┣━ n_constraints: {}\n'.format(len(self))
+        result += '┣━ max_cycles: {}\n'.format(self.max_cycles)
+        result += '┣━ die_on_fail: {}\n'.format(self.die_on_fail)
+        for i, c in enumerate(self):
+            result += '┣━ CONSTRAINT {}: '.format(i)
+            result += 'type {}, '.format(c['type'])
+            result += 'target: {}, '.format(c['target'])
+            result += 'tolerance: {}, '.format(c['tolerance'])
+            result += 'indices: {}\n'.format(c['indices'])
+        result += '┗━ END'
+        return result
+
     @property
     def max_cycles(self) -> int:
         """

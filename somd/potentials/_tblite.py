@@ -19,6 +19,7 @@
 import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
+from somd.utils import defaults as _d
 from somd.utils import constants as _c
 
 __all__ = ['TBLITE']
@@ -73,6 +74,10 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
         Creat a TBLITE instance.
         """
         super().__init__(atom_list)
+        self.__pbc = pbc
+        self.__spin = total_spin
+        self.__method = method
+        self.__charge = total_charge
         # treat TBLite as a local dependency
         try:
             from tblite import library
@@ -111,6 +116,22 @@ class TBLITE(_mdcore.potential_base.POTENTIAL):
             lattice,
             pbc
         )
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ method: {}\n'.format(self.__method)
+        result += '┣━ total_charge: {}\n'.format(self.__charge)
+        result += '┣━ total_spin: {}\n'.format(self.__spin)
+        result += '┣━ pbc: {}\n'.format(self.__pbc)
+        if _d.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

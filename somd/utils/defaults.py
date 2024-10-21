@@ -38,3 +38,6 @@ SIMUUPDATE: bool = False
 
 # Timeout for any SIESTA operations (second).
 SIESTATIMEOUT: int = 540
+
+# Global verbose level
+VERBOSE: bool = False

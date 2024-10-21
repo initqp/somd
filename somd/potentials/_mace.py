@@ -20,6 +20,7 @@ import os as _os
 import numpy as _np
 import typing as _tp
 from somd import core as _mdcore
+from somd.utils import defaults as _d
 from somd.utils import constants as _c
 from somd.utils.warning import warn as _warn
 
@@ -98,6 +99,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
                 + '(https://github.com/ACEsuit/mace) '
                 + 'installed to use the MACE potential!'
             )
+        self.__file_name = file_name
         model = torch.load(f=file_name, map_location=device)
         defuault_dtype = next(model.parameters()).dtype
         if model_dtype is None:
@@ -130,6 +132,23 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             parameter.requires_grad = False
         self.__device = mace.tools.torch_tools.init_device(device)
         self.__grad_outputs = [self.__torch.ones(1).to(self.__device)]
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ file_name: {}\n'.format(self.__file_name)
+        result += '┣━ dtype: {}\n'.format(self.__dtype)
+        result += '┣━ device: {}\n'.format(self.__device)
+        result += '┣━ r_max: {}\n'.format(self.__r_max)
+        result += '┣━ z_table: {}\n'.format(self.__z_table)
+        if _d.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

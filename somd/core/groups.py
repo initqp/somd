@@ -603,6 +603,25 @@ class ATOMGROUPS(list):
         self.update_n_dof()
         self.find_segments()
 
+    def summary(self) -> str:
+        """
+        Show information about the groups.
+        """
+        result = 'ATOMGROUPS\n'
+        result += '┣━ n_groups: {}\n'.format(len(self))
+        for i, g in enumerate(self):
+            result += '┣━ {} ({}): '.format(g._label, i)
+            result += 'n_atoms: {}, '.format(g.n_atoms)
+            result += 'n_constraints: {}, '.format(g.n_constraints)
+            result += 'translations: {}, '.format(g.has_translations)
+            result += 'n_dof: {}'.format(g.n_dof)
+            if _mdutils.defaults.VERBOSE:
+                result += ', atom_list: {}\n'.format(g.atom_list)
+            else:
+                result += '\n'
+        result += '┗━ END'
+        return result
+
     @property
     def constraints(self) -> _CONSTRAINTS:
         """

@@ -19,6 +19,7 @@
 import os as _os
 import typing as _tp
 from somd import core as _mdcore
+from somd.utils import defaults as _d
 from somd.utils import constants as _c
 
 __all__ = ['NEP']
@@ -61,12 +62,28 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         Create a NEP instance.
         """
         super().__init__(atom_list)
+        self.__file_name = file_name
+        self.__use_tabulating = use_tabulating
         if use_tabulating:
             from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
         else:
             from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
         self.__nep = _NEPWRAPPER(file_name, atomic_symbols)
         self.__conversion = _c.AVOGACONST * _c.ELECTCONST
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ file_name: {}\n'.format(self.__file_name)
+        result += '┣━ tabulating: {}\n'.format(self.__use_tabulating)
+        if _d.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
 
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """

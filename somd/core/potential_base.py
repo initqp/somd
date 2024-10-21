@@ -24,6 +24,7 @@ import abc as _ab
 import numpy as _np
 import typing as _tp
 import atexit as _ae
+from somd import utils as _mdutils
 from .systems import MDSYSTEM as _MDSYSTEM
 
 __all__ = ['POTENTIAL']
@@ -80,6 +81,19 @@ class POTENTIAL(_ab.ABC):
         """
         # If this function has been called once, do not call it again at exit.
         _ae.unregister(self.finalize)
+
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+
+        return result
 
     @property
     def n_atoms(self) -> int:

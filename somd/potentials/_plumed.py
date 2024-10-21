@@ -206,6 +206,22 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
             _mdutils.warning.warn(message.format(potential.extra_cv_names[i]))
         self.__extra_cv_checked = True
 
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'POTENTIAL\n'
+        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
+        result += '┣━ file_name: {}\n'.format(self.__args[1])
+        result += '┣━ timestep: {}\n'.format(self.__args[2])
+        result += '┣━ temperature: {}\n'.format(self.__args[3])
+        result += '┣━ restart: {}\n'.format(self.__args[4])
+        if _mdutils.defaults.VERBOSE:
+            result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┗━ END'
+        return result
+
     def update(self, system: _mdcore.systems.MDSYSTEM) -> None:
         """
         Update this potential.
