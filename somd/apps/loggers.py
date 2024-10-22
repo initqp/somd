@@ -101,6 +101,17 @@ class DEFAULTCSVLOGGER(_apputils.post_step.POSTSTEPOBJ):
         header += ' volume (nm^3)'
         print(header, file=self.__fp)
 
+    def summary(self) -> str:
+        """
+        Show information about the logger.
+        """
+        result = 'DEFAULTCSVLOGGER\n'
+        result += '┣━ file_name: {}\n'.format(self.file_name)
+        result += '┣━ interval: {}\n'.format(self.interval)
+        result += '┣━ append: {}\n'.format(self.__append)
+        result += '┗━ END'
+        return result
+
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
     ) -> None:

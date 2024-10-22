@@ -111,8 +111,7 @@ class DFTD3(_mdcore.potential_base.POTENTIAL):
         """
         Show information about the potential.
         """
-        result = 'POTENTIAL\n'
-        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ method: {}\n'.format(self.__method)
         result += '┣━ parameter: {}\n'.format(self.__param.__class__.__name__)

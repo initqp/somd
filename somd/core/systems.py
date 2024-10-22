@@ -148,9 +148,12 @@ class MDSYSTEM(object):
         }
         summary_g = self.groups.summary().replace('\n', '\n┃  ').strip()
         summary_c = self.constraints.summary().replace('\n', '\n┃  ').strip()
-        summary_p = ''
+        summary_p = 'POTENTIALS\n'
         for p in self.potentials:
-            summary_p += p.summary().replace('\n', '\n┃  ').strip() + '\n'
+            summary_p += (
+                '┃  ┣━ ' + p.summary().replace('\n', '\n┃  ┃  ').strip() + '\n'
+            )
+        summary_p += '┃  ┗━ END'
 
         result = 'MDSYSTEM\n'
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
@@ -168,7 +171,7 @@ class MDSYSTEM(object):
         result += '┣━ ' + summary_g + '\n'
         if len(self.constraints) > 0:
             result += '┣━ ' + summary_c + '\n'
-        result += '┣━ ' + summary_p
+        result += '┣━ ' + summary_p + '\n'
         result += '┗━ END'
 
         return result

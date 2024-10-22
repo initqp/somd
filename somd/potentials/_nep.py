@@ -75,8 +75,7 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         """
         Show information about the potential.
         """
-        result = 'POTENTIAL\n'
-        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ file_name: {}\n'.format(self.__file_name)
         result += '┣━ tabulating: {}\n'.format(self.__use_tabulating)

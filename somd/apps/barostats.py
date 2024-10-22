@@ -149,6 +149,27 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
                     atom_list.remove(x)
             self.__single_atoms = _np.array(atom_list, dtype=_np.int_)
 
+    def summary(self) -> str:
+        """
+        Show information about the potential.
+        """
+        result = 'BAROSTAT\n'
+        result += '┣━ isotropic: {}\n'.format(self.__isotropic)
+        if self.__isotropic:
+            result += '┣━ pressures: {}\n'.format(self.__pressures[0])
+            result += '┣━ beta: {}\n'.format(self.__beta[0])
+        else:
+            f_str = '{:.5e} {:.5e} {:.5e}\n'
+            result += '┣━ pressures a: ' + f_str.format(*self.__pressures[0])
+            result += '┣━ pressures b: ' + f_str.format(*self.__pressures[1])
+            result += '┣━ pressures c: ' + f_str.format(*self.__pressures[2])
+            result += '┣━ beta a: ' + f_str.format(*self.__beta[0])
+            result += '┣━ beta b: ' + f_str.format(*self.__beta[1])
+            result += '┣━ beta c: ' + f_str.format(*self.__beta[2])
+        result += '┣━ relaxation_time: {}\n'.format(self.__relaxation_time)
+        result += '┗━ END'
+        return result
+
     def update(self) -> None:
         """
         Perform the pressure controlling.

@@ -48,6 +48,15 @@ class POSTSTEPOBJ(_ab.ABC):
         # If initialized.
         self.__initialized = False
 
+    def summary(self) -> str:
+        """
+        Show information about the object.
+        """
+        result = '{}\n'.format(self.__class__.__name__)
+        result += '┣━ interval: {}\n'.format(self.__interval)
+        result += '┗━ END'
+        return result
+
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
     ) -> None:

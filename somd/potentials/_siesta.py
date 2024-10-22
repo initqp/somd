@@ -311,8 +311,7 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         """
         options = '┃  ' + self.__args[2].strip().replace('\n', '\n┃  ').strip()
 
-        result = 'POTENTIAL\n'
-        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ options: \n{}'.format(options + '\n┃\n')
         result += '┣━ command: {}\n'.format(self.__args[3])

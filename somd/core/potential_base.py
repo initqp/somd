@@ -86,8 +86,7 @@ class POTENTIAL(_ab.ABC):
         """
         Show information about the potential.
         """
-        result = 'POTENTIAL\n'
-        result += '┣━ type: {}\n'.format(self.__class__.__name__)
+        result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         if _mdutils.defaults.VERBOSE:
             result += '┣━ atom_list: {}\n'.format(self.atom_list)

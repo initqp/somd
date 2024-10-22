@@ -298,6 +298,23 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         self.__root['randomState'][0] = '\0' * 10000
         self.__root['randomState'][0] = _mdutils.rng.state_string
 
+    def summary(self) -> str:
+        """
+        Show information about the writer.
+        """
+        result = 'H5WRITER\n'
+        result += '┣━ file_name: {}\n'.format(self.file_name)
+        result += '┣━ interval: {}\n'.format(self.interval)
+        result += '┣━ append: {}\n'.format(self.__append)
+        result += '┣━ write_velocities: {}\n'.format(self.__write_velocities)
+        result += '┣━ write_forces: {}\n'.format(self.__write_forces)
+        result += '┣━ write_virial: {}\n'.format(self.__write_virial)
+        result += '┣━ wrap_positions: {}\n'.format(self.__wrap_positions)
+        result += '┣━ use_double_precision: {}\n'.format(self.__use_double)
+        result += '┣━ potential_list: {}\n'.format(self.__potential_list)
+        result += '┗━ END'
+        return result
+
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR
     ) -> None:
@@ -491,6 +508,22 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
                 for i in self.__potential_list:
                     self.__virial[:] += self.__system.potentials[i].virial[:]
                 self.__virial[:] /= self.__conversion * 0.001
+
+    def summary(self) -> str:
+        """
+        Show information about the writer.
+        """
+        result = 'EXYZWRITER\n'
+        result += '┣━ file_name: {}\n'.format(self.file_name)
+        result += '┣━ interval: {}\n'.format(self.interval)
+        result += '┣━ append: {}\n'.format(self.__append)
+        result += '┣━ write_velocities: {}\n'.format(self.__write_velocities)
+        result += '┣━ write_forces: {}\n'.format(self.__write_forces)
+        result += '┣━ write_virial: {}\n'.format(self.__write_virial)
+        result += '┣━ wrap_positions: {}\n'.format(self.__wrap_positions)
+        result += '┣━ potential_list: {}\n'.format(self.__potential_list)
+        result += '┗━ END'
+        return result
 
     def bind_integrator(
         self, integrator: _mdcore.integrators.INTEGRATOR

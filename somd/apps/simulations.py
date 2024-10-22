@@ -148,6 +148,27 @@ class SIMULATION(object):
             if p.__class__.__name__ == 'PLUMED':
                 self.__plumed_indices.append(i)
 
+    def summary(self) -> str:
+        """
+        Show information about the simulation.
+        """
+        summary_o = 'POSTSTEPOBJECTS\n'
+        for o in self.post_step_objects:
+            if hasattr(o, 'summary'):
+                summary_o += (
+                    '┣━ ' + o.summary().replace('\n', '\n┃  ').strip() + '\n'
+                )
+            else:
+                summary_o += '┃  UNKOWN POSTSTEPOBJ\n'
+        summary_o += '┗━ END'
+
+        result = (
+            self.__system.summary() + '\n'
+            + self.__integrator.summary() + '\n'
+            + summary_o + '\n'
+        )
+        return result
+
     def run(self, n_steps: int) -> None:
         """
         Run the simulation.
