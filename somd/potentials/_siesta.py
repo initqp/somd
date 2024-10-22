@@ -309,7 +309,10 @@ class SIESTA(_mdcore.potential_base.POTENTIAL):
         """
         Show information about the potential.
         """
-        options = '┃  ' + self.__args[2].strip().replace('\n', '\n┃  ').strip()
+        options = [
+            l.strip() + '\n' for l in self.__args[2].split('\n') if l != ''
+        ]
+        options = '┃  ' + ''.join(options).replace('\n', '\n┃  ').strip()
 
         result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
