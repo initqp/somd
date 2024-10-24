@@ -1,3 +1,4 @@
+#
 # SOMD is an ab-initio molecular dynamics package designed for the SIESTA code.
 # Copyright (C) 2023 github.com/initqp
 #
@@ -18,6 +19,7 @@
 """
 The pre-defined simulation protocols.
 """
+
 import os as _os
 import abc as _ab
 import h5py as _h5

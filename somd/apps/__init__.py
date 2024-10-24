@@ -24,6 +24,7 @@ from somd.apps import cli
 from somd.apps import parser
 from somd.apps import loggers
 from somd.apps import barostats
+from somd.apps import evaluation
 from somd.apps import simulations
 from somd.apps import trajectories
 from somd.apps import active_learning
