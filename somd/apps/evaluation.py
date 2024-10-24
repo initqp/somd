@@ -61,6 +61,7 @@ class EVALUATION(object):
         self.__objects['loggers'] = loggers
         self.__objects['trajectories'] = trajectories
         self.__objects['system'] = system
+        self.__file_name = file_name
         self.__interval = interval
 
         # do checks
@@ -94,6 +95,30 @@ class EVALUATION(object):
         self.__objects['reader'].bind_integrator(self.__objects['integrator'])
         for t in self.__objects['trajectories']:
             t.bind_integrator(self.__objects['integrator'])
+        for l in self.__objects['loggers']:
+            l.bind_integrator(self.__objects['integrator'])
+
+    def summary(self) -> str:
+        """
+        Show information about the simulation.
+        """
+        summary_o = 'POSTSTEPOBJECTS\n'
+        for o in [*self.__objects['trajectories'], *self.__objects['loggers']]:
+            summary_o += (
+                '┣━ ' + o.summary().replace('\n', '\n┃  ').strip() + '\n'
+            )
+        summary_o += '┗━ END'
+        summary_e = 'EVALUATION\n'
+        summary_e += '┣━ file_name: {}\n'.format(self.__file_name)
+        summary_e += '┣━ interval: {}\n'.format(self.__interval)
+        summary_e += '┗━ END'
+
+        result = (
+            self.__objects['system'].summary() + '\n'
+            + summary_o + '\n'
+            + summary_e + '\n'
+        )
+        return result
 
     def run(self) -> None:
         """
