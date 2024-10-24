@@ -63,13 +63,14 @@ class SIMULATION(object):
         """
         Create a SIMULATION instance.
         """
-        self.__system = system
-        self.__loggers = loggers
-        self.__integrator = integrator
+        self.__objects = {}
         self.__read_force = False
         self.__initialized = False
-        self.__post_step_objects = []
-        self.__n_dof = [g.n_dof for g in self.system.groups]
+        self.__objects['system'] = system
+        self.__objects['loggers'] = loggers
+        self.__objects['integrator'] = integrator
+        self.__objects['post_step'] = []
+        self.__objects['n_dof'] = [g.n_dof for g in self.system.groups]
         # Check the groups.
         if len(system.groups) == 0:
             raise RuntimeError('No group has been bound to the system!')
@@ -80,33 +81,33 @@ class SIMULATION(object):
         integrator.bind_system(system)
         # Bind the barostat to the system.
         if barostat is not None:
-            self.__post_step_objects.append(barostat)
+            self.__objects['post_step'].append(barostat)
         # Bind the trajectory writers to the system.
         for t in trajectories:
-            self.__post_step_objects.append(t)
+            self.__objects['post_step'].append(t)
         # Bind the loggers to the system.
         for l in loggers:
-            self.__post_step_objects.append(l)
+            self.__objects['post_step'].append(l)
 
     def __del__(self) -> None:
         """
         Finalize the simulation.
         """
-        for potential in self.__system.potentials:
+        for potential in self.__objects['system'].potentials:
             potential.finalize()
-        for post_step_object in self.__post_step_objects:
+        for post_step_object in self.__objects['post_step']:
             post_step_object.finalize()
 
     def _loop(self) -> None:
         """
         The simulation loop.
         """
-        self.__integrator.propagate()
+        self.__objects['integrator'].propagate()
 
-        for obj in self.__post_step_objects:
+        for obj in self.__objects['post_step']:
             obj.update()
 
-        for i in self.__plumed_indices:
+        for i in self.__objects['plumed_indices']:
             if self.system.potentials[i].stop_flag:
                 message = 'PLUMED stop criterion meet. Exiting now ...'
                 _mdutils.warning.warn(message)
@@ -127,8 +128,8 @@ class SIMULATION(object):
         if not self.__read_force:
             self.system.update_potentials(potential_list)
         # Initialize post step objects.
-        for obj in self.__post_step_objects:
-            obj.bind_integrator(self.__integrator)
+        for obj in self.__objects['post_step']:
+            obj.bind_integrator(self.__objects['integrator'])
             obj.initialize()
         self.__initialized = True
 
@@ -138,15 +139,15 @@ class SIMULATION(object):
         PLUMED instances.
         """
         n_dof = [g.n_dof for g in self.system.groups]
-        if n_dof != self.__n_dof:
+        if n_dof != self.__objects['n_dof']:
             self.integrator.bind_system(self.system)
-            self.__n_dof = n_dof
+            self.__objects['n_dof'] = n_dof
 
-        self.__plumed_indices = []
+        self.__objects['plumed_indices'] = []
         for i in range(0, len(self.system.potentials)):
             p = self.system.potentials[i]
             if p.__class__.__name__ == 'PLUMED':
-                self.__plumed_indices.append(i)
+                self.__objects['plumed_indices'].append(i)
 
     def summary(self) -> str:
         """
@@ -163,8 +164,8 @@ class SIMULATION(object):
         summary_o += '┗━ END'
 
         result = (
-            self.__system.summary() + '\n'
-            + self.__integrator.summary() + '\n'
+            self.__objects['system'].summary() + '\n'
+            + self.__objects['integrator'].summary() + '\n'
             + summary_o + '\n'
         )
         return result
@@ -224,7 +225,7 @@ class SIMULATION(object):
             Name of the restart file.
         """
         t = _mdapps.trajectories.H5WRITER(file_name, restart_file=True)
-        t.bind_integrator(self.__integrator)
+        t.bind_integrator(self.__objects['integrator'])
         t.write()
         del t
 
@@ -244,7 +245,7 @@ class SIMULATION(object):
             If inherit the simulation step from the restart file.
         """
         t = _mdapps.trajectories.H5READER(file_name, **kwargs)
-        t.bind_integrator(self.__integrator)
+        t.bind_integrator(self.__objects['integrator'])
         # Read data.
         if frame == -1:
             frame = t.n_frames - 1
@@ -260,8 +261,8 @@ class SIMULATION(object):
                 frame = t.root['steps'][frame]
             else:
                 frame = 0
-            self.__integrator.step = int(frame)
-            for p in self.__system.potentials:
+            self.__objects['integrator'].step = int(frame)
+            for p in self.__objects['system'].potentials:
                 if p.__class__.__name__ == 'PLUMED':
                     p.step = frame + 1
         del t
@@ -271,21 +272,21 @@ class SIMULATION(object):
         """
         Current simulation step.
         """
-        return self.__integrator.step
+        return self.__objects['integrator'].step
 
     @property
     def system(self) -> _mdcore.systems.MDSYSTEM:
         """
         The simulated system.
         """
-        return self.__system
+        return self.__objects['system']
 
     @property
     def integrator(self) -> _mdcore.integrators.INTEGRATOR:
         """
         The invoked integrator.
         """
-        return self.__integrator
+        return self.__objects['integrator']
 
     @property
     def post_step_objects(self) -> list:
@@ -293,7 +294,7 @@ class SIMULATION(object):
         A list of objects that constains a zero-parameter 'update' method,
         which will be invoked after each timestep.
         """
-        return self.__post_step_objects
+        return self.__objects['post_step']
 
 
 class STAGEDSIMULATION(_ab.ABC):
