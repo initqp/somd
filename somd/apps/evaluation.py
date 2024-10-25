@@ -58,11 +58,11 @@ class EVALUATION(object):
         Create an EVALUATION instance.
         """
         self.__objects = {}
-        self.__objects['loggers'] = loggers
-        self.__objects['trajectories'] = trajectories
+        self.__objects['post_step'] = []
         self.__objects['system'] = system
         self.__file_name = file_name
         self.__interval = interval
+        self.__initialized = False
 
         # do checks
         reader = _mdapps.trajectories.H5READER(file_name)
@@ -77,15 +77,17 @@ class EVALUATION(object):
             read_velocities = True
         if system.n_atoms != reader.root['coordinates'].shape[1]:
             message = (
-                'Mismatch between number of atoms in trajectory {:s}'
+                'Mismatch between number of atoms in trajectory {:s} '
                 + 'and the given MD system!'
             )
             raise RuntimeError(message.format(file_name))
+        del reader
 
         self.__objects['reader'] = _mdapps.trajectories.H5READER(
             file_name,
             read_coordinates=True,
             read_velocities=read_velocities,
+            read_forces=False,
             read_cell=True,
             read_nhc_data=False,
             read_rng_state=False,
@@ -93,17 +95,35 @@ class EVALUATION(object):
         self.__objects['integrator'] = _mdcore.integrators.vv_integrator(1E-3)
         self.__objects['integrator'].bind_system(self.__objects['system'])
         self.__objects['reader'].bind_integrator(self.__objects['integrator'])
-        for t in self.__objects['trajectories']:
-            t.bind_integrator(self.__objects['integrator'])
-        for l in self.__objects['loggers']:
-            l.bind_integrator(self.__objects['integrator'])
+        for t in trajectories:
+            self.__objects['post_step'].append(t)
+        for l in loggers:
+            self.__objects['post_step'].append(l)
+
+    def __del__(self) -> None:
+        """
+        Finalize the simulation.
+        """
+        for potential in self.__objects['system'].potentials:
+            potential.finalize()
+        for post_step_object in self.__objects['post_step']:
+            post_step_object.finalize()
+
+    def _initialize(self) -> None:
+        """
+        Initialize the post step objects.
+        """
+        for obj in self.__objects['post_step']:
+            obj.bind_integrator(self.__objects['integrator'])
+            obj.initialize()
+        self.__initialized = True
 
     def summary(self) -> str:
         """
         Show information about the simulation.
         """
         summary_o = 'POSTSTEPOBJECTS\n'
-        for o in [*self.__objects['trajectories'], *self.__objects['loggers']]:
+        for o in self.__objects['post_step']:
             summary_o += (
                 '┣━ ' + o.summary().replace('\n', '\n┃  ').strip() + '\n'
             )
@@ -124,11 +144,20 @@ class EVALUATION(object):
         """
         Run the evaluation.
         """
+        if not self.__initialized:
+            self._initialize()
         for i in range(self.__objects['reader'].n_frames):
             self.__objects['reader'].read(i)
             if (i % self.__interval) == 0:
                 self.__objects['system'].update_potentials()
-                for t in self.__objects['trajectories']:
-                    t.write()
-                for l in self.__objects['loggers']:
-                    l.write()
+                self.__objects['integrator'].step += 1
+                for obj in self.__objects['post_step']:
+                    obj.update()
+
+    @property
+    def post_step_objects(self) -> list:
+        """
+        A list of objects that constains a zero-parameter 'update' method,
+        which will be invoked after each time interval.
+        """
+        return self.__objects['post_step']
