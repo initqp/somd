@@ -72,9 +72,9 @@ class EVALUATION(object):
         if 'velocities' not in reader.root.keys():
             message = 'Can not find velocities in the trajectory file {:s}!'
             _mdutils.warning.warn(message.format(file_name))
-            read_velocities = False
+            self.__read_velocities = False
         else:
-            read_velocities = True
+            self.__read_velocities = True
         if system.n_atoms != reader.root['coordinates'].shape[1]:
             message = (
                 'Mismatch between number of atoms in trajectory {:s} '
@@ -83,18 +83,6 @@ class EVALUATION(object):
             raise RuntimeError(message.format(file_name))
         del reader
 
-        self.__objects['reader'] = _mdapps.trajectories.H5READER(
-            file_name,
-            read_coordinates=True,
-            read_velocities=read_velocities,
-            read_forces=False,
-            read_cell=True,
-            read_nhc_data=False,
-            read_rng_state=False,
-        )
-        self.__objects['integrator'] = _mdcore.integrators.vv_integrator(1E-3)
-        self.__objects['integrator'].bind_system(self.__objects['system'])
-        self.__objects['reader'].bind_integrator(self.__objects['integrator'])
         for t in trajectories:
             self.__objects['post_step'].append(t)
         for l in loggers:
@@ -113,6 +101,18 @@ class EVALUATION(object):
         """
         Initialize the post step objects.
         """
+        self.__objects['integrator'] = _mdcore.integrators.vv_integrator(1E-3)
+        self.__objects['integrator'].bind_system(self.__objects['system'])
+        self.__objects['reader'] = _mdapps.trajectories.H5READER(
+            self.__file_name,
+            read_coordinates=True,
+            read_velocities=self.__read_velocities,
+            read_forces=False,
+            read_cell=True,
+            read_nhc_data=False,
+            read_rng_state=False,
+        )
+        self.__objects['reader'].bind_integrator(self.__objects['integrator'])
         for obj in self.__objects['post_step']:
             obj.bind_integrator(self.__objects['integrator'])
             obj.initialize()
