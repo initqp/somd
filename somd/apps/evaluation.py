@@ -81,6 +81,7 @@ class EVALUATION(object):
                 + 'and the given MD system!'
             )
             raise RuntimeError(message.format(file_name))
+        self.__n_frames = reader.root['coordinates'].shape[0]
         del reader
 
         for t in trajectories:
@@ -130,6 +131,7 @@ class EVALUATION(object):
         summary_o += '┗━ END'
         summary_e = 'EVALUATION\n'
         summary_e += '┣━ file_name: {}\n'.format(self.__file_name)
+        summary_e += '┣━ n_frames_total: {}\n'.format(self.__n_frames)
         summary_e += '┣━ interval: {}\n'.format(self.__interval)
         summary_e += '┗━ END'
 
