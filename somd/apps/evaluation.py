@@ -44,6 +44,9 @@ class EVALUATION(object):
         A list of simulation data loggers.
     interval : int
         Interval of evaluating the trajectory.
+    die_on_fail : bool
+        If halt the calculation when fails to perform the potential
+        calculations.
     """
 
     def __init__(
@@ -53,6 +56,7 @@ class EVALUATION(object):
         trajectories: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
         loggers: _tp.List[_mdapps.utils.post_step.POSTSTEPOBJ] = [],
         interval: int = 1,
+        die_on_fail: bool = False
     ) -> None:
         """
         Create an EVALUATION instance.
@@ -63,6 +67,7 @@ class EVALUATION(object):
         self.__file_name = file_name
         self.__interval = interval
         self.__initialized = False
+        self.__die_on_fail = die_on_fail
 
         # do checks
         reader = _mdapps.trajectories.H5READER(file_name)
@@ -133,6 +138,7 @@ class EVALUATION(object):
         summary_e += '┣━ file_name: {}\n'.format(self.__file_name)
         summary_e += '┣━ n_frames_total: {}\n'.format(self.__n_frames)
         summary_e += '┣━ interval: {}\n'.format(self.__interval)
+        summary_e += '┣━ die_on_fail: {}\n'.format(self.__die_on_fail)
         summary_e += '┗━ END'
 
         result = (
@@ -151,10 +157,22 @@ class EVALUATION(object):
         for i in range(self.__objects['reader'].n_frames):
             self.__objects['reader'].read(i)
             if (i % self.__interval) == 0:
-                self.__objects['system'].update_potentials()
-                self.__objects['integrator'].step += 1
-                for obj in self.__objects['post_step']:
-                    obj.update()
+                try:
+                    self.__objects['system'].update_potentials()
+                except Exception as e:
+                    if self.__die_on_fail:
+                        raise e
+                    else:
+                        message = 'Failed calculating energy for frame {:d}!'
+                        _mdutils.warning.warn(message.format(i))
+                        # Reset SIESTA on fail.
+                        for potential in self.__objects['system'].potentials:
+                            if potential.__class__.__name__ == 'SIESTA':
+                                potential.reset()
+                else:
+                    self.__objects['integrator'].step += 1
+                    for obj in self.__objects['post_step']:
+                        obj.update()
 
     @property
     def post_step_objects(self) -> list:
