@@ -146,6 +146,9 @@ class MDSYSTEM(object):
         mass_map = {
             t: self.masses[type_list.index(t)][0] for t in set(type_list)
         }
+        symbol_map = {
+            t: self.atomic_symbols[type_list.index(t)] for t in set(type_list)
+        }
         summary_g = self.groups.summary().replace('\n', '\n┃  ').strip()
         summary_c = self.constraints.summary().replace('\n', '\n┃  ').strip()
         summary_p = 'POTENTIALS\n'
@@ -160,6 +163,7 @@ class MDSYSTEM(object):
         result += '┣━ n_atomic_types: {}\n'.format(len(set(type_list)))
         if _mdutils.defaults.VERBOSE:
             result += '┣━ atomic_types: {}\n'.format(type_list)
+        result += '┣━ atomic_symbols: {}\n'.format(symbol_map)
         result += '┣━ atomic_masses: {}\n'.format(mass_map)
         result += '┣━ n_potentials: {}\n'.format(len(self.potentials))
         result += '┣━ n_atom_groups: {}\n'.format(len(self.groups))
