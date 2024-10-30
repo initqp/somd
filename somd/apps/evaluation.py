@@ -114,6 +114,7 @@ class EVALUATION(object):
             read_coordinates=True,
             read_velocities=self.__read_velocities,
             read_forces=False,
+            read_virial=False,
             read_cell=True,
             read_nhc_data=False,
             read_rng_state=False,
