@@ -75,9 +75,24 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         """
         Show information about the potential.
         """
+        zbl = self.__nep.zbl_info
+        ann = self.__nep.ann_info
+        paramb = self.__nep.paramb_info
         result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ file_name: {}\n'.format(self.__file_name)
+        result += '┣━ ParaMB:\n'
+        for k in paramb.keys():
+            result += '┃  ┣━ {}: {}\n'.format(k, paramb[k])
+        result += '┃  ┗━ END\n'
+        result += '┣━ ZBL:\n'
+        for k in zbl.keys():
+            result += '┃  ┣━ {}: {}\n'.format(k, zbl[k])
+        result += '┃  ┗━ END\n'
+        result += '┣━ ANN:\n'
+        for k in ann.keys():
+            result += '┃  ┣━ {}: {}\n'.format(k, ann[k])
+        result += '┃  ┗━ END\n'
         result += '┣━ tabulating: {}\n'.format(self.__use_tabulating)
         if _d.VERBOSE:
             result += '┣━ atom_list: {}\n'.format(self.atom_list)

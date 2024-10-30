@@ -154,6 +154,80 @@ cdef class NEPWRAPPER(object):
         """ NEP types of each atom. """
         return self.__cxx_type_vec
 
+    @property
+    def zbl_info(self) -> dict:
+        """
+        Information about the ZBL potential.
+        """
+        results = {}
+        results['enabled'] = self.__cxx_obj_ptr.zbl.enabled
+        if not results['enabled']:
+            return results
+        results['flexibled'] = self.__cxx_obj_ptr.zbl.flexibled
+        if results['flexibled']:
+            return results
+        results['rc_inner'] = self.__cxx_obj_ptr.zbl.rc_inner
+        results['rc_outer'] = self.__cxx_obj_ptr.zbl.rc_outer
+        if self.__cxx_obj_ptr.paramb.use_typewise_cutoff_zbl:
+            results[
+                'typewise_cutoff_zbl_factor'
+            ] = self.__cxx_obj_ptr.paramb.typewise_cutoff_zbl_factor
+        return results
+
+    @property
+    def ann_info(self) -> dict:
+        """
+        Information about the ANN.
+        """
+        results = {}
+        results['arch'] = '{:d}-{:d}-1'.format(
+            self.__cxx_obj_ptr.annmb.dim, self.__cxx_obj_ptr.annmb.num_neurons1
+        )
+        results['n_parameters_total'] = self.__cxx_obj_ptr.annmb.num_para
+        results['n_parameters_descriptor'] = (
+            self.__cxx_obj_ptr.annmb.num_para
+            - self.__cxx_obj_ptr.annmb.num_para_ann
+        )
+        results['n_parameters_nn'] = self.__cxx_obj_ptr.annmb.num_para_ann
+        return results
+
+    @property
+    def paramb_info(self) -> dict:
+        """
+        Potential parameters.
+        """
+        results = {}
+        results['version'] = self.__cxx_obj_ptr.paramb.version
+        results['n_types'] = self.__cxx_obj_ptr.paramb.num_types
+        results['rc_radial'] = self.__cxx_obj_ptr.paramb.rc_radial
+        results['rc_angular'] = self.__cxx_obj_ptr.paramb.rc_angular
+        results['n_max_radial'] = self.__cxx_obj_ptr.paramb.n_max_radial
+        results['n_max_angular'] = self.__cxx_obj_ptr.paramb.n_max_angular
+        results[
+            'basis_size_radial'
+        ] = self.__cxx_obj_ptr.paramb.basis_size_radial
+        results[
+            'basis_size_angular'
+        ] = self.__cxx_obj_ptr.paramb.basis_size_angular
+        results['l_max_3_body'] = self.__cxx_obj_ptr.paramb.L_max
+        results['l_max_4_body'] = (
+            2 if self.__cxx_obj_ptr.paramb.num_L >= 5 else 0
+        )
+        results['l_max_5_body'] = (
+            1 if self.__cxx_obj_ptr.paramb.num_L >= 6 else 0
+        )
+        results[
+            'use_typewise_cutoff'
+        ] = self.__cxx_obj_ptr.paramb.use_typewise_cutoff
+        if results['use_typewise_cutoff']:
+            results[
+                'typewise_cutoff_radial_factor'
+            ] = self.__cxx_obj_ptr.paramb.typewise_cutoff_radial_factor
+            results[
+                'typewise_cutoff_angular_factor'
+            ] = self.__cxx_obj_ptr.paramb.typewise_cutoff_angular_factor
+        return results
+
     def calculate(
         self,
         box: double[:, :],

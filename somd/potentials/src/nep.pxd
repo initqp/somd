@@ -27,6 +27,42 @@ cdef extern from "NEP_CPU/src/nep.cpp" nogil:
     pass
 
 cdef extern from "NEP_CPU/src/nep.h" nogil:
+    cdef struct ZBL:
+        bool enabled
+        bool flexibled
+        int num_types
+        double rc_inner
+        double rc_outer
+        double para[550]
+    cdef struct ParaMB:
+        bool use_typewise_cutoff
+        bool use_typewise_cutoff_zbl
+        double typewise_cutoff_radial_factor
+        double typewise_cutoff_angular_factor
+        double typewise_cutoff_zbl_factor
+        int model_type
+        int version
+        double rc_radial
+        double rc_angular
+        double rcinv_radial
+        double rcinv_angular
+        int n_max_radial
+        int n_max_angular
+        int L_max
+        int dim_angular
+        int num_L
+        int basis_size_radial
+        int basis_size_angular
+        int num_types_sq
+        int num_c_radial
+        int num_types
+        double q_scaler[140];
+        int atomic_numbers[94];
+    cdef struct ANN:
+        int dim
+        int num_neurons1
+        int num_para
+        int num_para_ann
     cdef cppclass NEP3:
         NEP3() except +
         NEP3(string potential_filename) except +
@@ -39,3 +75,6 @@ cdef extern from "NEP_CPU/src/nep.h" nogil:
             vector[double] forces,
             vector[double] virial
         )
+        ZBL zbl
+        ANN annmb
+        ParaMB paramb
