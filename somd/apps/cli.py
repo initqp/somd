@@ -40,10 +40,14 @@ def parse_args() -> _ar.Namespace:
         dest='mode', help='the execution mode (default: run)'
     )
     parser_run = sub_parsers.add_parser(
-        'run', help='run a simulation from a TOML file'
+        'run',
+        help='run a simulation from a TOML file',
+        formatter_class=_ar.ArgumentDefaultsHelpFormatter
     )
     parser_select = sub_parsers.add_parser(
-        'select', help='select structures for activate learning'
+        'select',
+        help='select structures for activate learning',
+        formatter_class=_ar.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
         '-v',
@@ -112,6 +116,7 @@ def parse_args() -> _ar.Namespace:
     parser_select.add_argument(
         '--shuffle',
         action='store_true',
+        default=True,
         help='if perform randomly selection'
     )
     if len(_sys.argv) == 1:
