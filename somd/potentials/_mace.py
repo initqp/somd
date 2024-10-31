@@ -53,6 +53,10 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         Data type of the model.
     calculate_virial : bool
         If calculate the virial tensor.
+    compile_mode : str
+        Mode of compiling the model (see torch.compile for details).
+    compile_full_graph : bool
+        The `fullgraph` parameter of torch.compile.
 
     References
     ----------
@@ -71,6 +75,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         length_unit: float = 0.1,
         model_dtype: str = 'float64',
         calculate_virial: bool = True,
+        compile_mode: str = None,
+        compile_full_graph: bool = True,
     ) -> None:
         """
         Create a MACE instance.
@@ -79,6 +85,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         self.__energy_unit = energy_unit
         self.__length_unit = length_unit
         self.__calculate_virial = calculate_virial
+        self.__comile_mode = compile_mode
+        self.__full_graph = compile_full_graph
         self.__atomic_types = _np.array(atomic_types, dtype=int).reshape(-1)
         self.__input_pbc = _np.array([True] * 3, dtype=bool)
         self.__input_forces = _np.zeros((len(atom_list), 3), dtype=float)
@@ -101,6 +109,28 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             )
         self.__file_name = file_name
         model = torch.load(f=file_name, map_location=device)
+        # find head
+        try:
+            self.__heads = model.heads
+        except AttributeError:
+            self.__heads = ['Default']
+        # try to compile
+        if compile_mode is not None:
+            if calculate_virial:
+                message = 'Can not calculate virial using a compiled model!'
+                raise RuntimeError(message)
+            try:
+                from mace.tools.compile import prepare
+                from mace.tools.scripts_utils import extract_model
+                model = torch.compile(
+                    prepare(extract_model)(model=model, map_location=device),
+                    mode=compile_mode,
+                    fullgraph=compile_full_graph,
+                )
+            except Exception as e:
+                self.__comile_mode = None
+                message = 'Can not compile model, reason: {}'.format(e)
+                _warn(message)
         defuault_dtype = next(model.parameters()).dtype
         if model_dtype is None:
             dtype = defuault_dtype
@@ -140,10 +170,13 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ file_name: {}\n'.format(self.__file_name)
+        result += '┣━ mace_version: {}\n'.format(self.__mace.__version__)
         result += '┣━ dtype: {}\n'.format(self.__dtype)
         result += '┣━ device: {}\n'.format(self.__device)
         result += '┣━ r_max: {}\n'.format(self.__r_max)
         result += '┣━ z_table: {}\n'.format(self.__z_table)
+        result += '┣━ compile_mode: {}\n'.format(self.__comile_mode)
+        result += '┣━ compile_full_graph: {}\n'.format(self.__full_graph)
         if _d.VERBOSE:
             result += '┣━ atom_list: {}\n'.format(self.atom_list)
         result += '┗━ END'
@@ -177,15 +210,21 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             cell=system.box / self.__length_unit,
         )
         data_set = self.__mace.data.AtomicData.from_config(
-            configure, z_table=self.__z_table, cutoff=self.__r_max
+            configure,
+            z_table=self.__z_table,
+            cutoff=self.__r_max,
+            heads=self.__heads
         )
         data_loader = self.__mace.tools.torch_geometric.dataloader.DataLoader(
             dataset=[data_set], batch_size=1, shuffle=False, drop_last=False
         )
         batch = next(iter(data_loader)).to(self.__device).to_dict()
+        if self.__comile_mode is not None:
+            batch['node_attrs'].requires_grad_(True)
+            batch['positions'].requires_grad_(True)
         outputs = self.__model(
             batch,
-            training=False,
+            training=(self.__comile_mode is not None),
             compute_force=False,
             compute_virials=False,
             compute_stress=False,
