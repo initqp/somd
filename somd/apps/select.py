@@ -142,12 +142,14 @@ class STRUCTURESELECTOR(object):
             info = {}
             info['n_max'] = n_max
             info['n_frames'] = int(self.__n_frames)
-            info['n_selected'] = int(mask.sum())
+            info['n_selected'] = len(results)
+            info['n_candidates'] = int(mask.sum())
             info['n_potentials'] = len(self.readers)
             info['msd_f_min'] = msd_f_min
             info['msd_f_max'] = msd_f_max
             info['force_msd'] = force_msd.tolist()
             info['selected_indices'] = results.tolist()
+            info['candidate_indices'] = indices.tolist()
             with open(log_file, 'w') as fp:
                 _js.dump(info, fp, indent=4)
 
