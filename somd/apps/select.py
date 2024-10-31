@@ -27,6 +27,7 @@ import random as _rn
 from somd import apps as _mdapps
 from somd import core as _mdcore
 from somd import utils as _mdutils
+from . import utils as _apputils
 
 __all__ = ['STRUCTURESELECTOR']
 
@@ -150,6 +151,7 @@ class STRUCTURESELECTOR(object):
             info['force_msd'] = force_msd.tolist()
             info['selected_indices'] = results.tolist()
             info['candidate_indices'] = indices.tolist()
+            _apputils.backup.back_up(log_file)
             with open(log_file, 'w') as fp:
                 _js.dump(info, fp, indent=4)
 
