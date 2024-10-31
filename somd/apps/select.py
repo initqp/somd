@@ -130,7 +130,9 @@ class STRUCTURESELECTOR(object):
         indices = _np.arange(self.__n_frames)[mask]
         if mask.sum() > n_max:
             if shuffle:
-                results = _np.array(_rn.sample(indices, n_max), dtype=int)
+                results = _np.array(
+                    _rn.sample(indices.tolist(), n_max), dtype=int
+                )
             else:
                 results = indices[:n_max]
         else:
