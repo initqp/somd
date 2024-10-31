@@ -171,6 +171,7 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ file_name: {}\n'.format(self.__file_name)
         result += '┣━ mace_version: {}\n'.format(self.__mace.__version__)
+        result += '┣━ heads: {}\n'.format(self.__heads)
         result += '┣━ dtype: {}\n'.format(self.__dtype)
         result += '┣━ device: {}\n'.format(self.__device)
         result += '┣━ r_max: {}\n'.format(self.__r_max)
