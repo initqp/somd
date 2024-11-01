@@ -539,6 +539,13 @@ class TOMLPARSER(object):
         """
         Parse the integrator information.
         """
+        if self.__root['integrator'] is None:
+            if self.__root['evaluation'] is None:
+                message = 'Table [integrator] are required for running!'
+                raise KeyError(message)
+            else:
+                self.__objects['integrator'] = None
+                return
         table = self.__normalize_table(self.__root['integrator'], 'integrator')
         if table['splitting'] is not None and table['type'] is not None:
             message = (
@@ -936,30 +943,32 @@ class TOMLPARSER(object):
     def __parse_potentials(self) -> None:
         """
         Set up potentials in the simulated system.
-
-        Parameters
-        ----------
-        timestep : float
-            Timestep of the integrator. In unit of (ps).
-        temperatures : List[float]
-            Temperatures of the integrator. In unit of (K).
-        thermo_groups : List[int]
-            The thermostated groups.
         """
         self.__objects['p_generators'] = []
-        timestep = self.__objects['integrator'].timestep
-        if self.__objects['integrator']._is_nve:
-            temperature = None
-        elif len(self.__objects['integrator'].temperatures) > 1:
+        if self.__objects['integrator'] is not None:
+            timestep = self.__objects['integrator'].timestep
+            if self.__objects['integrator']._is_nve:
+                temperature = None
+            elif len(self.__objects['integrator'].temperatures) > 1:
+                message = (
+                    'Multiple thermo groups found! SOMD will not try to pass '
+                    + 'temperature to PLUMED! If you are using PLUMED, '
+                    + 'specific temperature manually when required.'
+                )
+                _mdutils.warning.warn(message)
+                temperature = None
+            else:
+                temperature = self.__objects['integrator'].temperatures[0]
+        else:
+            # we are doing the evaluation task, just guess a timestep
             message = (
-                'Multiple thermo groups found! SOMD will not try to pass '
-                + 'temperature to PLUMED! If you are using PLUMED, specific'
-                + 'temperature manually when required.'
+                'No integrator defined. Will use 0.001 ps as timestep.'
+                + ' If you are using PLUMED, specific temperature manually'
+                + ' (or just define an integrator) when required.'
             )
             _mdutils.warning.warn(message)
             temperature = None
-        else:
-            temperature = self.__objects['integrator'].temperatures[0]
+            timestep = 0.001
 
         for index, table in enumerate(self.__root['potential']):
             table = self.__normalize_table(table, 'potential')
@@ -1077,13 +1086,10 @@ class TOMLPARSER(object):
         """
         self.__objects['loggers'] = []
         if self.__root['logger'] is None:
-            self.__objects['loggers'].append(
-                _mdapps.loggers.DEFAULTCSVLOGGER(
-                    self.__root['run']['label'] + '.data.csv',
-                    interval=1,
-                    append=bool(self.__root['run']['restart_from']),
-                )
+            message = (
+                'No "[[logger]]" array given. Will not generate any log file.'
             )
+            _mdutils.warning.warn(message)
         else:
             for index, table in enumerate(self.__root['logger']):
                 table = self.__normalize_table(table, 'logger')
@@ -1123,15 +1129,11 @@ class TOMLPARSER(object):
         """
         self.__objects['trajectories'] = []
         if self.__root['trajectory'] is None:
-            self.__objects['trajectories'].append(
-                _mdapps.trajectories.H5WRITER(
-                    self.__root['run']['label'] + '.trajectory.h5',
-                    interval=1,
-                    write_virial=True,
-                    write_forces=True,
-                    append=bool(self.__root['run']['restart_from']),
-                )
+            message = (
+                'No "[[trajectory]]" array given. '
+                + 'Will not generate any trajectory.'
             )
+            _mdutils.warning.warn(message)
         else:
             for index, table in enumerate(self.__root['trajectory']):
                 table = self.__normalize_table(table, 'trajectory')
