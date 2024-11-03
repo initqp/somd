@@ -146,9 +146,11 @@ class STRUCTURESELECTOR(object):
             info['n_selected'] = len(results)
             info['n_candidates'] = int(mask.sum())
             info['n_potentials'] = len(self.readers)
-            info['msd_f_min'] = msd_f_min
-            info['msd_f_max'] = msd_f_max
-            info['force_msd'] = force_msd.tolist()
+            info['msd_f_min_setting'] = msd_f_min
+            info['msd_f_max_setting'] = msd_f_max
+            info['msd_f_min_dataset'] = force_msd.min()
+            info['msd_f_max_dataset'] = force_msd.max()
+            info['msd_f'] = force_msd.tolist()
             info['selected_indices'] = results.tolist()
             info['candidate_indices'] = indices.tolist()
             _apputils.backup.back_up(log_file)
