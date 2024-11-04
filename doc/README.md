@@ -1,5 +1,11 @@
 # SOMD Documentation
 
+## CLI References
+
+Brife references to SOMD's command line interface (CLI).
+
+- [Execution modes and acceptable keywords.](cli.md)
+
 ## TOML Input References
 
 This is the references to SOMD's TOML input file. If you only use the `somd`
@@ -7,12 +13,6 @@ command line interface, going through this documentation would be sufficient
 for you.
 
 - [All valid tables.](toml.md)
-
-## Output File References
-
-This is the references to SOMD's output files.
-
-- [SOMD's private output files.](files.md)
 
 ## Python Interface References
 
@@ -30,4 +30,4 @@ progress.
 7. [Set up trajectory writers.](trajectory.md)
 8. [Set up system data loggers.](logger.md)
 9. [Run a simulation.](simulation.md)
-10. [Perform active learning to build NEPs.](active_learning.md)
+10. [Evaluate one trajectory with other potentials.](evaluation.md)

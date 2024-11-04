@@ -18,7 +18,7 @@ case-insensitive.
 7. [The `[[trajectory]]` array.](#trajectory)
 8. [The `[[logger]]` array.](#logger)
 9. [The `[run]` table.](#run)
-10. [The `[active_learning]` table.](#active_learning)
+10. [The `[evaluation]` table.](#evaluation)
 11. [The `[[script]]` array.](#script)
 
 ## The `[system]` table. <a name="system"></a>
@@ -271,8 +271,8 @@ to be present.
     - **`"dftd3"`**: `atom_list`, `functional`, `damping`, `atm`
     - **`"dftd4"`**: `atom_list`, `functional`, `total_charge`, `atm`
     - **`"nep"`**: `atom_list`, `file_name`, `use_tabulating`
-    - **`"mace"`**: `atom_list`, `file_name`, `device`, `energy_unit`,
-      `length_unit`
+    - **`"mace"`**: `atom_list`, `file_name`, `device`, `virial`, `energy_unit`,
+      `length_unit`, `compile_mode`, `compile_full_graph`
     - **`"plumed"`**: `file_name`
 
 - **`atom_list`**
@@ -458,6 +458,43 @@ to be present.
     **Dependency**: `type = "mace"`
 
     **Descriptions**: Name of the device to use for evaluating the potential.
+
+- **`virial`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `true`
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: If calculate the virial tensor. Disabling this option
+    will speed up _NVT_ or _NVE_ runs.
+
+- **`compile_mode`**:
+
+    **If Mandatory**: no
+
+    **Type**: `str`
+
+    **Default Value**: None
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: Mode of compiling the model (see torch.compile for details).
+
+- **`compile_full_graph`**:
+
+    **If Mandatory**: no
+
+    **Type**: `bool`
+
+    **Default Value**: `False`
+
+    **Dependency**: `type = "mace"`
+
+    **Descriptions**: The `fullgraph` parameter of `torch.compile`.
 
 - **`energy_unit`**:
 
@@ -899,7 +936,7 @@ are still reliable).
 
 **If Mandatory**: no
 
-**Default Value**: One trivial trajectory writer and one restart file writer.
+**Default Value**: None
 
 **Descriptions**: Each table in this array defines a trajectory writer. You
 could define multiple trajectory writers.
@@ -1054,24 +1091,6 @@ could define multiple trajectory writers.
     energy of the initial conformation, which is usually negative). In unit of
     (kJ/mol). This is useful when generating training sets of NEP.
 
-    **Notes**: If you enabled this option and would like to use the generated
-    trajectory as the initial training set of an active learning task, you
-    *MUST* also set this option in the `[active_learning]` table to the same
-    value that you used here. For example, you could use the following setup in
-    generating the initial training set:
-    ```toml
-    [[trajectory]]
-        format = "exyz"
-        write_forces = true
-        potential_list = [0, 1]
-        energy_shift = -50000.0
-    ```
-    Then, you should use the following setup in the active learning process:
-    ```toml
-    [active_learning]
-        energy_shift = -50000.0 # This is mandatory!
-    ```
-
 **Examples**:
 ```toml
 [[trajectory]]
@@ -1090,7 +1109,7 @@ could define multiple trajectory writers.
 
 **If Mandatory**: no
 
-**Default Value**: One `csv` format data writer.
+**Default Value**: None
 
 **Descriptions**: Each table in this array defines a system data writer. You
 could define multiple writers. These files will record system data, e.g.,
@@ -1163,7 +1182,7 @@ pressure tensors, etc.
 **Descriptions**: This table defines the simulation information.
 
 **Notes**: This table is not mandatory only when you have defined the
-`active_learning` table. Otherwise, this table **IS MANDATORY**.
+`[evaluation]` table. Otherwise, this table **IS MANDATORY**.
 
 **Keys**:
 
@@ -1245,20 +1264,23 @@ pressure tensors, etc.
         restart_from = "run.restart.h5"
 ```
 
-## The `[active_learning]` table. <a name="active_learning"></a>
+## The `[evaluation]` table. <a name="evaluation"></a>
 
 **If Mandatory**: no
 
 **Default Value**: None
 
-**Descriptions**: This table defines the active learning information.
+**Descriptions**: This table defines a evaluation task, which calculates
+various energies of conformations recorded in a `hdf5` trajectory file.
+The resulted energies, forces and other data will be written to the trajectory
+and log files defined in the `[[trajectory]]` and `[[logger]]` array.
 
-**Notes**: Read [this article](https://doi.org/10.1016/j.cpc.2020.107206) for
-the active learning methodology.
+**Notes**: By default, you do not need to define an `[integrator]` for the
+evaluation task. Besides, The `[[script]]` array works with the evaluation task.
 
 **Keys**:
 
-- **`nep_options`**:
+- **`file_name`**:
 
     **If Mandatory**: yes
 
@@ -1266,290 +1288,28 @@ the active learning methodology.
 
     **Default Value**: None
 
-    **Descriptions**: Options for a NEP training process.
+    **Descriptions**: Name of the input `hdf5` trajectories.
 
-    **Notes**: The `type` option in a typical `nep.in` file could be left out
-    here, since SOMD could handle it automatically. But if you want to use
-    the `type_weight` option for your training, the `type` option must present.
-
-- **`nep_command`**:
-
-    **If Mandatory**: yes
-
-    **Type**: `str`
-
-    **Default Value**: None
-
-    **Descriptions**: Path to the NEP binary. You may include other statements
-    in this key as well. For example:
-    ```toml
-    nep_command = "CUDA_VISIBLE_DEVICES=0 /path/to/nep"
-    ```
-    You could also use a job manager like SLURM to submit the training job. For
-    example (the `--wait` parameter is **REQUIRED**):
-    ```toml
-    nep_command = "/path/to/sbatch --wait /absolute/path/to/submit_nep.sh"
-    ```
-    `submit_nep.sh`:
-    ```bash
-    #!/bin/bash
-    #SBATCH -J training
-    #SBATCH -o training.log
-    #SBATCH -e training.err
-    #SBATCH -N 1
-    #SBATCH -p gpu
-    #SBATCH --cpus-per-task=2
-    CUDA_VISIBLE_DEVICES=0,1 /path/to/nep
-    ```
-
-- **`initial_training_set`**:
-
-    **If Mandatory**: yes
-
-    **Type**: `str`
-
-    **Default Value**: None
-
-    **Descriptions**: Path to the initial training set (the EXYZ file).
-
-    **Notes**: The computational level of the initial training set **MUST BE**
-    the same as the computational level you defined for the training precess.
-
-- **`n_iterations`**:
-
-    **If Mandatory**: yes
-
-    **Type**: `int`
-
-    **Default Value**: None
-
-    **Descriptions**: Number of the training iterations.
-
-- **`n_potentials`**:
+- **`interval`**:
 
     **If Mandatory**: no
 
     **Type**: `int`
 
-    **Default Value**: `4`
+    **Default Value**: 1
 
-    **Descriptions**: Number of the potentials to train per iteration.
+    **Descriptions**: The interval of reading the input trajectory.
 
-- **`max_md_runs_per_iter`**:
-
-    **If Mandatory**: no
-
-    **Type**: `int`
-
-    **Default Value**: `1`
-
-    **Descriptions**: Number of the MD runs per training iteration.
-
-- **`max_md_steps_per_iter`**:
-
-    **If Mandatory**: no
-
-    **Type**: `int`
-
-    **Default Value**: `50000`
-
-    **Descriptions**: Number of the MD steps per training iteration.
-
-- **`trajectory_interval`**:
-
-    **If Mandatory**: no
-
-    **Type**: `int`
-
-    **Default Value**: `1`
-
-    **Descriptions**: Interval of writing trajectories during the MD runs.
-
-- **`msd_lower_limit`**:
-
-    **If Mandatory**: no
-
-    **Type**: `float`
-
-    **Unit**: kilojoule/mole/nanometer
-
-    **Default Value**: `50.0`
-
-    **Descriptions**: The lower limit of the maximum force standard deviation
-    of a given structure. Structures with a smaller force MSD than this
-    threshold will be regarded as exactly describable structures.
-
-- **`msd_upper_limit`**:
-
-    **If Mandatory**: no
-
-    **Type**: `float`
-
-    **Unit**: kilojoule/mole/nanometer
-
-    **Default Value**: `250.0`
-
-    **Descriptions**: The upper limit of the maximum force standard deviation
-    of a given structure. Structures with a larger force MSD than this
-    threshold will be regarded as corrupted structures.
-
-- **`min_new_structures_per_iter`**:
-
-    **If Mandatory**: no
-
-    **Type**: `int`
-
-    **Default Value**: `20`
-
-    **Descriptions**: Minimum number of new structures (structures with force
-    MSD values that are larger than `msd_lower_limit` and smaller than
-    `msd_upper_limit`) per training iteration. If new structures collected
-    during one training iteration is fewer than this threshold, a training
-    precess will not be triggered. When the number of the accumulated
-    untrained structures is larger than this threshold, a training process will
-    be carried out using all the untrained structures plus the old training
-    set.
-
-- **`max_new_structures_per_iter`**:
-
-    **If Mandatory**: no
-
-    **Type**: `int`
-
-    **Default Value**: `20`
-
-    **Descriptions**: Maximum number of new structures (structures with force
-    MSD values that are larger than `msd_lower_limit` and smaller than
-    `msd_upper_limit`) per training iteration. If new structures collected
-    during one training iteration is larger than this threshold, SOMD will
-    randomly select `max_new_structures_per_iter` structures from these
-    new structures to perform ab-initio calculations, and carry out a training
-    process using these selected structures plus the old training set.
-
-- **`initial_potential_files`**:
-
-    **If Mandatory**: no
-
-    **Type**: `List[str]`
-
-    **Default Value**: None
-
-    **Descriptions**: The initial potential files (`nep.txt`) trained from the
-    `initial_training_set`. If this key is not defined, SOMD will perform
-    an extra iteration of pre-training using the `initial_training_set`. The
-    length of this list must be equal to the value of the `n_potentials` key.
-
-    **Notes**: The potentials must be trained from different initial weights.
-
-- **`reference_potentials`**:
-
-    **If Mandatory**: no
-
-    **Type**: `List[int]`
-
-    **Default Value**: Indices of potential calculators excepting the `"nep"`
-    and `"plumed"` calculator.
-
-    **Descriptions**: Indices of the ab-initio potential calculators. Under
-    most cases, this option is automatically handled by SOMD. Thus, you could
-    safely invoke PLUMED during the training, and the bias potentials brought
-    by PLUMED should be automatically excluded.
-
-    **Notes**: The computational level defined by these potentials **MUST BE**
-    the same as the computational level of the initial training set.
-
-- **`use_tabulating`**:
+- **`die_on_fail`**:
 
     **If Mandatory**: no
 
     **Type**: `bool`
 
-    **Default Value**: False
+    **Default Value**: `true`
 
-    **Descriptions**: If invoke the tabulated version of NEP. This could speed
-    up the calculation, read
-    [this page](https://github.com/brucefan1983/NEP_CPU/pull/18) for details.
-
-- **`energy_shift`**:
-
-    **If Mandatory**: no
-
-    **Type**: `float`
-
-    **Default Value**: `0.0`
-
-    **Dependency**: `format = "exyz"`
-
-    **Descriptions**: Shift the total energy by this value before recording the
-    total energy to the trajectory (this value could be set to the potential
-    energy of the initial conformation, which is usually negative). In unit of
-    (kJ/mol).
-
-    **Notes**: If you enabled this option in the `[[trajectory]]` table when
-    generating the initial training sets, you *MUST* set this option to the
-    same value that you used there. For example, you could use the following
-    setup in generating the initial training set:
-    ```toml
-    [[trajectory]]
-        format = "exyz"
-        write_forces = true
-        potential_list = [0, 1]
-        energy_shift = -50000.0
-    ```
-    Then, you should use the following setup in the active learning process:
-    ```toml
-    [active_learning]
-        energy_shift = -50000.0 # This is mandatory!
-    ```
-
-**Examples**:
-```toml
-[active_learning]
-        n_iterations = 4
-        n_potentials = 4
-        msd_lower_limit = 50.0
-        msd_upper_limit = 250.0
-        max_md_steps_per_iter = 50000
-        min_new_structures_per_iter = 20
-        max_new_structures_per_iter = 100
-        initial_training_set = "train.xyz"
-        nep_options = """
-        batch      1000
-        generation 150000
-        """
-        nep_command = '/path/to/nep'
-```
-```toml
-[active_learning]
-        n_iterations = 4
-        n_potentials = 4
-        use_tabulating = true
-        msd_lower_limit = 50.0
-        msd_upper_limit = 250.0
-        max_md_steps_per_iter = 50000
-        min_new_structures_per_iter = 20
-        max_new_structures_per_iter = 100
-        reference_potentials = [0, 1]
-        initial_training_set = "train.xyz"
-        initial_potential_files = [
-                '../nep.txt.1', '../nep.txt.2',
-                '../nep.txt.3', '../nep.txt.4']
-        nep_options = """
-        batch      1000
-        generation 150000
-        """
-        nep_command = '/path/to/nep'
-```
-
-**Notes**:
-
-- How to restart.
-
-  If your active learning simulation was interrupted accidentally, you could
-  restart it by simply resubmit your task under the same directory. Since the
-  simulation progress is recorded in the `HDF5` file, SOMD will try to load
-  the latest state from the file and restart the simulation from the break
-  point.
+    **Descriptions**: If skip the conformations which cause the evaluation of
+    the potentials to fail.
 
 ## The `[[script]]` array. <a name="script"></a>
 

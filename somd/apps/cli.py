@@ -46,7 +46,7 @@ def parse_args() -> _ar.Namespace:
     )
     parser_select = sub_parsers.add_parser(
         'select',
-        help='select structures for activate learning',
+        help='select structures for active learning',
         formatter_class=_ar.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
