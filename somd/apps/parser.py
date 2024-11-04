@@ -54,7 +54,7 @@ class TOMLPARSER(object):
     # Valid tables.
     __tables__ = {
         'system': __table__(False, True),
-        'integrator': __table__(False, True),
+        'integrator': __table__(False, False),
         'potential': __table__(True, True),
         'barostat': __table__(False, False),
         'constraints': __table__(False, False),
@@ -62,7 +62,7 @@ class TOMLPARSER(object):
         'logger': __table__(True, False),
         'group': __table__(True, False),
         'script': __table__(True, False),
-        'active_learning': __table__(False, False),
+        'evaluation': __table__(False, False),
         'run': __table__(False, False),
     }
     # Valid key-value pairs of each table.
@@ -114,6 +114,10 @@ class TOMLPARSER(object):
         'length_unit': __value__([float], False, __dep__('type', ['mace'])),
         'model_dtype': __value__([str], False, __dep__('type', ['mace'])),
         'virial': __value__([bool], False, __dep__('type', ['mace'])),
+        'compile_mode': __value__([str], False, __dep__('type', ['mace'])),
+        'compile_full_graph': __value__(
+            [bool], False, __dep__('type', ['mace'])
+        ),
         'extra_cv_potential_index': __value__(
             [int], False, __dep__('type', ['plumed'])
         ),
@@ -159,24 +163,10 @@ class TOMLPARSER(object):
         'interval': __value__([int], False, None),
         'initialize': __value__([str], False, None),
     }
-    __parameters__['active_learning'] = {
-        'nep_options': __value__([str], True, None),
-        'nep_command': __value__([str], True, None),
-        'initial_training_set': __value__([str], True, None),
-        'n_iterations': __value__([int], True, None),
-        'n_potentials': __value__([int], False, None),
-        'max_md_runs_per_iter': __value__([int], False, None),
-        'max_md_steps_per_iter': __value__([int], False, None),
-        'trajectory_interval': __value__([int], False, None),
-        'msd_lower_limit': __value__([float], False, None),
-        'msd_upper_limit': __value__([float], False, None),
-        'min_new_structures_per_iter': __value__([int], False, None),
-        'max_new_structures_per_iter': __value__([int], False, None),
-        'initial_potential_files': __value__([list], False, None),
-        'initial_testing_set': __value__([str], False, None),
-        'reference_potentials': __value__([list], False, None),
-        'use_tabulating': __value__([bool], False, None),
-        'energy_shift': __value__([float], False, None),
+    __parameters__['evaluation'] = {
+        'file_name': __value__([str], True, None),
+        'interval': __value__([int], False, None),
+        'die_on_fail': __value__([bool], False, None),
     }
 
     def __init__(self, file_name: str) -> None:
@@ -187,6 +177,8 @@ class TOMLPARSER(object):
 
         self.__file_name = file_name
         self.__root = toml.load(file_name)
+        self.__objects = {'config': self.__root}
+
         self.__normalize_tables()
         self.__check_task()
         self.__parse_run()
@@ -195,22 +187,15 @@ class TOMLPARSER(object):
         self.__parse_constraints()
         self.__add_group_velocities()
         self.__parse_integrator()
-        if self.__integrator._is_nve:
-            self.__parse_potentials(self.__integrator.timestep, [], [])
-        else:
-            self.__parse_potentials(
-                self.__integrator.timestep,
-                self.__integrator.temperatures,
-                self.__integrator.thermo_groups,
-            )
+        self.__parse_potentials()
         self.__parse_barostat()
         self.__parse_loggers()
         self.__parse_trajectories()
         self.__parse_scripts()
-        if self.__root['active_learning'] is None:
+        if self.__root['evaluation'] is None:
             self.__set_up_simulation()
         else:
-            self.__parse_active_learning()
+            self.__parse_and_set_up_evaluation()
 
     def __normalize_tables(self) -> None:
         """
@@ -249,7 +234,7 @@ class TOMLPARSER(object):
         """
         Check the simulation task.
         """
-        task_tables = ['run', 'active_learning']
+        task_tables = ['run', 'evaluation']
         task_table_list = [self.__root[i] for i in task_tables]
         if all((i is None) for i in task_table_list):
             message = 'One of the following tables must present: {}'
@@ -345,7 +330,7 @@ class TOMLPARSER(object):
             result = inp
         elif isinstance(inp, str):
             if inp.lower() == 'all':
-                result = list(range(0, self.__system.n_atoms))
+                result = list(range(0, self.__objects['system'].n_atoms))
             else:
                 result = []
                 for s in inp.split(','):
@@ -377,20 +362,20 @@ class TOMLPARSER(object):
         whole_system_flag = False
         no_translations_flag = False
         # The user has defined the group without translations.
-        for group in self.__system.groups:
-            if group.n_atoms == self.__system.n_atoms:
+        for group in self.__objects['system'].groups:
+            if group.n_atoms == self.__objects['system'].n_atoms:
                 whole_system_flag = True
             if group.has_translations is False:
                 no_translations_flag = True
         # No group is corresponding to the whole group. Add a new group.
         if whole_system_flag is False:
-            label = 'GROUP{:d}'.format(len(self.__system.groups))
+            label = 'GROUP{:d}'.format(len(self.__objects['system'].groups))
             d = {
-                'atom_list': range(0, self.__system.n_atoms),
+                'atom_list': range(0, self.__objects['system'].n_atoms),
                 'has_translations': True,
                 'label': label,
             }
-            self.__system.groups.create_from_dict(d)
+            self.__objects['system'].groups.create_from_dict(d)
             self.__root['group'].append(d)
             message = (
                 'An atom group ("{:s}") that corresponds to the whole '
@@ -400,9 +385,9 @@ class TOMLPARSER(object):
         # The user has not defined the group without translations.
         # Check if there is any group that is corresponding to the whole group.
         if no_translations_flag is False:
-            atom_numbers = [g.n_atoms for g in self.__system.groups]
-            index = atom_numbers.index(self.__system.n_atoms)
-            group = self.__system.groups[index]
+            atom_numbers = [g.n_atoms for g in self.__objects['system'].groups]
+            index = atom_numbers.index(self.__objects['system'].n_atoms)
+            group = self.__objects['system'].groups[index]
             self.__root['group'][index]['has_translations'] = False
             group.has_translations = False
             message = (
@@ -468,17 +453,18 @@ class TOMLPARSER(object):
                 )
                 raise RuntimeError(message)
         if table['format'] in ['pdb', 'pqr']:
-            self.__system = _mdcore.systems.create_system_from_pdb(
+            system = _mdcore.systems.create_system_from_pdb(
                 table['structure']
             )
         elif table['format'] == 'poscar':
-            self.__system = _mdcore.systems.create_system_from_poscar(
+            system = _mdcore.systems.create_system_from_poscar(
                 table['structure']
             )
         else:
             message = 'Structure file could only be in PDB or POSCAR format!'
             raise RuntimeError(message)
-        self.__system._label = self.__root['run']['label']
+        system._label = self.__root['run']['label']
+        self.__objects['system'] = system
         self.__root['system'] = table
 
     def __add_group_velocities(self) -> None:
@@ -494,7 +480,9 @@ class TOMLPARSER(object):
         """
         if self.__root['group'] is None:
             return
-        for group, table in zip(self.__system.groups, self.__root['group']):
+        for group, table in zip(
+            self.__objects['system'].groups, self.__root['group']
+        ):
             table = self.__normalize_table(table, 'group')
             atom_list = self.__parse_atom_list(table['atom_list'])
             if table['initial_temperature'] is not None:
@@ -526,11 +514,11 @@ class TOMLPARSER(object):
         """
         if self.__root['group'] is None:
             table = {
-                'atom_list': range(0, self.__system.n_atoms),
+                'atom_list': range(0, self.__objects['system'].n_atoms),
                 'has_translations': False,
                 'label': 'GROUP0',
             }
-            self.__system.groups.create_from_dict(table)
+            self.__objects['system'].groups.create_from_dict(table)
             message = (
                 'An atom group ("{:s}") that corresponds to the whole '
                 + 'system has been append the group list.'
@@ -544,13 +532,20 @@ class TOMLPARSER(object):
                     table['has_translations'] = True
                 if table['label'] is None:
                     table['label'] = 'GROUP{:d}'.format(index)
-                self.__system.groups.create_from_dict(table)
+                self.__objects['system'].groups.create_from_dict(table)
         self.__check_groups()
 
     def __parse_integrator(self) -> None:
         """
         Parse the integrator information.
         """
+        if self.__root['integrator'] is None:
+            if self.__root['evaluation'] is None:
+                message = 'Table [integrator] are required for running!'
+                raise KeyError(message)
+            else:
+                self.__objects['integrator'] = None
+                return
         table = self.__normalize_table(self.__root['integrator'], 'integrator')
         if table['splitting'] is not None and table['type'] is not None:
             message = (
@@ -580,11 +575,15 @@ class TOMLPARSER(object):
             else:
                 temperatures = [table['temperatures']]
         if table['thermo_groups'] is None:
-            atom_numbers = [g.n_atoms for g in self.__system.groups]
-            thermo_groups = [atom_numbers.index(self.__system.n_atoms)]
+            atom_numbers = [
+                g.n_atoms for g in self.__objects['system'].groups
+            ]
+            thermo_groups = [
+                atom_numbers.index(self.__objects['system'].n_atoms)
+            ]
             message = 'The thermostat will act on the atom group: "{}".'
-            group_name = self.__system.groups[thermo_groups[0]]._label
-            _mdutils.warning.warn(message.format(group_name))
+            whole_system = self.__objects['system'].groups[thermo_groups[0]]
+            _mdutils.warning.warn(message.format(whole_system._label))
         else:
             if isinstance(table['thermo_groups'], list):
                 thermo_groups = table['thermo_groups']
@@ -609,7 +608,7 @@ class TOMLPARSER(object):
                     timestep, temperatures, relaxation_times, thermo_groups
                 )
             elif integrator_type == 'baoab':
-                if len(self.__system.constraints) != 0:
+                if len(self.__objects['system'].constraints) != 0:
                     result = _mdcore.integrators.gbaoab_integrator(
                         timestep, temperatures, relaxation_times, thermo_groups
                     )
@@ -623,7 +622,7 @@ class TOMLPARSER(object):
                         timestep, temperatures, relaxation_times, thermo_groups
                     )
             elif integrator_type == 'obabo':
-                if len(self.__system.constraints) != 0:
+                if len(self.__objects['system'].constraints) != 0:
                     result = _mdcore.integrators.gobabo_integrator(
                         timestep, temperatures, relaxation_times, thermo_groups
                     )
@@ -666,7 +665,7 @@ class TOMLPARSER(object):
                     + '"thermo_groups" key must be set. And type of '
                     + 'this key should be int or list(int).'
                 )
-        self.__integrator = result
+        self.__objects['integrator'] = result
 
     def __parse_potential_siesta(
         self, inp: _tp.Dict[str, _tp.Any], atom_list: _tp.List[int]
@@ -683,7 +682,7 @@ class TOMLPARSER(object):
         """
         return _potentials.SIESTA.generator(
             atom_list,
-            self.__system,
+            self.__objects['system'],
             inp['siesta_options'],
             inp['siesta_command'],
             inp['pseudopotential_dir'],
@@ -706,7 +705,7 @@ class TOMLPARSER(object):
             damping = 'ZeroDamping'
         else:
             damping = inp['damping']
-        atom_types = self.__system.atomic_types[atom_list]
+        atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.DFTD3.generator(
             atom_list, atom_types, inp['functional'], damping, bool(inp['atm'])
         )
@@ -728,7 +727,7 @@ class TOMLPARSER(object):
             total_charge = 0
         else:
             total_charge = inp['total_charge']
-        atom_types = self.__system.atomic_types[atom_list]
+        atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.DFTD4.generator(
             atom_list,
             atom_types,
@@ -762,7 +761,7 @@ class TOMLPARSER(object):
             pbc = True
         else:
             pbc = inp['_pbc']
-        atom_types = self.__system.atomic_types[atom_list]
+        atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.TBLITE.generator(
             atom_list,
             atom_types,
@@ -785,7 +784,9 @@ class TOMLPARSER(object):
         atom_list : List[int]
             The atom list.
         """
-        atom_symbols = [self.__system.atomic_symbols[i] for i in atom_list]
+        atom_symbols = [
+            self.__objects['system'].atomic_symbols[i] for i in atom_list
+        ]
         return _potentials.NEP.generator(
             atom_list,
             inp['file_name'],
@@ -830,7 +831,11 @@ class TOMLPARSER(object):
             calculate_virial = True
         else:
             calculate_virial = inp['virial']
-        atom_types = self.__system.atomic_types[atom_list]
+        if inp['compile_full_graph'] is None:
+            full_graph = True
+        else:
+            full_graph = inp['compile_full_graph']
+        atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.MACE.generator(
             atom_list,
             inp['file_name'],
@@ -840,6 +845,8 @@ class TOMLPARSER(object):
             length_unit,
             model_dtype,
             calculate_virial,
+            inp['compile_mode'],
+            full_graph
         )
 
     def __parse_potential_plumed(
@@ -869,7 +876,7 @@ class TOMLPARSER(object):
             Index of the potential calculator for reading extra CV gradients
             from.
         """
-        if len(atom_list) != self.__system.n_atoms:
+        if len(atom_list) != self.__objects['system'].n_atoms:
             message = 'The PLUMED potential must act on the whole system!'
             raise RuntimeError(message)
         prefix = self.__root['run']['label'] + '.plumed.pot_{:d}'.format(
@@ -883,7 +890,7 @@ class TOMLPARSER(object):
             temperature,
             if_restart,
             prefix,
-            extra_cv_potential_index=inp["extra_cv_potential_index"],
+            extra_cv_potential_index=inp['extra_cv_potential_index'],
         )
 
     def __parse_potential(
@@ -908,7 +915,7 @@ class TOMLPARSER(object):
             Temperatures of the integrator. In unit of (K).
         """
         if inp['atom_list'] is None:
-            atom_list = list(range(0, self.__system.n_atoms))
+            atom_list = list(range(0, self.__objects['system'].n_atoms))
         else:
             atom_list = inp['atom_list']
         potential_type = inp['type'].lower()
@@ -933,36 +940,36 @@ class TOMLPARSER(object):
             raise RuntimeError(message.format(potential_type))
         return generator
 
-    def __parse_potentials(
-        self,
-        timestep: float,
-        temperatures: _tp.List[float],
-        thermo_groups: _tp.List[int],
-    ) -> None:
+    def __parse_potentials(self) -> None:
         """
         Set up potentials in the simulated system.
-
-        Parameters
-        ----------
-        timestep : float
-            Timestep of the integrator. In unit of (ps).
-        temperatures : List[float]
-            Temperatures of the integrator. In unit of (K).
-        thermo_groups : List[int]
-            The thermostated groups.
         """
-        if len(temperatures) == 0:
-            temperature = None
-        elif len(temperatures) == 1:
-            temperature = temperatures[0]
+        self.__objects['p_generators'] = []
+        if self.__objects['integrator'] is not None:
+            timestep = self.__objects['integrator'].timestep
+            if self.__objects['integrator']._is_nve:
+                temperature = None
+            elif len(self.__objects['integrator'].temperatures) > 1:
+                message = (
+                    'Multiple thermo groups found! SOMD will not try to pass '
+                    + 'temperature to PLUMED! If you are using PLUMED, '
+                    + 'specific temperature manually when required.'
+                )
+                _mdutils.warning.warn(message)
+                temperature = None
+            else:
+                temperature = self.__objects['integrator'].temperatures[0]
         else:
-            n_dof = 0
-            temperature = 0
-            for i in thermo_groups:
-                n_dof += self.__system.groups[i].n_dof
-                temperature += temperatures[i] * self.__system.groups[i].n_dof
-            temperature /= n_dof
-        self.__potential_generators = []
+            # we are doing the evaluation task, just guess a timestep
+            message = (
+                'No integrator defined. Will use 0.001 ps as timestep.'
+                + ' If you are using PLUMED, specific temperature manually'
+                + ' (or just define an integrator) when required.'
+            )
+            _mdutils.warning.warn(message)
+            temperature = None
+            timestep = 0.001
+
         for index, table in enumerate(self.__root['potential']):
             table = self.__normalize_table(table, 'potential')
             if table['file_name'] is not None:
@@ -973,7 +980,7 @@ class TOMLPARSER(object):
                 )
             else:
                 table['pseudopotential_dir'] = _os.getcwd()
-            self.__potential_generators.append((
+            self.__objects['p_generators'].append((
                 table['type'].lower(),
                 self.__parse_potential(table, index, timestep, temperature),
             ))
@@ -1037,7 +1044,9 @@ class TOMLPARSER(object):
                 )
                 raise RuntimeError(message)
         if table['max_cycles'] is not None:
-            self.__system.constraints.max_cycles = table['max_cycles']
+            self.__objects[
+                'system'
+            ].constraints.max_cycles = table['max_cycles']
         result = []
         for i in range(0, n_constrints):
             result.append({
@@ -1046,14 +1055,14 @@ class TOMLPARSER(object):
                 'target': table['targets'][i],
                 'tolerance': tolerances[i],
             })
-        self.__system.constraints.appends(result)
+        self.__objects['system'].constraints.appends(result)
 
     def __parse_barostat(self) -> None:
         """
         Parse the barostat information.
         """
         if self.__root['barostat'] is None:
-            self.__barostat = None
+            self.__objects['barostat'] = None
             return
         else:
             table = self.__normalize_table(self.__root['barostat'], 'barostat')
@@ -1067,7 +1076,7 @@ class TOMLPARSER(object):
             pressures = [
                 p * _mdutils.constants.MEGAPASCAL for p in table['pressures']
             ]
-        self.__barostat = _mdapps.barostats.BAROSTAT(
+        self.__objects['barostat'] = _mdapps.barostats.BAROSTAT(
             pressures, beta, table['relaxation_time']
         )
 
@@ -1075,15 +1084,12 @@ class TOMLPARSER(object):
         """
         Parse the logger information.
         """
-        self.__loggers = []
+        self.__objects['loggers'] = []
         if self.__root['logger'] is None:
-            self.__loggers.append(
-                _mdapps.loggers.DEFAULTCSVLOGGER(
-                    self.__root['run']['label'] + '.data.csv',
-                    interval=1,
-                    append=bool(self.__root['run']['restart_from']),
-                )
+            message = (
+                'No "[[logger]]" array given. Will not generate any log file.'
             )
+            _mdutils.warning.warn(message)
         else:
             for index, table in enumerate(self.__root['logger']):
                 table = self.__normalize_table(table, 'logger')
@@ -1107,7 +1113,7 @@ class TOMLPARSER(object):
                 else:
                     interval = table['interval']
                 file_name = prefix + '.data.' + logger_format
-                self.__loggers.append(
+                self.__objects['loggers'].append(
                     _mdapps.loggers.DEFAULTCSVLOGGER(
                         file_name,
                         interval=interval,
@@ -1116,41 +1122,18 @@ class TOMLPARSER(object):
                         potential_list=table['potential_list'],
                     )
                 )
-        if self.__root['active_learning'] is not None:
-            self.__loggers = []
-            message = (
-                'You are performing active learning, system data '
-                + 'loggers will be removed.'
-            )
-            _mdutils.warning.warn(message)
-
-    def __check_trajectories(self) -> None:
-        """
-        Check trajectory settings.
-        """
-        if self.__root['active_learning'] is not None:
-            self.__trajectories = []
-            message = (
-                'You are performing active learning, trajectory '
-                + 'writers will be removed.'
-            )
-            _mdutils.warning.warn(message)
 
     def __parse_trajectories(self) -> None:
         """
         Parse the trajectory information.
         """
-        self.__trajectories = []
+        self.__objects['trajectories'] = []
         if self.__root['trajectory'] is None:
-            self.__trajectories.append(
-                _mdapps.trajectories.H5WRITER(
-                    self.__root['run']['label'] + '.trajectory.h5',
-                    interval=1,
-                    write_virial=True,
-                    write_forces=True,
-                    append=bool(self.__root['run']['restart_from']),
-                )
+            message = (
+                'No "[[trajectory]]" array given. '
+                + 'Will not generate any trajectory.'
             )
+            _mdutils.warning.warn(message)
         else:
             for index, table in enumerate(self.__root['trajectory']):
                 table = self.__normalize_table(table, 'trajectory')
@@ -1183,7 +1166,7 @@ class TOMLPARSER(object):
                         use_double=bool(table['use_float64']),
                         potential_list=table['potential_list'],
                     )
-                    self.__trajectories.append(writer)
+                    self.__objects['trajectories'].append(writer)
                 elif trajectory_format == 'exyz':
                     file_name = prefix + '.trajectory.xyz'
                     writer = _mdapps.trajectories.EXYZWRITER(
@@ -1197,16 +1180,16 @@ class TOMLPARSER(object):
                         potential_list=table['potential_list'],
                         energy_shift=table['energy_shift'],
                     )
-                    self.__trajectories.append(writer)
+                    self.__objects['trajectories'].append(writer)
                 else:
                     message = 'Unknown trajectory format: "{}"'
                     raise RuntimeError(message.format(table['format']))
                 if table['potential_list'] is None:
-                    tmp = list(range(0, len(self.__potential_generators)))
+                    tmp = list(range(0, len(self.__objects['p_generators'])))
                 else:
                     tmp = table['potential_list']
                 for i in tmp:
-                    potential_name = self.__potential_generators[i][0]
+                    potential_name = self.__objects['p_generators'][i][0]
                     if potential_name == 'plumed':
                         message = (
                             'The forces and energies in the trajectory file '
@@ -1215,7 +1198,30 @@ class TOMLPARSER(object):
                             + 'YOU WANT!!'
                         )
                         _mdutils.warning.warn(message.format(file_name))
-        self.__check_trajectories()
+
+    def __parse_and_set_up_evaluation(self) -> None:
+        """
+        Parse the evaluation.
+        """
+        table = self.__root['evaluation']
+        if table is None:
+            return
+        table = self.__normalize_table(table, 'evaluation')
+
+        interval = table.get('interval', 1)
+        for generator in self.__objects['p_generators']:
+            self.__objects['system'].potentials.append(generator[1]())
+        simulation = _mdapps.evaluation.EVALUATION(
+            _os.path.abspath(table['file_name']),
+            self.__objects['system'],
+            trajectories=self.__objects['trajectories'],
+            loggers=self.__objects['loggers'],
+            interval=interval,
+            die_on_fail=bool(table['die_on_fail'])
+        )
+        for obj in self.__scripts:
+            simulation.post_step_objects.append(obj)
+        self.__objects['simulation'] = simulation
 
     def __parse_scripts(self) -> None:
         """
@@ -1251,101 +1257,44 @@ class TOMLPARSER(object):
         """
         Set up the simulation protocol.
         """
-        for generator in self.__potential_generators:
-            self.__system.potentials.append(generator[1]())
-        self.__simulation = _mdapps.simulations.SIMULATION(
-            self.__system,
-            self.__integrator,
-            barostat=self.__barostat,
-            loggers=self.__loggers,
-            trajectories=self.__trajectories,
+        for generator in self.__objects['p_generators']:
+            self.__objects['system'].potentials.append(generator[1]())
+        simulation = _mdapps.simulations.SIMULATION(
+            self.__objects['system'],
+            self.__objects['integrator'],
+            barostat=self.__objects['barostat'],
+            loggers=self.__objects['loggers'],
+            trajectories=self.__objects['trajectories'],
         )
         for obj in self.__scripts:
-            self.__simulation.post_step_objects.append(obj)
+            simulation.post_step_objects.append(obj)
         restart_file = self.__root['run']['restart_from']
         if restart_file is not None:
-            self.__simulation.restart_from(restart_file)
-
-    def __parse_active_learning(self) -> None:
-        """
-        Parse the active learning information.
-        """
-        table = self.__root['active_learning']
-        table = self.__normalize_table(table, 'active_learning')
-        excluded_names = ['plumed', 'nep', 'mace']
-        if table['reference_potentials'] is None:
-            reference_potentials = []
-            for i in range(0, len(self.__potential_generators)):
-                potential_name = self.__potential_generators[i][0]
-                if potential_name not in excluded_names:
-                    reference_potentials.append(i)
-            message = (
-                'Will use the following potentials as the reference '
-                + 'potentials: {}.'
-            )
-            _mdutils.warning.warn(message.format(reference_potentials))
-        else:
-            reference_potentials = table['reference_potentials']
-        for i in reference_potentials:
-            if i >= len(self.__potential_generators):
-                message = (
-                    'Unknown potential index: {:d} in the '
-                    + '[active_learning] table!'
-                )
-                raise IndexError(message.format(i))
-            potential_name = self.__potential_generators[i][0]
-            if potential_name in excluded_names:
-                message = (
-                    'You are using "{:s}" as one of the reference '
-                    + 'potentials! MAKE SURE THAT THIS IS WHAT YOU WANT!!'
-                )
-                _mdutils.warning.warn(message.format(potential_name.upper()))
-        if table['initial_training_set'] is not None:
-            table['initial_training_set'] = _os.path.abspath(
-                table['initial_training_set']
-            )
-        if table['initial_testing_set'] is not None:
-            table['initial_testing_set'] = _os.path.abspath(
-                table['initial_testing_set']
-            )
-        if table['initial_potential_files'] is not None:
-            table['initial_potential_files'] = [
-                _os.path.abspath(file)
-                for file in table['initial_potential_files']
-            ]
-        post_step_objects = [*self.__scripts]
-        if self.__barostat is not None:
-            post_step_objects.insert(0, self.__barostat)
-        generators = [g[1] for g in self.__potential_generators]
-        self.__simulation = _mdapps.active_learning.ACTIVELEARNING(
-            self.__system,
-            self.__integrator,
-            generators,
-            reference_potentials,
-            {k: v for k, v in table.items() if v is not None},
-            table['nep_options'],
-            table['nep_command'],
-            bool(table['use_tabulating']),
-            post_step_objects,
-            self.__root['run']['label'] + '.active_learning',
-        )
+            simulation.restart_from(restart_file)
+        self.__objects['simulation'] = simulation
 
     def run(self) -> None:
         """
         Run the simulation.
         """
-        if self.__root['active_learning'] is not None:
-            n_steps = self.__root['active_learning']['n_iterations']
-            self.__simulation.run(n_steps)
-        else:
-            if self.__root['run']['n_steps'] is not None:
-                n_steps = self.__root['run']['n_steps']
-                self.__simulation.run(n_steps)
-            else:
-                n_seconds = self.__root['run']['n_seconds']
-                self.__simulation.run_for_clock_time(
-                    n_seconds, self.__root['run']['label'] + '.restart.h5'
-                )
+        simulation = self.__objects['simulation']
+        print(simulation.summary())
+        if self.__root['evaluation'] is not None:
+            simulation.run()
+        elif self.__root['run']['n_steps'] is not None:
+            simulation.run(self.__root['run']['n_steps'])
+        elif self.__root['run']['n_seconds'] is not None:
+            simulation.run_for_clock_time(
+                self.__root['run']['n_seconds'],
+                self.__root['run']['label'] + '.restart.h5'
+            )
+
+    @property
+    def objects(self) -> _tp.Union:
+        """
+        The simulation objects.
+        """
+        return self.__object
 
     @property
     def file_name(self) -> str:
@@ -1359,4 +1308,4 @@ class TOMLPARSER(object):
         """
         The simulation protocol.
         """
-        return self.__simulation
+        return self.__objects['simulation']

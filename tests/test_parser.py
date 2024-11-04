@@ -40,25 +40,3 @@ def test_parser_1():
                            range(0, 8))
     _nt.assert_array_almost_equal(
         [parser.simulation.system.groups[2].temperature], [300], DECIMAL_F)
-
-
-def test_parser_2():
-    somd.utils.rng.seed(1)
-    indices = [68, 170, 183, 268, 370, 383]
-    restart_function = somd.apps.simulations.SIMULATION.restart_from
-    somd.apps.simulations.SIMULATION.restart_from = \
-        lambda *args, read_nhc_data = True, **kwargs: restart_function(
-            *args, read_nhc_data, **kwargs)
-    parser = somd.apps.parser.TOMLPARSER('./data/parser/2.toml')
-    parser.simulation.system.groups[0].has_translations = True
-    parser.simulation.integrator._nhchains[0].n_dof = 24
-    parser.run()
-    h5_root = _h5.File('2.active_learning.h5')['iteration_data/1']
-    _nt.assert_array_equal(h5_root['accepted_structure_indices'], indices)
-    msd = _np.loadtxt('data/active_learning/msd.dat')
-    msd = [msd[0], msd[3], msd[4]] * 2
-    _nt.assert_array_almost_equal(_np.array(h5_root['force_msd'])[indices],
-                                  _np.array(msd), DECIMAL_F)
-    somd.apps.simulations.SIMULATION.restart_from = restart_function
-    _os.remove('2.active_learning.h5')
-    _sh.rmtree('2.active_learning.dir')
