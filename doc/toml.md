@@ -1311,6 +1311,31 @@ evaluation task. Besides, The `[[script]]` array works with the evaluation task.
     **Descriptions**: If skip the conformations which cause the evaluation of
     the potentials to fail.
 
+**Examples**:
+```toml
+[evaluation]
+    file_name = "./run.trajectory.h5"
+    interval = 1
+```
+The below example is a complete input file for calculating potential energies
+of the conformations recorded in the file `run.trajectory.h5`, using the `nep`
+potential file `nep.txt`.
+```toml
+[system]
+    structure = "topo.pdb"
+[[potential]]
+    type = "nep"
+    file_name = "nep.txt"
+[[trajectory]]
+    format = "h5"
+    write_forces = true
+    write_velocities = false
+    interval = 1
+[evaluation]
+    file_name = "run.trajectory.h5"
+    interval = 1
+```
+
 ## The `[[script]]` array. <a name="script"></a>
 
 **If Mandatory**: no
