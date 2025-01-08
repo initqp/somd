@@ -547,7 +547,7 @@ class INTEGRATOR(object):
         return result
 
     @property
-    def system(self) -> str:
+    def system(self) -> _MDSYSTEM:
         """
         Reference to the bound system.
         """
