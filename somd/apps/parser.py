@@ -1294,7 +1294,7 @@ class TOMLPARSER(object):
         """
         The simulation objects.
         """
-        return self.__object
+        return self.__objects
 
     @property
     def file_name(self) -> str:
