@@ -387,9 +387,11 @@ class INTEGRATOR(object):
                 * _mdutils.constants.BOLTZCONST
             )
             g.velocities *= c_1
-            g.velocities += _mdutils.rng.standard_normal((g.n_atoms, 3)).dot(
-                c_2
-            ) / _np.sqrt(g.masses)
+            g.velocities += (
+                _mdutils.rng.standard_normal((g.n_atoms, 3))
+                * c_2
+                / _np.sqrt(g.masses)
+            )
             self.__energy_effective -= g.energy_kinetic
         self.__remove_com_motions()
 
