@@ -77,6 +77,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         calculate_virial: bool = True,
         compile_mode: str = None,
         compile_full_graph: bool = True,
+        enable_cueq: bool = False,
+        head_name: str = None,
     ) -> None:
         """
         Create a MACE instance.
@@ -114,6 +116,16 @@ class MACE(_mdcore.potential_base.POTENTIAL):
             self.__heads = model.heads
         except AttributeError:
             self.__heads = ['Default']
+        if head_name is not None:
+            self.__head = head_name
+        else:
+            self.__head = 'Default'
+        if self.__head not in self.__heads:
+            message = (
+                "Head '{}' not found in model '{}'! Available heads are: {} "
+                "(case sensitive)."
+            ).format(self.__head, self.__file_name, self.__heads)
+            raise ValueError(message)
         # try to compile
         if compile_mode is not None:
             if calculate_virial:
@@ -150,10 +162,18 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         elif dtype == torch.float32:
             self.__model = model.to(device).float()
             self.__dtype = 'float32'
+            torch.float32_matmul_precision('high')
         else:
             message = 'Unknown model dtype: "{:s}"'.format(str(dtype))
             raise RuntimeError(message)
         mace.tools.torch_tools.set_default_dtype(self.__dtype)
+        # cueq
+        self.__enable_cueq = enable_cueq
+        if enable_cueq:
+            from mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
+            self.__model = run_e3nn_to_cueq(
+                self.__model, device=device
+            ).to(device)
         self.__r_max = float(model.r_max.cpu().numpy())
         self.__z_table = mace.tools.utils.AtomicNumberTable(
             [int(z) for z in model.atomic_numbers]
@@ -172,12 +192,14 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         result += '┣━ file_name: {}\n'.format(self.__file_name)
         result += '┣━ mace_version: {}\n'.format(self.__mace.__version__)
         result += '┣━ heads: {}\n'.format(self.__heads)
+        result += '┣━ head: {}\n'.format(self.__head)
         result += '┣━ dtype: {}\n'.format(self.__dtype)
         result += '┣━ device: {}\n'.format(self.__device)
         result += '┣━ r_max: {}\n'.format(self.__r_max)
         result += '┣━ z_table: {}\n'.format(self.__z_table)
         result += '┣━ compile_mode: {}\n'.format(self.__comile_mode)
         result += '┣━ compile_full_graph: {}\n'.format(self.__full_graph)
+        result += '┣━ enable_cueq: {}\n'.format(self.__enable_cueq)
         if _d.VERBOSE:
             result += '┣━ atom_list: {}\n'.format(self.atom_list)
         result += '┗━ END'
@@ -195,17 +217,9 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         configure = self.__mace.data.utils.Configuration(
             atomic_numbers=self.__atomic_types,
             positions=system.positions[self.atom_list] / self.__length_unit,
-            energy=0.0,
-            forces=self.__input_forces,
-            stress=self.__input_stress,
-            virials=self.__input_virial,
-            dipole=None,
-            charges=self.__input_charges,
+            properties={},
+            property_weights={},
             weight=1.0,
-            energy_weight=0.0,
-            forces_weight=0.0,
-            stress_weight=0.0,
-            virials_weight=0.0,
             config_type='Default',
             pbc=self.__input_pbc,
             cell=system.box / self.__length_unit,

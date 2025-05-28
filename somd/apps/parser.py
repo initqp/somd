@@ -118,6 +118,8 @@ class TOMLPARSER(object):
         'compile_full_graph': __value__(
             [bool], False, __dep__('type', ['mace'])
         ),
+        'head_name': __value__([str], False, __dep__('type', ['mace'])),
+        'enable_cueq': __value__([bool], False, __dep__('type', ['mace'])),
         'extra_cv_potential_index': __value__(
             [int], False, __dep__('type', ['plumed'])
         ),
@@ -835,6 +837,10 @@ class TOMLPARSER(object):
             full_graph = True
         else:
             full_graph = inp['compile_full_graph']
+        if inp['enable_cueq'] is None:
+            enable_cueq = False
+        else:
+            enable_cueq = inp['enable_cueq']
         atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.MACE.generator(
             atom_list,
@@ -846,7 +852,9 @@ class TOMLPARSER(object):
             model_dtype,
             calculate_virial,
             inp['compile_mode'],
-            full_graph
+            full_graph,
+            enable_cueq,
+            inp['head_name']
         )
 
     def __parse_potential_plumed(
