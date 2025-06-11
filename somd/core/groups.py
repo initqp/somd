@@ -156,6 +156,12 @@ class ATOMGROUP(object):
         ----------
         temperature : float
             The initial temperature. In unit of (K).
+
+        NOTES
+        -----
+        The PBC is not considered here. Thus if your group is truncated by
+        the PBC (e.g., the group is corresponding to a single molecule), the
+        overall rotational momentum of this group may not equal to zero.
         """
         if self.n_dof == 0:
             message = 'Number of DOF of group "{}" has not been calculated!'
@@ -170,6 +176,8 @@ class ATOMGROUP(object):
         # remove COM translational motions
         v -= (v * self.masses).sum(axis=0) / self.masses.sum()
         # remove COM rotational motions
+        # NOTE: this is only accurate when all the atoms are inside the same
+        # PBC cell.
         d = self.positions - self.com_positions
         L = _np.cross(d, v * self.masses).sum(axis=0)
         I = _np.zeros((3, 3), dtype=_np.double)
@@ -360,6 +368,10 @@ class ATOMGROUP(object):
     def com_positions(self) -> _np.ndarray:
         """
         Center of mass positions of this group.
+
+        NOTES
+        -----
+        The PBC is not considered here. Use with extra caution.
         """
         q = self.positions * self.masses
         return q.sum(axis=0) / self.masses.sum()
