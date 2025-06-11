@@ -385,6 +385,21 @@ class ATOMGROUP(object):
         self.positions += q - self.com_positions
 
     @property
+    def com_positions_phase(self) -> _np.ndarray:
+        """
+        Center of mass positions of this group, considering the PBC. The code
+        was taken from:
+        https://github.com/plumed/plumed2/blob/master/src/vatom/Center.cpp
+        """
+        box_t = self.__snapshot.box.T
+        w = self.masses / self.masses.sum()
+        s = (_np.linalg.pinv(box_t).dot(self.positions.T)).T % 1
+        c_sin = (w * _np.sin(2 * _np.pi * s)).sum(axis=0)
+        c_cos = (w * _np.cos(2 * _np.pi * s)).sum(axis=0)
+        c_s = (_np.arctan(c_sin / c_cos) / _np.pi / 2) % 1
+        return (box_t.dot(c_s.T)).T
+
+    @property
     def com_velocities(self) -> _np.ndarray:
         """
         Center of mass translational velocities of this group.

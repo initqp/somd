@@ -135,3 +135,12 @@ def test_com():
     system.groups[0].com_positions += [1.0, 1.0, 1.0]
     result = _np.array([1.5, 1.5, 1.0], dtype=_np.double)
     _nt.assert_almost_equal(system.groups[0].com_positions, result, DECIMAL_D)
+
+    system.groups[0].com_positions += [10.0, 10.0, 10.0]
+    result = _np.array([11.5, 11.5, 11.0], dtype=_np.double)
+    _nt.assert_almost_equal(system.groups[0].com_positions, result, DECIMAL_D)
+    system.groups[0].com_positions += [10.0, 10.0, 10.0]
+    result = _np.array([1.5, 1.5, 1.0], dtype=_np.double)
+    _nt.assert_almost_equal(
+        system.groups[0].com_positions_phase, result, DECIMAL_D
+    )
