@@ -180,13 +180,13 @@ class BAROSTAT(_apputils.post_step.POSTSTEPOBJ):
         mu = self.__calc_mu_deterministic()
         self.__system.box[:] = mu.dot(self.__system.box.T).T
         if len(self.__system.groups.segments) > 0:
-            for seg in self.__system.groups.segments:
-                seg.com_positions = mu.dot(seg.com_positions.T).T
-            self.__system.positions[self.__single_atoms, :] = mu.dot(
-                self.__system.positions[self.__single_atoms].T
-            ).T
+            raise NotImplementedError(
+                'Can not apply barostats with constraints!'
+            )
         else:
-            self.__system.positions[:] = mu.dot(self.__system.positions.T).T
+            self.__system.positions[:] = mu.dot(
+                self.__system.positions_wrapped.T
+            ).T
 
     @property
     def relaxation_time(self) -> float:
