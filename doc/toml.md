@@ -270,9 +270,11 @@ to be present.
       `pseudopotential_dir`
     - **`"dftd3"`**: `atom_list`, `functional`, `damping`, `atm`
     - **`"dftd4"`**: `atom_list`, `functional`, `total_charge`, `atm`
+    - **`"tblite"`**: `atom_list`, `functional`, `total_charge`, `total_spin`
     - **`"nep"`**: `atom_list`, `file_name`, `use_tabulating`
     - **`"mace"`**: `atom_list`, `file_name`, `device`, `virial`, `energy_unit`,
-      `length_unit`, `compile_mode`, `compile_full_graph`
+      `length_unit`, `compile_mode`, `compile_full_graph`, `total_charge`,
+      `total_spin`
     - **`"plumed"`**: `file_name`
 
 - **`atom_list`**
@@ -400,7 +402,7 @@ to be present.
 
     **Default Value**: `0`
 
-    **Dependency**: `type = "dftd4"` or `type = "tblite"`
+    **Dependency**: `type = "dftd4"` or `type = "tblite"` or `type = "mace"`
 
     **Descriptions**: The net charge of the simulated system.
 
@@ -414,7 +416,7 @@ to be present.
 
     **Default Value**: `0`
 
-    **Dependency**: `type = "tblite"`
+    **Dependency**: `type = "tblite"` or `type = "mace"`
 
     **Descriptions**: The net spin ($N_{alpha} - N_{beta}$) of the simulated
     system.

@@ -101,9 +101,11 @@ class TOMLPARSER(object):
         'damping': __value__([str], False, __dep__('type', ['dftd3'])),
         'atm': __value__([bool], False, __dep__('type', ['dftd3', 'dftd4'])),
         'total_charge': __value__(
-            [int], False, __dep__('type', ['dftd4', 'tblite'])
+            [int], False, __dep__('type', ['dftd4', 'tblite', 'mace'])
         ),
-        'total_spin': __value__([int], False, __dep__('type', ['tblite'])),
+        'total_spin': __value__(
+            [int], False, __dep__('type', ['tblite', 'mace'])
+        ),
         '_pbc': __value__([bool], False, __dep__('type', ['tblite'])),
         'file_name': __value__(
             [str], True, __dep__('type', ['plumed', 'nep', 'mace'])
@@ -841,6 +843,14 @@ class TOMLPARSER(object):
             enable_cueq = False
         else:
             enable_cueq = inp['enable_cueq']
+        if inp['total_charge'] is None:
+            total_charge = 0
+        else:
+            total_charge = inp['total_charge']
+        if inp['total_spin'] is None:
+            total_spin = 0
+        else:
+            total_spin = inp['total_spin']
         atom_types = self.__objects['system'].atomic_types[atom_list]
         return _potentials.MACE.generator(
             atom_list,
@@ -854,7 +864,9 @@ class TOMLPARSER(object):
             inp['compile_mode'],
             full_graph,
             enable_cueq,
-            inp['head_name']
+            inp['head_name'],
+            total_charge,
+            total_spin,
         )
 
     def __parse_potential_plumed(
