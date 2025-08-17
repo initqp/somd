@@ -57,6 +57,10 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         Mode of compiling the model (see torch.compile for details).
     compile_full_graph : bool
         The `fullgraph` parameter of torch.compile.
+    total_charge : int
+        Total charges of the atoms included by this potential.
+    total_spin : int
+        Total spins (N_alpha - N_beta) of the atoms included by this potential.
 
     References
     ----------
@@ -79,6 +83,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         compile_full_graph: bool = True,
         enable_cueq: bool = False,
         head_name: str = None,
+        total_charge: int = 0,
+        total_spin: int = 0,
     ) -> None:
         """
         Create a MACE instance.
@@ -91,10 +97,8 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         self.__full_graph = compile_full_graph
         self.__atomic_types = _np.array(atomic_types, dtype=int).reshape(-1)
         self.__input_pbc = _np.array([True] * 3, dtype=bool)
-        self.__input_forces = _np.zeros((len(atom_list), 3), dtype=float)
-        self.__input_virial = _np.zeros((3, 3), dtype=float)
-        self.__input_stress = _np.zeros(6, dtype=float)
-        self.__input_charges = _np.zeros(len(atom_list), dtype=float)
+        self.__total_spin = total_spin
+        self.__total_charge = total_charge
         # treat MACE as a local dependency
         try:
             import torch
@@ -187,6 +191,16 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         """
         Show information about the potential.
         """
+        # TODO: allow to change embeeding keys.
+        has_charge_emb = (
+            hasattr(self.__model, 'joint_embedding')
+            and hasattr(self.__model.joint_embedding.embedders, 'total_charge')
+        )
+        has_spin_emb = (
+            hasattr(self.__model, 'joint_embedding')
+            and hasattr(self.__model.joint_embedding.embedders, 'total_spin')
+        )
+
         result = '{}\n'.format(self.__class__.__name__)
         result += '┣━ n_atoms: {}\n'.format(self.n_atoms)
         result += '┣━ file_name: {}\n'.format(self.__file_name)
@@ -202,6 +216,15 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         result += '┣━ enable_cueq: {}\n'.format(self.__enable_cueq)
         if _d.VERBOSE:
             result += '┣━ atom_list: {}\n'.format(self.atom_list)
+        result += '┣━ calculate_virial: {}\n'.format(self.__calculate_virial)
+        result += '┣━ total_charge: {} ({})\n'.format(
+            self.__total_charge,
+            'functional' if has_charge_emb else 'unfunctional'
+        )
+        result += '┣━ total_spin: {} ({})\n'.format(
+            self.__total_spin,
+            'functional' if has_spin_emb else 'unfunctional'
+        )
         result += '┗━ END'
         return result
 
@@ -214,24 +237,28 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         system : somd.systems.MDSYSTEM
             The simulated system.
         """
+        system_properties = {
+            'total_charge': self.__total_charge,
+            'total_spin': self.__total_spin + 1,
+        }
         configure = self.__mace.data.utils.Configuration(
             atomic_numbers=self.__atomic_types,
             positions=system.positions[self.atom_list] / self.__length_unit,
-            properties={},
+            properties=system_properties,
             property_weights={},
             weight=1.0,
             config_type='Default',
             pbc=self.__input_pbc,
             cell=system.box / self.__length_unit,
         )
-        data_set = self.__mace.data.AtomicData.from_config(
+        dataset = self.__mace.data.AtomicData.from_config(
             configure,
             z_table=self.__z_table,
             cutoff=self.__r_max,
             heads=self.__heads
         )
         data_loader = self.__mace.tools.torch_geometric.dataloader.DataLoader(
-            dataset=[data_set], batch_size=1, shuffle=False, drop_last=False
+            dataset=[dataset], batch_size=1, shuffle=False, drop_last=False
         )
         batch = next(iter(data_loader)).to(self.__device).to_dict()
         if self.__comile_mode is not None:
