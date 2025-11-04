@@ -64,17 +64,24 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         super().__init__(atom_list)
         self.__file_name = file_name
         self.__use_tabulating = use_tabulating
-        if use_tabulating:
-            from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
-        else:
-            from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
-        self.__nep = _NEPWRAPPER(file_name, atomic_symbols)
+        # only fail in runtime
+        try:
+            if use_tabulating:
+                from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
+            else:
+                from ._nepwrapper import NEPWRAPPER as _NEPWRAPPER
+            self.__nep = _NEPWRAPPER(file_name, atomic_symbols)
+        except ImportError:
+            self.__nep = None
         self.__conversion = _c.AVOGACONST * _c.ELECTCONST
 
     def summary(self) -> str:
         """
         Show information about the potential.
         """
+        if self.__nep is None:
+            raise RuntimeError('NEP not installed!')
+
         zbl = self.__nep.zbl_info
         ann = self.__nep.ann_info
         paramb = self.__nep.paramb_info
@@ -108,6 +115,9 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         system : somd.systems.MDSYSTEM
             The simulated system.
         """
+        if self.__nep is None:
+            raise RuntimeError('NEP not installed!')
+
         self.virial[:] = 0.0
         self.energy_potential[0] = self.__nep.calculate(
             system.box * 10,
@@ -136,4 +146,6 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         Clean up.
         """
         super().finalize()
-        self.__nep.dealloc()
+
+        if self.__nep is not None:
+            self.__nep.dealloc()

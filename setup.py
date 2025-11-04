@@ -71,6 +71,9 @@ extensions = [
     ),
 ]
 
+if not os.path.isfile('somd/potentials/src/NEP_CPU/src/nep.cpp'):
+    extensions = extensions[0]
+
 metadata = dict(
     name='somd',
     author='github.com/initqp',
