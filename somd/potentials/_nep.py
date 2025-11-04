@@ -64,7 +64,7 @@ class NEP(_mdcore.potential_base.POTENTIAL):
         super().__init__(atom_list)
         self.__file_name = file_name
         self.__use_tabulating = use_tabulating
-        # only fail in runtime
+        # only fail at runtime
         try:
             if use_tabulating:
                 from ._nepwrapper_t import NEPWRAPPER as _NEPWRAPPER
