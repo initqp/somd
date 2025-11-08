@@ -149,12 +149,16 @@ class PLUMED(_mdcore.potential_base.POTENTIAL):
                 raise RuntimeError(message)
             name = list(cv.keys())[0]
             if type(cv[name]) is str:
+                rank = _np.zeros(1, dtype=_np.int_)
                 data = _np.zeros(1, dtype=_np.double)
                 if cv[name] == '':
-                    command = 'setMemoryForData ' + name
+                    command_1 = 'getDataRank ' + name
+                    command_2 = 'setMemoryForData ' + name
                 else:
-                    command = 'setMemoryForData ' + name + '.' + cv[name]
-                self.__plumed.cmd(command, data)
+                    command_1 = 'getDataRank ' + name + '.' + cv[name]
+                    command_2 = 'setMemoryForData ' + name + '.' + cv[name]
+                self.__plumed.cmd(command_1, rank)
+                self.__plumed.cmd(command_2, data)
                 self.__cv_values.append(data)
             else:
                 message = 'Type of CV components should be str!'
