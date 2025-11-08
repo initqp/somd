@@ -1298,7 +1298,7 @@ class TOMLPARSER(object):
         Run the simulation.
         """
         simulation = self.__objects['simulation']
-        print(simulation.summary())
+        print(simulation.summary(), flush=True)
         if self.__root['evaluation'] is not None:
             simulation.run()
         elif self.__root['run']['n_steps'] is not None:
