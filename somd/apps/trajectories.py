@@ -226,15 +226,15 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         Collect system snapshot data.
         """
         if self.__wrap_positions:
-            self.__positions = self.__system.positions_wrapped
+            self.__positions[:] = self.__system.positions_wrapped
         else:
-            self.__positions = self.__system.positions
+            self.__positions[:] = self.__system.positions
         if self.__potential_list is None:
             self.__energy_potential[0] = self.__system.energy_potential
             if self.__write_forces:
-                self.__forces = self.__system.forces
+                self.__forces[:] = self.__system.forces
             if self.__write_virial:
-                self.__virial = self.__system.virial
+                self.__virial[:] = self.__system.virial
         else:
             self.__energy_potential[0] = 0.0
             for i in self.__potential_list:
@@ -327,7 +327,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         super().bind_integrator(integrator)
         self.__system = integrator.system
         self.__energy_potential = _np.zeros((1,), dtype=_np.double)
-        self.__positions = None
+        self.__positions = _np.zeros((self.__system.n_atoms, 3), _np.double)
         if self.__write_forces:
             self.__forces = _np.zeros((self.__system.n_atoms, 3), _np.double)
         if self.__write_virial:
