@@ -352,7 +352,7 @@ class TOMLPARSER(object):
                         ):
                             message = 'Unknown atom range: "{}"'.format(s)
                             raise SyntaxError(message)
-                        for i in range(int(l[0]), int(l[1]) + 1):
+                        for i in range(int(l[0]), int(l[1])):
                             result.append(i)
         else:
             message = 'Type of key "atom_list" could only be List[int] or str!'

@@ -100,7 +100,7 @@ define multiple atom groups.
     atom_list = [0, 1, 2, 5, 7, 8, 9]
     ```
     ```toml
-    atom_list = "0:2,5,7:9"
+    atom_list = "0:3,5,7:10"
     ```
     If you would like to define a group that contains all atoms in the system,
     you may invoke the following syntactic sugar:
