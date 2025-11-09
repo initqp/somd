@@ -166,7 +166,6 @@ class MACE(_mdcore.potential_base.POTENTIAL):
         elif dtype == torch.float32:
             self.__model = model.to(device).float()
             self.__dtype = 'float32'
-            torch.set_float32_matmul_precision('high')
         else:
             message = 'Unknown model dtype: "{:s}"'.format(str(dtype))
             raise RuntimeError(message)
