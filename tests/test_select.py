@@ -26,7 +26,7 @@ def test_select():
     system.potentials.append(neps[0])
     integrator = somd.core.integrators.nhc_integrator(0.001)
     writer = somd.apps.trajectories.H5WRITER(
-        'traj0.h5', write_forces=True, use_double=True
+        'traj0.h5', write_forces=True, use_double=True, potential_list=[0]
     )
     simulation = somd.apps.simulations.SIMULATION(
         system, integrator, trajectories=[writer]
