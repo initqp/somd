@@ -231,22 +231,25 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
             self.__positions = self.__system.positions
         if self.__potential_list is None:
             self.__energy_potential[0] = self.__system.energy_potential
+            if self.__write_forces:
+                self.__forces = self.__system.forces
+            if self.__write_virial:
+                self.__virial = self.__system.virial
         else:
+            self.__energy_potential[0] = 0.0
             for i in self.__potential_list:
                 e = self.__system.potentials[i].energy_potential
                 self.__energy_potential[0] += e
-        if self.__write_forces and (self.__potential_list is None):
-            self.__forces = self.__system.forces
-        elif self.__potential_list is not None:
-            for i in self.__potential_list:
-                atom_list = self.__system.potentials[i].atom_list
-                f = self.__system.potentials[i].forces
-                self.__forces[atom_list, :] += f
-        if self.__write_virial and (self.__potential_list is None):
-            self.__virial = self.__system.virial
-        elif self.__potential_list is not None:
-            for i in self.__potential_list:
-                self.__virial[:] += self.__system.potentials[i].virial
+            if self.__write_forces:
+                self.__forces[:] = 0.0
+                for i in self.__potential_list:
+                    atom_list = self.__system.potentials[i].atom_list
+                    f = self.__system.potentials[i].forces
+                    self.__forces[atom_list, :] += f
+            if self.__write_virial:
+                self.__virial[:] = 0.0
+                for i in self.__potential_list:
+                    self.__virial[:] += self.__system.potentials[i].virial
 
     def _write_snapshot(self) -> None:
         """
