@@ -238,7 +238,7 @@ class H5WRITER(_apputils.post_step.POSTSTEPOBJ):
         else:
             self.__energy_potential[0] = 0.0
             for i in self.__potential_list:
-                e = self.__system.potentials[i].energy_potential
+                e = self.__system.potentials[i].energy_potential[0]
                 self.__energy_potential[0] += e
             if self.__write_forces:
                 self.__forces[:] = 0.0
@@ -495,8 +495,8 @@ class EXYZWRITER(_apputils.post_step.POSTSTEPOBJ):
         else:
             self.__energy_potential[0] = 0.0
             for i in self.__potential_list:
-                p = self.__system.potentials[i].energy_potential
-                self.__energy_potential[0] += p
+                e = self.__system.potentials[i].energy_potential[0]
+                self.__energy_potential[0] += e
             self.__energy_potential[0] /= self.__conversion * 0.001
             self.__energy_potential[0] -= self.__energy_shift[0]
             if self.__write_forces:
