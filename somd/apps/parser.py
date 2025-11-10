@@ -22,6 +22,7 @@ A simple TOML input paser.
 
 import os as _os
 import typing as _tp
+import mdtraj as _mdt
 from collections import namedtuple as _namedtuple
 from somd import core as _mdcore
 from somd import apps as _mdapps
@@ -335,6 +336,28 @@ class TOMLPARSER(object):
         elif isinstance(inp, str):
             if inp.lower() == 'all':
                 result = list(range(0, self.__objects['system'].n_atoms))
+            elif inp.lower()[:4] == 'mdt:':
+                if self.__objects['structure_file'] is None:
+                    message = (
+                        'Atom selection based on MDTraj requires a PDB '
+                        + 'structure file (defined in the [system] table)!'
+                    )
+                    raise SyntaxError(message)
+                else:
+                    selection = inp[4:]
+                    top = _mdt.load(self.__objects['structure_file']).top
+                    try:
+                        result = top.select(selection).tolist()
+                    except Exception as e:
+                        message = (
+                            'Can not parse selection string "{}", reason: {}'
+                        )
+                        raise RuntimeError(message.format(selection, e))
+                    if len(result) == 0:
+                        message = (
+                            'Selection string "{}" does not select any atom!'
+                        )
+                        raise RuntimeError(message.format(selection))
             else:
                 result = []
                 for s in inp.split(','):
@@ -460,10 +483,12 @@ class TOMLPARSER(object):
             system = _mdcore.systems.create_system_from_pdb(
                 table['structure']
             )
+            self.__objects['structure_file'] = table['structure']
         elif table['format'] == 'poscar':
             system = _mdcore.systems.create_system_from_poscar(
                 table['structure']
             )
+            self.__objects['structure_file'] = None
         else:
             message = 'Structure file could only be in PDB or POSCAR format!'
             raise RuntimeError(message)
