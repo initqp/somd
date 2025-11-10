@@ -144,7 +144,7 @@ class MDSYSTEM(object):
         segments = [s.atom_list.tolist() for s in self.segments]
         type_list = self.atomic_types.squeeze().tolist()
         mass_map = {
-            t: self.masses[type_list.index(t)][0] for t in set(type_list)
+            t: self.masses[type_list.index(t)].item() for t in set(type_list)
         }
         symbol_map = {
             t: self.atomic_symbols[type_list.index(t)] for t in set(type_list)
