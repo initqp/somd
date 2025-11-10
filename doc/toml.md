@@ -107,6 +107,14 @@ define multiple atom groups.
     ```toml
     atom_list = "all"
     ```
+    SOMD also supports atom selection through the `MDTraj` package. Such a
+    selection, however, will require the input structure file to be in the PDB
+    format (see the [`[system]`](#system) table.). If a PDB file is given,
+    the `MDTraj`-based selection could be triggered by the following syntex:
+    ```toml
+    atom_list = "mdt: selection"
+    ```
+    whereas string after the `mdt:` prefix will be passed to `MDTraj`.
 
     **Notes**: In SOMD, atom indices start from **ZERO**.
 

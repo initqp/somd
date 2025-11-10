@@ -40,3 +40,19 @@ def test_parser_1():
                            range(0, 8))
     _nt.assert_array_almost_equal(
         [parser.simulation.system.groups[2].temperature], [300], DECIMAL_F)
+
+
+def test_parser_2():
+    parser = somd.apps.parser.TOMLPARSER('./data/parser/2.toml')
+    _nt.assert_array_equal(
+        parser.simulation.system.groups[0].atom_list,
+        _np.arange(8),
+    )
+    _nt.assert_array_equal(
+        parser.simulation.system.groups[1].atom_list,
+        [1, 2, 3, 5, 6, 7],
+    )
+    _nt.assert_array_equal(
+        parser.simulation.system.groups[2].atom_list,
+        [0, 4],
+    )
